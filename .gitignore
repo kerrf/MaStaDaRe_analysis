@@ -211,3 +211,28 @@ __marimo__/
 data
 TODO.md
 .vscode
+
+# Logs
+frontend/logs
+*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+frontend/.idea
+frontend/.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
