@@ -7,6 +7,7 @@ from alive_progress import alive_bar
 from bs4 import BeautifulSoup
 from zipfile import ZipFile
 
+from backend.app.services.logger import setup_logging
 
 class Downloader_MSDR():
     """Handles the scraping, downloading, and extraction of MaStR data."""
@@ -48,8 +49,13 @@ class Downloader_MSDR():
         with ZipFile(src, "r") as z:
             z.extractall(dest)
             
-downloader = Downloader_MSDR()
 
-# url, file_size = downloader.get_downlad_url()
-# downloader.download_zip(url, "Gesamtdatenexport.zip", "/home/kerf/energy_projects/mastadatregpv_korrekt-main/data/raw", file_size*1000)
-downloader.unpack_zip("/home/kerf/energy_projects/mastadatregpv_korrekt-main/backend/data/raw/Gesamtdatenexport.zip", "/home/kerf/energy_projects/mastadatregpv_korrekt-main/backend/data/raw/Gesamtdatenexport_xml")
+if __name__ == "__main__":
+    
+    setup_logging
+    
+    downloader = Downloader_MSDR()
+
+    # url, file_size = downloader.get_downlad_url()
+    # downloader.download_zip(url, "Gesamtdatenexport.zip", "/home/kerf/energy_projects/mastadatregpv_korrekt-main/data/raw", file_size*1000)
+    downloader.unpack_zip("/home/kerf/energy_projects/mastadatregpv_korrekt-main/backend/data/raw/Gesamtdatenexport.zip", "/home/kerf/energy_projects/mastadatregpv_korrekt-main/backend/data/raw/Gesamtdatenexport_xml")

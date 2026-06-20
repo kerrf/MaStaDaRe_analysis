@@ -206,13 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# All the rest
-*.shp
-data
-TODO.md
-.vscode
-*tempCodeRunnerFile.py
-
 # Logs
 frontend/logs
 *.log
@@ -237,3 +230,18 @@ frontend/.DS_Store
 *.njsproj
 *.sln
 *.sw?
+
+# Frontend
+
+# Backend
+
+# Remaining
+
+test.ipynb
+*.shp
+data
+TODO.md
+.vscode
+*tempCodeRunnerFile.py
+commit_names.md
+*.ipynb
