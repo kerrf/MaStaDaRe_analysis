@@ -1,0 +1,94 @@
+name: CI/CD Pipeline
+
+# 1. Triggers: When should this run?
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ==========================================
+  # BACKEND CI: FastAPI
+  # ==========================================
+  backend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend # Run all steps in the backend folder
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11" # Match your project's version
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Linter (Ruff or Flake8)
+        run: |
+          pip install ruff
+          ruff check .
+
+      - name: Run Tests (Pytest)
+        run: |
+          pip install pytest
+          pytest
+
+  # ==========================================
+  # FRONTEND CI: React
+  # ==========================================
+  frontend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend # Run all steps in the frontend folder
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Match your project's version
+          cache: "npm"
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm test -- --passWithNoTests # Adjust based on your test runner
+
+      - name: Build React App
+        run: npm run build
+
+  # ==========================================
+  # CONTINUOUS DEPLOYMENT (CD)
+  # ==========================================
+  deploy:
+    # Only run deployment if both CI jobs pass AND it's a push to main
+    needs: [backend-ci, frontend-ci]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Frontend to Vercel/Netlify/S3
+        run: echo "Add your frontend deployment script here!"
+        
+      - name: Deploy Backend to Render/AWS/Heroku
+        run: echo "Add your backend deployment script here!"
