@@ -211,6 +211,7 @@ __marimo__/
 data
 TODO.md
 .vscode
+*tempCodeRunnerFile.py
 
 # Logs
 frontend/logs

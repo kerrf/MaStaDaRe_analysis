@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: mastr_db
+    restart: always
+    environment:
+      POSTGRES_DB: mastr
+      POSTGRES_USER: mastr
+      POSTGRES_PASSWORD: mastr
+    ports:
+      - "127.0.0.1:5432:5432" # Forces it to bind to IPv4 specifically
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mastr -d mastr"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
