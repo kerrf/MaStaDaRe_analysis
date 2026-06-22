@@ -1,12 +1,44 @@
 """Constants"""
 
 import os
+
+from typing import List
+from pydantic import field_validator
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    )
 from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv()
 
-RAW_DATA_PATH = Path(os.environ["RAW_DATA_PATH"])
+class Settings(BaseSettings):
+    DATABASE_URL: str
+    
+    PRECALC_QUERIES: list[str] = [
+        "aggregate_by_plz.sql",
+        "aggregate_by_month.sql",
+        "aggregate_by_operator_type.sql",
+        "calculate_growth_rates.sql"
+    ]
+    
+    API_PREFIX: str
+    ALLOW_ORIGINS : str
+    DEBUG : bool
+    
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    def parse_allowed_origins(cls, v: str) -> List[str]:
+        return v.split(",") if v else []
+    
+    model_config = SettingsConfigDict(
+            env_file=".env",
+            env_file_encoding="utf-8",
+            case_sensitive=True,
+            extra="ignore"
+        )
+        
+settings = Settings()
 
 RELEVANT_COLUMNS = [
     "EinheitMastrNummer",
