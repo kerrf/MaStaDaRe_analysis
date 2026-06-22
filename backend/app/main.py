@@ -12,11 +12,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-app = FastAPI()
+app = FastAPI(
+    title="Get Data from Marktstammdatenregister"
+    description="api to fetch data from the Marktstammdatenregister-abbrevated database"
+    version="0.1.0"
+    docs_url="/docs"
+    redocs_url="/redoc"
+)
 
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://mastr-data.de"
+    "https://www.mastr-data.de"
+    "https://my-frontend.vercel.app"
 ]
 
 # Allow React (running on port 5173) to talk to Python
