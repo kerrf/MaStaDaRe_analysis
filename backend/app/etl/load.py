@@ -14,6 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from itertools import islice
 from matplotlib.colors import LinearSegmentedColormap
+from sqlalchemy import text
+
+from app.db.database import SessionLocal
+from app.core.config import settings
+
+
+
 
 # Grab the directory this file is in (etl/), then grab its parent (backend/)
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -241,7 +248,34 @@ def get_plz5_heatmap_image():
         
     print(f"✅ Heatmap bounds saved to {bounds_save_path}")
     
+
+def run_all_precalculations():
+    """Reads SQL files and runs them sequentially inside the database."""
+    db = SessionLocal()
+    queries_dir = os.path.join(os.path.dirname(__file__), "queries")
     
+    print("🚀 Starting table precalculations...")
+    
+    try:
+        for query_file in settings.PRECALC_QUERIES:
+            print(block := f" -> Computing {query_file}...")
+            file_path = os.path.join(queries_dir, query_file)
+            
+            with open(file_path, "r") as f:
+                sql_script = f.read()
+                
+            # Execute the raw SQL directly inside Postgres
+            db.execute(text(sql_script))
+            db.commit()
+            
+        print("✅ All analytical tables precalculated successfully!")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error during precalculation: {e}")
+        raise e
+    finally:
+        db.close()
+
 if __name__ == "__main__":
     get_plz2_data()
     get_plz5_data()
