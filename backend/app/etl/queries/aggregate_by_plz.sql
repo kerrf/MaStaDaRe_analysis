@@ -1,11 +1,14 @@
--- Clear out the old precalculated data for this dashboard view
-TRUNCATE TABLE summary_by_plz;
+CREATE SCHEMA IF NOT EXISTS mrt;
 
--- Recalculate everything fresh from the raw staging data
-INSERT INTO summary_by_plz (plz, total_capacity, unit_count)
+DROP TABLE IF EXISTS stg.solar_units_plz_agg;
+
+CREATE TABLE stg.solar_units_plz_agg AS
 SELECT 
-    plz, 
-    SUM(netto_leistung_kw), 
-    COUNT(id)
-FROM raw_mastr_data
-GROUP BY plz;
+    "Postleitzahl",
+    SUM("Bruttoleistung") AS total_power,
+    COUNT("EinheitMastrNummer") AS unit_count
+FROM raw.solar_units
+WHERE "Postleitzahl" IS NOT NULL
+GROUP BY "Postleitzahl";
+
+CREATE INDEX idx_stg_solar_plz ON stg.solar_units_plz_agg ("Postleitzahl");
