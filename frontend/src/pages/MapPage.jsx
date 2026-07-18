@@ -129,29 +129,30 @@ const SidebarItem = ({ label, options, isSingleChoice, onSelect, currentSelectio
 };
 // --- UNIFIED MAP CARD ---
 
-function SeparateMapCard({ title, geoData }) {
+function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
   const geoJsonRef = useRef();
-  const densities = useMemo(() => geoData.features.map(f => f.properties.dichte_leistung || 0), [geoData]);
-  const minDensity = Math.min(...densities);
-  const maxDensity = Math.max(...densities);
+  
+  const values = useMemo(() => geoData.features.map(f => f.properties[valueKey] || 0), [geoData, valueKey]);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
 
-  const getColor = (d) => {
-    const t = (d - minDensity) / (maxDensity - minDensity);
+  const getColor = (val) => {
+    if (maxValue === minValue) return 'rgb(255, 255, 0)';
+    const t = (val - minValue) / (maxValue - minValue);
     if (t < 0.5) return `rgb(255, ${Math.round(255 * (1 - t * 2))}, 0)`;
     return `rgb(${Math.round(255 * (1 - (t - 0.5) * 2))}, 0, 0)`;
   };
 
   const onEachFeature = (feature, layer) => {
+    const props = feature.properties;
     const tooltipContent = `
       <div style="text-align: left; font-family: sans-serif; color: #333;">
         <h3 style="margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid #0b4ea2; padding-bottom: 2px;">
-          PLZ: ${feature.properties.plz}
+          Region: ${props.plz || props.name || 'Unbekannt'}
         </h3>
         <div style="font-size: 13px; line-height: 1.4;">
-          <strong>Anzahl:</strong> ${feature.properties.count_PV || 0}<br/>
-          <strong>Agg. Leistung:</strong> ${feature.properties.aggr_leistung?.toFixed(8) || 0}<br/>
-          <strong>Leistungsdichte nach qḱm:</strong> ${feature.properties.dichte_leistung_area?.toFixed(8) || 0}<br/>
-          <strong>Leistungsdichte nach qḱm:</strong> ${feature.properties.dichte_leistung_population?.toFixed(8) || 0}<br/>
+          <strong>Anzahl Anlagen:</strong> ${props.total_units?.toLocaleString() || 0}<br/>
+          <strong>Installierte Leistung (kW):</strong> ${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0}<br/>
         </div>
       </div>
     `;
@@ -159,44 +160,28 @@ function SeparateMapCard({ title, geoData }) {
 
     layer.on({
         mouseover: (e) => {
-          const el = e.target;
-          el.setStyle({
-            weight: 3,
-            color: 'white',
-            fillOpacity: 1
-          });
-          el.bringToFront();
+          e.target.setStyle({ weight: 3, color: 'white', fillOpacity: 1 });
+          e.target.bringToFront();
         },
         mouseout: (e) => {
-          const el = e.target;
-          
-          if (geoJsonRef.current) {
-            geoJsonRef.current.resetStyle(el); 
-          }
-          
-          el.closeTooltip(); 
+          if (geoJsonRef.current) geoJsonRef.current.resetStyle(e.target);
       }
     });
-  }; // This closes onEachFeature
+  };
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={{ margin: '0 0 18px 0', fontSize: '24px', color: '#0b4ea2', minHeight: '60px' }}>{title}</h2>
       <div style={{ height: '620px', background: '#eee', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-        <MapContainer 
-          center={[51.1657, 10.4515]} 
-          zoom={6} 
-          style={{ height: '100%', width: '100%' }} 
-          scrollWheelZoom={false}
-          attributionControl={false}
-        >
+        <MapContainer center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
           <ResizeFix /> 
           <ScrollHandler />
           <GeoJSON 
+            key={`${title}-${maxValue}`}
             ref={geoJsonRef} 
             data={geoData} 
             onEachFeature={onEachFeature}
-            style={(f) => ({ fillColor: getColor(f.properties.dichte_leistung || 0), weight: 0.5, color: 'black', fillOpacity: 0.9 })}
+            style={(f) => ({ fillColor: getColor(f.properties[valueKey] || 0), weight: 0.5, color: 'black', fillOpacity: 0.9 })}
           />
           {Object.entries(topCities).map(([name, [lng, lat]]) => (
             <Marker key={name} position={[lat, lng]} icon={cityIcon} interactive={false}>
@@ -208,8 +193,6 @@ function SeparateMapCard({ title, geoData }) {
     </div>
   );
 }
-
-
 
 function HeatmapMapCard({ title, geoData }) {
   // Check your Python console for the exact bounds printed by the script above.
@@ -256,7 +239,7 @@ const sidebarOptions = {
   "Quellen": ["Fraunhofer ISE 2024", "Marktstammdatenregister"],
   "Wert": ["Absolut", "Relativ nach Fläche", "Relativ nach Einwohnerzahl"],
   "Art der Anlage": ["Solar", "Wind Onshore", "Wind Offshore", "Batterien", "Pumpspeicher"],
-  "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereiche", "kontinuierlich"], // This tab will be single-choice
+  "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereich (3-stellig)", "PLZ-Bereiche", "kontinuierlich"],
   "Diagrammtyp": ["Heatmap", "Balkendiagramm"],
   "Anordnung": ["Standard Layout", "Kompakt"],
   "Konfiguration": ["Farbskala", "Grenzwerte"],
@@ -267,11 +250,12 @@ const sidebarOptions = {
 
 export default function MapPage() {
   const [geoData, setGeoData] = useState(null);
+  const [geoData3, setGeoData3] = useState(null);
   const [geoData5, setGeoData5] = useState(null);     // <-- NEW: PLZ 5
   const [heatmapData, setHeatmapData] = useState(null);
 
   const [detailLevel, setDetailLevel] = useState("PLZ-Bereiche");
-  const [valueType, setValueType] = useState("Heatmap");
+  const [valueType, setValueType] = useState("Absolut");
   
   useEffect(() => {
       console.log("1. Starting to fetch PLZ 2...");
@@ -286,6 +270,13 @@ export default function MapPage() {
           setGeoData(data);
         })
         .catch(err => console.error("❌ ERROR LOADING PLZ 2:", err));
+      
+      // TODO: Make it like the other two
+      console.log("A. Starting to fetch PLZ 3...");
+      fetch('http://localhost:8000/plz3_solar_brutto')
+      .then(res => res.json())
+      .then(data => setGeoData3(data))
+      .catch(err => console.error("❌ ERROR LOADING PLZ 3:", err));
 
       console.log("A. Starting to fetch PLZ 5...");
       fetch('http://localhost:8000/plz5_solar_brutto')
@@ -300,29 +291,101 @@ export default function MapPage() {
         })
         .catch(err => console.error("❌ ERROR LOADING PLZ 5:", err));
     }, []);
+  
+  const [apiData, setApiData] = useState([]);
+
+  // 1. Map the German sidebar string to the exact API parameter
+  const getApiLevel = (detail) => {
+    if (detail === "Bundesländer") return "bundesland";
+    if (detail === "PLZ-Bereich (2-stellig)") return "plz2";
+    return "plz5"; // Default for "PLZ-Bereiche"
+  };
+
+  // 2. Fetch new database metrics when the sidebar detail level changes
+  useEffect(() => {
+    if (detailLevel === "kontinuierlich") return; // Heatmap has its own logic
+
+    const level = getApiLevel(detailLevel);
+    
+    fetch(`http://localhost:8000/solar/dashboard-stats?level=${level}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("API DATA ROW 1:", data[0]); // <-- ADD THIS
+        setApiData(data);
+      })
+
+    fetch(`http://localhost:8000/solar/dashboard-stats?level=${level}`)
+      .then(res => res.json())
+      .then(data => setApiData(data))
+      .catch(err => console.error("Error fetching stats:", err));
+  }, [detailLevel]);
+
+  // 3. Fast O(1) merge of Static GeoJSON Borders + Dynamic Database Metrics
+  const mergedGeoData = useMemo(() => {
+    let baseShapes = geoData; // Default (e.g., PLZ2)
+    if (detailLevel === "PLZ-Bereiche") baseShapes = geoData5;
+    
+    // Wait until both borders and data are loaded
+    if (!baseShapes || !apiData.length) return baseShapes;
+
+    // Create a dictionary for instant lookups
+    const apiDict = {};
+    const levelKey = getApiLevel(detailLevel); 
+    apiData.forEach(row => {
+      apiDict[row[levelKey]] = {
+        total_power: row.total_power,
+        total_units: row.total_units
+      };
+    });
+
+    // Inject the metrics into the GeoJSON properties
+    return {
+      ...baseShapes,
+      features: baseShapes.features.map(feature => {
+        // Adjust "plz" or "name" depending on how your specific GeoJSON stores the region ID
+        const matchKey = feature.properties.plz || feature.properties.name; 
+        const metrics = apiDict[matchKey] || { total_power: 0, total_units: 0 };
+        
+        return {
+          ...feature,
+          properties: { ...feature.properties, ...metrics }
+        };
+      })
+    };
+  }, [geoData, geoData5, apiData, detailLevel]);
 
   // Make sure both are loaded before rendering
+  // later: if (!geoData || !geoData3 || !geoData5) return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Loading...</h2></div>;
   if (!geoData || !geoData5) return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Loading...</h2></div>;
 
   const renderDynamicMap = () => {
+    // 1. Map the sidebar "Wert" selection to your actual data properties
+    let selectedValueKey = "total_power"; 
+    
+    if (valueType === "Absolut") {
+      selectedValueKey = "total_power"; 
+    } else if (valueType === "Relativ nach Fläche") {
+      selectedValueKey = "dichte_leistung_area"; // Example key for future use
+    } else if (valueType === "Relativ nach Einwohnerzahl") {
+      selectedValueKey = "dichte_leistung_population"; // Example key for future use
+    }
+
+    // 2. Pass mergedGeoData and selectedValueKey to your components
     switch (detailLevel) {
       case "Bundesländer":
-        // NOTE: You will eventually need to pass a specific geoData for Bundesländer here!
-        return <SeparateMapCard title="PV-Leistung nach Bundesländern" geoData={geoData} />;
+        return <SeparateMapCard title="PV-Leistung nach Bundesländern" geoData={mergedGeoData} valueKey={selectedValueKey} />;
         
       case "PLZ-Bereich (2-stellig)":
-        return <SeparateMapCard title="Relative PV-Leistung, PLZ2 (Leitregion)" geoData={geoData} />;
+        return <SeparateMapCard title="Relative PV-Leistung, PLZ2 (Leitregion)" geoData={mergedGeoData} valueKey={selectedValueKey} />;
         
       case "PLZ-Bereiche":
-        // NOTE: You will eventually need to pass the 5-digit PLZ shapefile data here!
-        return <SeparateMapCard title="PV-Leistung nach 5-stelligen PLZ-Bereichen" geoData={geoData5} />;
+        return <SeparateMapCard title="PV-Leistung nach 5-stelligen PLZ-Bereichen" geoData={mergedGeoData} valueKey={selectedValueKey} />;
         
       case "kontinuierlich":
         return <HeatmapMapCard title="PV-Leistung Deutschland: Gauß-Heatmap" geoData={geoData} />;
         
       default:
-        // Fallback just in case something breaks
-        return <SeparateMapCard title="Relative PV-Leistung" geoData={geoData} />;
+        return <SeparateMapCard title="Relative PV-Leistung" geoData={mergedGeoData} valueKey={selectedValueKey} />;
     }
   };
 
