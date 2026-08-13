@@ -1,15 +1,13 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { MapContainer, GeoJSON, Marker, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, GeoJSON, Marker, Tooltip, useMap, ImageOverlay } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.heat/dist/leaflet-heat.js';
+import * as topojson from 'topojson-client';
 import NavBar from '../components/NavBar'
 
 // --- SHARED UTILITIES ---
 
-/**
- * FIX: This forces the map to refresh its size whenever the component renders
- * or the layout shifts, preventing the "Gray Map" issue.
- */
 function ResizeFix() {
   const map = useMap();
   useEffect(() => {
@@ -39,6 +37,40 @@ function ScrollHandler() {
   return null;
 }
 
+function HeatmapLayer({ dataFromFastAPI }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!dataFromFastAPI || !dataFromFastAPI.heatmap_points || !L.heatLayer) return;
+
+    const points = dataFromFastAPI.heatmap_points;
+    if (points.length === 0) return;
+
+    const maxVal = Math.max(...points.map(p => p[2]));
+    const adjustedMax = maxVal * 1.5; 
+
+    const heat = L.heatLayer(points, {
+      radius: 45,         
+      blur: 45,           
+      maxZoom: 6,         
+      minOpacity: 0.15,   
+      max: adjustedMax,
+      gradient: { 
+        0.0: 'white',     
+        0.3: 'yellow', 
+        0.65: 'red', 
+        1.0: 'black' 
+      }
+    }).addTo(map);
+
+    return () => {
+      if (map && heat) map.removeLayer(heat);
+    };
+  }, [dataFromFastAPI, map]);
+
+  return null;
+}
+
 const cityIcon = new L.DivIcon({
   className: 'city-dot',
   html: `<div style="background-color: black; width: 8px; height: 8px; border-radius: 50%; border: 1px solid white;"></div>`,
@@ -55,9 +87,8 @@ const topCities = {
 
 // --- UPDATED SIDEBAR WITH RADIO BUTTONS (CIRCLES) ---
 
-const SidebarItem = ({ label, options, isSingleChoice }) => {
+const SidebarItem = ({ label, options, isSingleChoice, onSelect, currentSelection}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(null);
 
   return (
     <div style={{ marginBottom: '8px', textAlign: 'left' }}>
@@ -67,27 +98,24 @@ const SidebarItem = ({ label, options, isSingleChoice }) => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '4px',
           background: isOpen ? '#f8f9fa' : 'white', cursor: 'pointer', 
-          fontSize: '14px', color: '#333', fontWeight: 500
+          fontSize: '14px', color: 'black', fontWeight: 500
         }}
       >
         <span>{label}</span>
-        <span style={{ fontSize: '10px', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+        <span>▼</span>
       </div>
       {isOpen && options && (
-        <div style={{ padding: '12px', border: '1px solid #e0e0e0', borderTop: 'none', background: '#fff' }}>
+        <div style={{ padding: '12px', border: '1px solid #e0e0e0', background: '#fff' }}>
           {options.map((opt, i) => (
             <div key={i} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <input 
                 type={isSingleChoice ? "radio" : "checkbox"} 
-                name={isSingleChoice ? `group-${label}` : `opt-${label}-${i}`}
-                id={`${label}-${i}`} 
-                checked={isSingleChoice ? selectedOption === i : undefined}
-                onChange={() => isSingleChoice && setSelectedOption(i)}
-                style={{ cursor: 'pointer', width: '16px', height: '16px' }} 
+                name={`group-${label}`}
+                checked={isSingleChoice ? currentSelection === opt : undefined}
+                onChange={() => onSelect(opt)}
+                style={{ cursor: 'pointer' }} 
               />
-              <label htmlFor={`${label}-${i}`} style={{ cursor: 'pointer', fontSize: '13px', color: '#444' }}>
-                {opt}
-              </label>
+              <label style={{ fontSize: '13px', color: 'black' }}>{opt}</label>
             </div>
           ))}
         </div>
@@ -98,28 +126,41 @@ const SidebarItem = ({ label, options, isSingleChoice }) => {
 
 // --- UNIFIED MAP CARD ---
 
-function SeparateMapCard({ title, geoData }) {
+function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
   const geoJsonRef = useRef();
-  const densities = useMemo(() => geoData.features.map(f => f.properties.dichte_leistung || 0), [geoData]);
-  const minDensity = Math.min(...densities);
-  const maxDensity = Math.max(...densities);
+  
+  const values = useMemo(() => geoData.features.map(f => f.properties[valueKey] || 0), [geoData, valueKey]);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
 
-  const getColor = (d) => {
-    const t = (d - minDensity) / (maxDensity - minDensity);
+  const getColor = (val) => {
+    if (maxValue === minValue) return 'rgb(255, 255, 0)';
+    const t = (val - minValue) / (maxValue - minValue);
     if (t < 0.5) return `rgb(255, ${Math.round(255 * (1 - t * 2))}, 0)`;
     return `rgb(${Math.round(255 * (1 - (t - 0.5) * 2))}, 0, 0)`;
   };
 
+  useEffect(() => {
+    if (geoJsonRef.current) {
+      geoJsonRef.current.setStyle((feature) => ({
+        fillColor: getColor(feature.properties[valueKey] || 0),
+        weight: 0.5,
+        color: 'black',
+        fillOpacity: 0.9
+      }));
+    }
+  }, [geoData, valueKey, maxValue, minValue]);
+
   const onEachFeature = (feature, layer) => {
+    const props = feature.properties;
     const tooltipContent = `
       <div style="text-align: left; font-family: sans-serif; color: #333;">
         <h3 style="margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid #0b4ea2; padding-bottom: 2px;">
-          PLZ: ${feature.properties.plz}
+          Region: ${props.plz || props.name || 'Unbekannt'}
         </h3>
         <div style="font-size: 13px; line-height: 1.4;">
-          <strong>Anzahl:</strong> ${feature.properties.count_PV || 0}<br/>
-          <strong>Agg. Leistung:</strong> ${feature.properties.aggr_leistung?.toFixed(8) || 0}<br/>
-          <strong>Leistungsdichte:</strong> ${feature.properties.dichte_leistung?.toFixed(8) || 0}<br/>
+          <strong>Anzahl Anlagen:</strong> ${props.total_units?.toLocaleString() || 0}<br/>
+          <strong>Installierte Leistung (kW):</strong> ${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0}<br/>
         </div>
       </div>
     `;
@@ -127,44 +168,31 @@ function SeparateMapCard({ title, geoData }) {
 
     layer.on({
         mouseover: (e) => {
-          const el = e.target;
-          el.setStyle({
-            weight: 3,
-            color: 'white',
-            fillOpacity: 1
-          });
-          el.bringToFront();
+          e.target.setStyle({ weight: 3, color: 'white', fillOpacity: 1 });
+          e.target.bringToFront();
         },
         mouseout: (e) => {
-          const el = e.target;
-          
-          if (geoJsonRef.current) {
-            geoJsonRef.current.resetStyle(el); 
-          }
-          
-          el.closeTooltip(); 
+          e.target.setStyle({ 
+            weight: 0.5, 
+            color: 'black', 
+            fillColor: getColor(e.target.feature.properties[valueKey] || 0) 
+          });
       }
     });
-  }; // This closes onEachFeature
+  };
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={{ margin: '0 0 18px 0', fontSize: '24px', color: '#0b4ea2', minHeight: '60px' }}>{title}</h2>
       <div style={{ height: '620px', background: '#eee', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
-        <MapContainer 
-          center={[51.1657, 10.4515]} 
-          zoom={6} 
-          style={{ height: '100%', width: '100%' }} 
-          scrollWheelZoom={false}
-          attributionControl={false}
-        >
+        <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
           <ResizeFix /> 
           <ScrollHandler />
           <GeoJSON 
+            key="static-map-layer"
             ref={geoJsonRef} 
             data={geoData} 
             onEachFeature={onEachFeature}
-            style={(f) => ({ fillColor: getColor(f.properties.dichte_leistung || 0), weight: 0.5, color: 'black', fillOpacity: 0.9 })}
           />
           {Object.entries(topCities).map(([name, [lng, lat]]) => (
             <Marker key={name} position={[lat, lng]} icon={cityIcon} interactive={false}>
@@ -175,13 +203,49 @@ function SeparateMapCard({ title, geoData }) {
       </div>
     </div>
   );
-} // This closes SeparateMapCard
-// --- MAIN PAGE ---
+}
+
+function HeatmapMapCard({ title, geoData }) {
+  const bounds = [
+    [47.270111, 5.866315],
+    [55.058347, 15.041931]
+  ];
+
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <h2 style={{ margin: '0 0 18px 0', fontSize: '24px', color: '#0b4ea2', minHeight: '60px' }}>{title}</h2>
+      <div style={{ height: '620px', background: '#fff', borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+        <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
+          <ResizeFix /> 
+          <ScrollHandler />
+          
+          <ImageOverlay
+            url="http://localhost:8000/plz5_heatmap_image"
+            bounds={bounds}
+            opacity={0.85}
+          />
+
+          <GeoJSON 
+            data={geoData} 
+            style={{ fillColor: 'transparent', weight: 0.4, color: 'black', fillOpacity: 0 }}
+          />
+
+          {Object.entries(topCities).map(([name, [lng, lat]]) => (
+            <Marker key={name} position={[lat, lng]} icon={cityIcon} interactive={false}>
+              <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">{name}</Tooltip>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
+    </div>
+  );
+}
 
 const sidebarOptions = {
   "Quellen": ["Fraunhofer ISE 2024", "Marktstammdatenregister"],
+  "Wert": ["Absolut", "Relativ nach Fläche", "Relativ nach Einwohnerzahl"],
   "Art der Anlage": ["Solar", "Wind Onshore", "Wind Offshore", "Batterien", "Pumpspeicher"],
-  "Detailgrad der Regionen": ["Bundesländer", "Landkreise", "PLZ-Bereiche", "kontinuierlich"], // This tab will be single-choice
+  "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereich (3-stellig)", "PLZ-Bereiche", "kontinuierlich"],
   "Diagrammtyp": ["Heatmap", "Balkendiagramm"],
   "Anordnung": ["Standard Layout", "Kompakt"],
   "Konfiguration": ["Farbskala", "Grenzwerte"],
@@ -192,19 +256,137 @@ const sidebarOptions = {
 
 export default function MapPage() {
   const [geoData, setGeoData] = useState(null);
+  const [geoData3, setGeoData3] = useState(null);
+  const [geoData5, setGeoData5] = useState(null);
+  const [heatmapData, setHeatmapData] = useState(null);
+
+  const [detailLevel, setDetailLevel] = useState("PLZ-Bereiche");
+  const [valueType, setValueType] = useState("Absolut");
+  
+  useEffect(() => {
+      // NOTE: Ensure your backend endpoints serve compressed TopoJSON instead of raw GeoJSON
+      fetch('http://localhost:8000/plz2_solar_brutto_topojson')
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(topology => {
+          // Object.keys(topology.objects)[0] dynamically targets the geometry collection name
+          const geojson = topojson.feature(topology, Object.keys(topology.objects)[0]);
+          setGeoData(geojson);
+        })
+        .catch(err => console.error("❌ ERROR LOADING PLZ 2:", err));
+      
+      fetch('http://localhost:8000/plz3_solar_brutto_topojson')
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(topology => {
+          const geojson = topojson.feature(topology, Object.keys(topology.objects)[0]);
+          setGeoData3(geojson);
+        })
+        .catch(err => console.error("❌ ERROR LOADING PLZ 3:", err));
+
+      fetch('http://localhost:8000/plz5_solar_brutto_topojson')
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(topology => {
+          const geojson = topojson.feature(topology, Object.keys(topology.objects)[0]);
+          setGeoData5(geojson);
+        })
+        .catch(err => console.error("❌ ERROR LOADING PLZ 5:", err));
+    }, []);
+  
+  const [apiData, setApiData] = useState([]);
+
+  const getApiLevel = (detail) => {
+    if (detail === "Bundesländer") return "bundesland";
+    if (detail === "PLZ-Bereich (2-stellig)") return "plz2";
+    return "plz5"; 
+  };
 
   useEffect(() => {
-    fetch('http://localhost:8000/map-data').then(res => res.json()).then(data => setGeoData(data));
-  }, []);
+    if (detailLevel === "kontinuierlich") return; 
 
-  if (!geoData) return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Loading...</h2></div>;
+    const level = getApiLevel(detailLevel);
+    
+    fetch(`http://localhost:8000/solar/dashboard-stats?level=${level}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("API DATA ROW 1:", data[0]); 
+        setApiData(data);
+      })
+      .catch(err => console.error("Error fetching stats:", err));
+  }, [detailLevel]);
+
+  const mergedGeoData = useMemo(() => {
+    let baseShapes = geoData; 
+    if (detailLevel === "PLZ-Bereiche") baseShapes = geoData5;
+    
+    if (!baseShapes || !apiData.length) return baseShapes;
+
+    const apiDict = {};
+    const levelKey = getApiLevel(detailLevel); 
+    apiData.forEach(row => {
+      apiDict[row[levelKey]] = {
+        total_power: row.total_power,
+        total_units: row.total_units
+      };
+    });
+
+    return {
+      ...baseShapes,
+      features: baseShapes.features.map(feature => {
+        const matchKey = feature.properties.plz || feature.properties.name; 
+        const metrics = apiDict[matchKey] || { total_power: 0, total_units: 0 };
+        
+        return {
+          ...feature,
+          properties: { ...feature.properties, ...metrics }
+        };
+      })
+    };
+  }, [geoData, geoData5, apiData, detailLevel]);
+
+  if (!geoData || !geoData5) return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Loading...</h2></div>;
+
+  const renderDynamicMap = () => {
+    let selectedValueKey = "total_power"; 
+    
+    if (valueType === "Absolut") {
+      selectedValueKey = "total_power"; 
+    } else if (valueType === "Relativ nach Fläche") {
+      selectedValueKey = "dichte_leistung_area"; 
+    } else if (valueType === "Relativ nach Einwohnerzahl") {
+      selectedValueKey = "dichte_leistung_population"; 
+    }
+
+    switch (detailLevel) {
+      case "Bundesländer":
+        return <SeparateMapCard title="PV-Leistung nach Bundesländern" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        
+      case "PLZ-Bereich (2-stellig)":
+        return <SeparateMapCard title="Relative PV-Leistung, PLZ2 (Leitregion)" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        
+      case "PLZ-Bereiche":
+        return <SeparateMapCard title="PV-Leistung nach 5-stelligen PLZ-Bereichen" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        
+      case "kontinuierlich":
+        return <HeatmapMapCard title="PV-Leistung Deutschland: Gauß-Heatmap" geoData={geoData} />;
+        
+      default:
+        return <SeparateMapCard title="Relative PV-Leistung" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: '#fcfcfc' }}>
       <NavBar />
       <div style={{ width: '90%', maxWidth: '1450px', margin: '0 auto', padding: '36px 0' }}>
         
-        {/* TOP ROW */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '48px', marginBottom: '60px' }}>
           <div style={{ background: '#fff', padding: '22px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
             <SeparateMapCard title="Anteil der COVID-19 Patient*innen..." geoData={geoData} />
@@ -214,23 +396,43 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* BOTTOM ROW: THIRD MAP + SIDEBAR */}
         <div style={{ display: 'flex', gap: '24px', background: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', alignItems: 'flex-start' }}>
+          
           <div style={{ flex: 3 }}>
-            <SeparateMapCard title="Fraunhofer ISE Studie 2024 Analysis" geoData={geoData} />
+            {renderDynamicMap()}
           </div>
+
           <div style={{ flex: 1, minWidth: '300px', borderLeft: '1px solid #eee', paddingLeft: '20px' }}>
-             <div style={{ textAlign: 'right', marginBottom: '10px' }}><span style={{ color: 'green', fontSize: '24px', cursor: 'pointer' }}>ⓧ</span></div>
-             {Object.keys(sidebarOptions).map(label => (
-               <SidebarItem 
-                  key={label} 
-                  label={label} 
-                  options={sidebarOptions[label]} 
-                  isSingleChoice={label === "Detailgrad der Regionen"} // Specific logic for single-choice circles
-               />
-             ))}
+             <div style={{ textAlign: 'right', marginBottom: '10px' }}>
+               <span style={{ color: 'black', fontSize: '24px', cursor: 'pointer' }}>ⓧ</span>
+             </div>
+             
+             {Object.keys(sidebarOptions).map(label => {
+               const isSingle = ["Detailgrad der Regionen", "Wert"].includes(label);
+               
+               let currentVal = undefined;
+               if (label === "Detailgrad der Regionen") currentVal = detailLevel;
+               if (label === "Wert") currentVal = valueType;
+             return (
+                 <SidebarItem 
+                    key={label} 
+                    label={label} 
+                    options={sidebarOptions[label]} 
+                    isSingleChoice={isSingle} 
+                    currentSelection={currentVal}
+                    onSelect={(opt) => {
+                      if (label === "Detailgrad der Regionen") {
+                        setDetailLevel(opt);
+                      } else if (label === "Wert") {
+                        setValueType(opt);
+                      }
+                    }}
+                 />
+               );
+             })}
           </div>
         </div>
+
       </div>
     </div>
   );

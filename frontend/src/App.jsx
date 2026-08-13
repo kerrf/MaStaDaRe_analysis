@@ -9,6 +9,7 @@ import './App.css'
 // 2. CRITICAL: You must import your MapPage component
 import MapPage from './pages/MapPage' 
 import MapPage2 from './pages/MapPage2' 
+import MapPage3 from './pages/MapPage3' 
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -41,7 +42,13 @@ function Home() {
           </button>
         </Link>
       </div>
-
+      <div className="card">
+        <Link to="/map3">
+          <button style={{ backgroundColor: '#646cff', color: 'white' }}>
+            Go to other Map Dashboard3
+          </button>
+        </Link>
+      </div>
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
@@ -59,10 +66,9 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        
-        {/* 4. FIX: Use path="/map" instead of "/pages" for a cleaner URL */}
         <Route path="/map" element={<MapPage />} />
         <Route path="/map2" element={<MapPage2 />} />
+        <Route path="/map3" element={<MapPage3 />} />
       </Routes>
     </Router>
   )
