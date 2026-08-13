@@ -5,7 +5,7 @@ TRUNCATE TABLE summary_by_month;
 INSERT INTO summary_by_month (month, total_capacity, unit_count)
 SELECT 
     EXTRACT(MONTH FROM date) as month, 
-    SUM(netto_leistung_kw) as netto_leistung_kw, 
+    SUM(netto_leistung_kw) as netto_leistung_kw,
     COUNT(id)
 FROM raw_mastr_data
 GROUP BY plz;

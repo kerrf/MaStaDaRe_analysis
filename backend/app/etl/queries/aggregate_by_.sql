@@ -1,8 +1,8 @@
 CREATE SCHEMA IF NOT EXISTS mrt;
 
-DROP TABLE IF EXISTS stg.solar_units_plz_agg;
+DROP TABLE IF EXISTS mrt.solar_units_plz_agg;
 
-CREATE TABLE stg.solar_units_plz_agg AS
+CREATE TABLE mrt.solar_units_plz_agg AS
 SELECT 
     "Postleitzahl",
     SUM("Bruttoleistung") AS total_power,
