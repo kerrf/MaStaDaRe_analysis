@@ -20,16 +20,17 @@ class Settings(BaseSettings):
         "aggregate_by_plz.sql",
         "aggregate_by_month.sql",
         "aggregate_by_operator_type.sql",
+        "build_stf_solar.sql",
         "calculate_growth_rates.sql"
     ]
     
     API_PREFIX: str
-    ALLOW_ORIGINS : str
+    ALLOWED_ORIGINS : str | list[str]
     DEBUG : bool
     
     @field_validator("ALLOWED_ORIGINS", mode="before")
-    def parse_allowed_origins(cls, v: str) -> List[str]:
-        return v.split(",") if v else []
+    def parse_allowed_origins(cls, v: list[str]) -> list[str]:
+        return [origin.strip() for origin in v.split(",") if origin.strip()]
     
     model_config = SettingsConfigDict(
             env_file=".env",

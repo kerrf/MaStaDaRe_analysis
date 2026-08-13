@@ -10,6 +10,10 @@ Nettonennleistung:  Minimum aus Bruttoleistung und Wechselrichter-Wirkleistung
 
 # codes.py
 
+EINHEITENSYSTEMSTATUS = {
+    472 : "IDK"
+}
+
 EINPREISUNGSART = {
     688: "Volleinpreisung",
     689: "Teileinpreisung",
@@ -20,13 +24,13 @@ ENERGIETRAEGER = {
 }
 
 ART_DER_SOLARANLAGE = {
-    852: "Freiflaeche",  # manchmal ist BKW auch unter 853 zu finden
-    853: "Bauliche Anlage (Hausdach, Gebaeude, Fassade)",  # hieß vorher "Lage"
+    852  : "Freiflaeche",  # manchmal ist BKW auch unter 853 zu finden
+    853  : "Bauliche Anlage (Hausdach, Gebaeude, Fassade)",  # hieß vorher "Lage"
     # 875: "Gebäudesolaranlage", inzwischen 853
-    2484: "Bauliche Anlage (Sonstige)",
-    2961: "Balkonkraftwerk",
-    3002: "Gewaesser",
-    3058: "Grossparkplatz",
+    2484 : "Bauliche Anlage (Sonstige)",
+    2961 : "Balkonkraftwerk",
+    3002 : "Gewaesser",
+    3058 : "Grossparkplatz",
 }
 
 # Fehlt zu oft
@@ -102,16 +106,16 @@ AC_DC_KOPPELUNG = {
 }
 
 TECHNOLOGIE = {
-    524: "Batterie",
-    525: "Druckluft",
-    526: "Schwungrad",
+    524 : "Batterie",
+    525 : "Druckluft",
+    526 : "Schwungrad",
     3067: "Wasserstoffspeicher",
 }
 
 LEISTUNGSBEGRENZUNG = { # seit 01.01.2023 nicht mehr relevant
-    802: "Nein",
-    803: "70%",
-    804: "60%",
-    805: "50%",
+    802 : "Nein",
+    803 : "70%",
+    804 : "60%",
+    805 : "50%",
     1535: "Ja, sonstige"
 }
