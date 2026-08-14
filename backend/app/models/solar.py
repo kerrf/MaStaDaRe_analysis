@@ -29,5 +29,7 @@ class SolarRollupStats(Base):
     plz3 = Column(String, primary_key=True)
     plz5 = Column(String, primary_key=True)
     
-    total_power = Column(Float)
     total_units = Column(Integer)
+    total_power = Column(Float)
+    relative_area_power = Column(Float)
+    relative_population_power = Column(Float)

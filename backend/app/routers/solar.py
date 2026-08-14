@@ -34,7 +34,7 @@ async def get_dashboard_stats(
     query = db.query(SolarRollupStats)
     query_bl = db.query(SolarBundeslandStats)
 
-    if level == "bundesland":
+    if level == "Bundesland":
         query = query_bl.filter()
     
     elif level == "plz2":
