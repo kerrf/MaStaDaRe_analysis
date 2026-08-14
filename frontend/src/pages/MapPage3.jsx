@@ -42,7 +42,6 @@ const TOP_CITIES = {
 };
 
 const SIDEBAR_OPTIONS = {
-  "Quellen": ["Fraunhofer ISE 2024", "Marktstammdatenregister"],
   "Wert": ["Absolut", "Relativ nach Fläche", "Relativ nach Einwohnerzahl"],
   "Art der Anlage": ["Solar", "Wind Onshore", "Wind Offshore", "Batterien", "Pumpspeicher"],
   "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereich (3-stellig)", "PLZ-Bereiche", "kontinuierlich"],
@@ -198,7 +197,9 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
         </h3>
         <div style="font-size: 13px; line-height: 1.4;">
           <strong>Anzahl Anlagen:</strong> ${props.total_units?.toLocaleString() || 0}<br/>
-          <strong>Installierte Leistung (kW):</strong> ${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0}<br/>
+          <strong>Leistung absolut:</strong> ${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0} MWp<br/>
+          <strong>Leistung pro Fläche:</strong> ${props.relative_area_power?.toLocaleString(undefined, {maximumFractionDigits: 4}) || 0} kWp/km<sup>2</sup><br/>
+          <strong>Leistung pro Einwohner:</strong> ${props.relative_population_power?.toLocaleString(undefined, {maximumFractionDigits: 6})|| 0} kWp/Einwohner
         </div>
       </div>
     `;
@@ -362,15 +363,20 @@ export default function MapPage() {
     const apiDict = apiData.reduce((acc, row) => {
       if (!row) return acc;
 
-      acc[row[levelKey]] = { total_power: row.total_power, total_units: row.total_units };
+      acc[row[levelKey]] = { 
+        total_power: row.total_power, 
+        total_units: row.total_units,
+        relative_area_power: row.relative_area_power,
+        relative_population_power: row.relative_population_power
+      };
       return acc;
     }, {});
 
     return {
       ...baseShapes,
       features: baseShapes.features.map(feature => {
-        const matchKey = feature.properties.plz || feature.properties.name; 
-        const metrics = apiDict[matchKey] || { total_power: 0, total_units: 0 };
+        const matchKey = feature.properties.plz || feature.properties.name || feature.properties.Bundesland;
+        const metrics = apiDict[matchKey] || { total_power: 0, total_units: 0, relative_area_power: 0, relative_population_power: 0 };
         return {
           ...feature,
           properties: { ...feature.properties, ...metrics }
@@ -385,8 +391,8 @@ export default function MapPage() {
   const renderDynamicMap = () => {
     const valueMap = {
       "Absolut": "total_power",
-      "Relativ nach Fläche": "dichte_leistung_area",
-      "Relativ nach Einwohnerzahl": "dichte_leistung_population"
+      "Relativ nach Fläche": "relative_area_power",
+      "Relativ nach Einwohnerzahl": "relative_population_power"
     };
     
     const selectedValueKey = valueMap[valueType] || "total_power";
@@ -440,7 +446,6 @@ export default function MapPage() {
              })}
           </div>
         </div>
-
       </div>
     </div>
   );
