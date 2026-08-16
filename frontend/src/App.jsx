@@ -10,6 +10,7 @@ import './App.css'
 import MapPage from './pages/MapPage' 
 import MapPage2 from './pages/MapPage2' 
 import MapPage3 from './pages/MapPage3' 
+import Footer from './components/Footer';
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -64,14 +65,25 @@ function Home() {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/map" element={<MapPage />} />
-        <Route path="/map2" element={<MapPage2 />} />
-        <Route path="/map3" element={<MapPage3 />} />
-      </Routes>
+      {/* Flex container forces footer to the bottom */}
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        
+        {/* Main content takes up available space */}
+        <div style={{ flex: 1 }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/map" element={<MapPage />} />
+            <Route path="/map2" element={<MapPage2 />} />
+            <Route path="/map3" element={<MapPage3 />} />
+          </Routes>
+        </div>
+
+        {/* Global Footer */}
+        <Footer />
+        
+      </div>
     </Router>
-  )
+  );
 }
 
 export default App

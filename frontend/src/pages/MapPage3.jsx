@@ -45,9 +45,7 @@ const SIDEBAR_OPTIONS = {
   "Wert": ["Absolut", "Relativ nach Fläche", "Relativ nach Einwohnerzahl"],
   "Art der Anlage": ["Solar", "Wind Onshore", "Wind Offshore", "Batterien", "Pumpspeicher"],
   "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereich (3-stellig)", "PLZ-Bereiche", "kontinuierlich"],
-  "Diagrammtyp": ["Heatmap", "Balkendiagramm"],
   "Anordnung": ["Standard Layout", "Kompakt"],
-  "Konfiguration": ["Farbskala", "Grenzwerte"],
   "Beschreibung": ["Methodik", "Legende"],
   "Export": ["PDF Export", "CSV Export"],
   "Hinweise": ["Datenschutz", "Nutzung"]
@@ -69,21 +67,54 @@ const STYLES = {
   container: { width: '90%', maxWidth: '1450px', margin: '0 auto', padding: '36px 0' },
   topGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '48px', marginBottom: '60px' },
   card: { background: '#fff', padding: '22px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
-  mainSection: { display: 'flex', gap: '24px', background: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', alignItems: 'flex-start' },
+  
+  // NEW STYLES: Removed background from mainSection to separate the cards
+  mainSection: { display: 'flex', gap: '24px', alignItems: 'flex-start' },
+  mapCard: { background: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', flex: 3 },
   mapWrapper: { height: '620px', borderRadius: '6px', overflow: 'hidden', position: 'relative' },
   mapTitle: { margin: '0 0 18px 0', fontSize: '24px', color: '#0b4ea2', minHeight: '60px' },
-  sidebar: { flex: 1, minWidth: '300px', borderLeft: '1px solid #eee', paddingLeft: '20px' },
-  sidebarItemHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', border: '1px solid #e0e0e0', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', color: 'black', fontWeight: 500 },
-  sidebarItemBody: { padding: '12px', border: '1px solid #e0e0e0', background: '#fff' }
-};
+  
+  // NEW STYLES: Sidebar framing and dropdowns
+  sidebar: { flex: 1, minWidth: '300px', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' },
+  sidebarHeader: { background: '#f5f5f5', padding: '14px 16px', fontSize: '15px', color: '#333', borderBottom: '1px solid #e0e0e0' },
+  sidebarBody: { padding: '16px' },
+  sidebarItem: {
+    marginBottom: '18px', 
+    textAlign: 'left' // Forces all text (labels) inside to align left
+  },
+  sidebarLabel: { 
+    display: 'block', 
+    fontSize: '13px', 
+    fontWeight: '600', 
+    color: '#333', 
+    marginBottom: '6px' 
+  },
+  sidebarSelect: { 
+    width: '100%', 
+    padding: '8px 30px 8px 12px', // Extra right padding (30px) so text doesn't overlap the triangle
+    borderRadius: '4px', 
+    border: '1px solid #ccc', 
+    fontSize: '13px', 
+    background: '#fff', 
+    color: 'black', // Forces text to black instead of white
+    cursor: 'pointer', 
+    outline: 'none',
+    
+    // Wipes out the default browser dropdown arrow
+    appearance: 'none', 
+    WebkitAppearance: 'none', 
+    MozAppearance: 'none',
+    
+    // Injects a custom black triangle SVG on the right side
+    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 4px center'
+  }};
 
 // ============================================================================
 // UTILITY COMPONENTS
 // ============================================================================
 
-/**
- * Triggers a layout recalculation on mount to prevent Leaflet's gray-tile rendering bug.
- */
 function ResizeFix() {
   const map = useMap();
   useEffect(() => {
@@ -93,9 +124,6 @@ function ResizeFix() {
   return null;
 }
 
-/**
- * Disables default scroll zoom, enabling it only when CTRL is pressed.
- */
 function ScrollHandler() {
   const map = useMap();
   useEffect(() => {
@@ -119,38 +147,19 @@ function ScrollHandler() {
 // UI COMPONENTS
 // ============================================================================
 
-/**
- * Renders an accordion-style dropdown for sidebar selections.
- */
-const SidebarItem = ({ label, options, isSingleChoice, onSelect, currentSelection }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const headerBg = isOpen ? '#f8f9fa' : 'white';
-
+const SidebarItem = ({ label, options, currentSelection, onSelect }) => {
   return (
-    <div style={{ marginBottom: '8px', textAlign: 'left' }}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ ...STYLES.sidebarItemHeader, background: headerBg }}
+    <div style={STYLES.sidebarItem}>
+      <label style={STYLES.sidebarLabel}>{label}</label>
+      <select 
+        value={currentSelection || options[0]}
+        onChange={(e) => onSelect(e.target.value)}
+        style={STYLES.sidebarSelect}
       >
-        <span>{label}</span>
-        <span>▼</span>
-      </div>
-      {isOpen && options && (
-        <div style={STYLES.sidebarItemBody}>
-          {options.map((opt, i) => (
-            <div key={i} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input 
-                type={isSingleChoice ? "radio" : "checkbox"} 
-                name={`group-${label}`}
-                checked={isSingleChoice ? currentSelection === opt : undefined}
-                onChange={() => onSelect(opt)}
-                style={{ cursor: 'pointer' }} 
-              />
-              <label style={{ fontSize: '13px', color: 'black' }}>{opt}</label>
-            </div>
-          ))}
-        </div>
-      )}
+        {options.map((opt, i) => (
+          <option key={i} value={opt}>{opt}</option>
+        ))}
+      </select>
     </div>
   );
 };
@@ -159,22 +168,33 @@ const SidebarItem = ({ label, options, isSingleChoice, onSelect, currentSelectio
 // MAP COMPONENTS
 // ============================================================================
 
-/**
- * Renders a GeoJSON choropleth map layered over canvas.
- */
-function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
+function SeparateMapCard({ title, geoData, valueKey = "total_power", isLoading}) {
   const geoJsonRef = useRef();
   
-  // SAFEGUARD: Check if geoData and features exist before mapping
   const values = useMemo(() => geoData?.features ? geoData.features.map(f => f.properties[valueKey] || 0) : [], [geoData, valueKey]);
-  const minValue = values.length ? Math.min(...values) : 0;
+  const minValue = 0;
   const maxValue = values.length ? Math.max(...values) : 0;
 
   const getColor = (val) => {
-    if (maxValue === minValue) return 'rgb(255, 255, 0)';
-    const t = (val - minValue) / (maxValue - minValue);
-    if (t < 0.5) return `rgb(255, ${Math.round(255 * (1 - t * 2))}, 0)`;
-    return `rgb(${Math.round(255 * (1 - (t - 0.5) * 2))}, 0, 0)`;
+    if (maxValue === minValue || maxValue === 0) return 'rgb(26, 152, 80)';
+    const t = (val - 0) / (maxValue - 0);
+    
+    const stops = [
+      [26, 152, 80],   
+      [166, 217, 106], 
+      [255, 255, 191], 
+      [253, 141, 60],  
+      [215, 48, 39]    
+    ];
+    
+    if (t >= 1) return `rgb(${stops[4].join(',')})`;
+    if (t <= 0) return `rgb(${stops[0].join(',')})`;
+    
+    const i = Math.floor(t * 4);
+    const f = (t * 4) - i;
+    const c1 = stops[i], c2 = stops[i + 1];
+    
+    return `rgb(${Math.round(c1[0] + f * (c2[0] - c1[0]))}, ${Math.round(c1[1] + f * (c2[1] - c1[1]))}, ${Math.round(c1[2] + f * (c2[2] - c1[2]))})`;
   };
 
   useEffect(() => {
@@ -182,11 +202,11 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
       geoJsonRef.current.setStyle((feature) => ({
         fillColor: getColor(feature.properties[valueKey] || 0),
         weight: 0.5,
-        color: 'black',
+        color: 'grey',
         fillOpacity: 0.9
       }));
     }
-  }, [geoData, valueKey, maxValue, minValue]);
+  }, [geoData, valueKey, maxValue, 0]);
 
   const bindFeatureEvents = (feature, layer) => {
     const props = feature.properties;
@@ -213,8 +233,8 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
         },
         mouseout: (e) => {
           e.target.setStyle({ 
-            weight: 0.5, 
-            color: 'black', 
+            weight: 0.2, 
+            color: '#888', 
             fillColor: getColor(e.target.feature.properties[valueKey] || 0) 
           });
       }
@@ -224,23 +244,23 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={STYLES.mapTitle}>{title}</h2>
-      <div style={{ ...STYLES.mapWrapper, background: '#eee' }}>
+      <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
+        
         <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
           <ResizeFix /> 
           <ScrollHandler />
           
-          {/* SAFEGUARD: Only render GeoJSON when data is available */}
           {geoData && (
             <GeoJSON 
-              key={`${title}-${maxValue}`}
+              key={`${title}-${valueKey}`}
               ref={geoJsonRef} 
               data={geoData} 
               onEachFeature={bindFeatureEvents}
               style={(feature) => ({
-              fillColor: getColor(feature.properties[valueKey] || 0),
-              weight: 0.5,
-              color: 'black',
-              fillOpacity: 0.9
+                fillColor: getColor(feature.properties[valueKey] || 0),
+                weight: 0.2,       
+                color: '#888',     
+                fillOpacity: 0.9
              })}
             />
           )}
@@ -252,20 +272,48 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power" }) {
           ))}
         </MapContainer>
         
-        {/* OPTIONAL: Show a spinner overlay over the map while waiting */}
-        {!geoData && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(238, 238, 238, 0.7)', zIndex: 1000 }}>
-             <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Lade Kartendaten...</span>
+        <div style={{
+          position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000,
+          background: 'rgba(255, 255, 255, 0.95)', padding: '12px', borderRadius: '8px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)', width: '260px'
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+            {valueKey === 'total_power' ? 'Leistung absolut (MWp)' : 
+             valueKey === 'relative_area_power' ? 'Leistung / Fläche' : 'Leistung / Einwohner'}
+          </div>
+          <div style={{
+            height: '14px', width: '100%', borderRadius: '4px',
+            background: 'linear-gradient(to right, rgb(26,152,80), rgb(166,217,106), rgb(255,255,191), rgb(253,141,60), rgb(215,48,39))',
+            border: '1px solid #ccc'
+          }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#555', fontWeight: '500' }}>
+            <span>{minValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+            <span>{((minValue + maxValue) / 2).toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+            <span>{maxValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+          </div>
+        </div>
+
+        {isLoading && (
+          <div style={{ 
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+            background: 'rgba(255, 255, 255, 0.85)', zIndex: 9999 
+          }}>
+            <svg width="60" height="60" viewBox="0 0 50 50" style={{ marginBottom: '15px' }}>
+              <circle cx="25" cy="25" r="20" fill="none" stroke="#e0e0e0" strokeWidth="5" />
+              <circle cx="25" cy="25" r="20" fill="none" stroke="#0b4ea2" strokeWidth="5" strokeDasharray="30 100" strokeLinecap="round">
+                <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
+              </circle>
+            </svg>
+            <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#0b4ea2' }}>Lade Daten...</span>
           </div>
         )}
+
       </div>
     </div>
   );
 }
 
-/**
- * Renders a static heatmap image overlay bordered by GeoJSON bounds.
- */
 function HeatmapMapCard({ title, geoData }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -292,18 +340,20 @@ function HeatmapMapCard({ title, geoData }) {
 // ============================================================================
 
 export default function MapPage() {
+  const [detailLevel, setDetailLevel] = useState("Bundesländer");
+  const [valueType, setValueType] = useState("Absolut");
+  
+  // Data State: strictly track which map level the data belongs to
+  const [apiPayload, setApiPayload] = useState({ level: null, data: [] });
+  const [isFetching, setIsFetching] = useState(false);
+  const [mergedGeoData, setMergedGeoData] = useState(null);
+
+  // Topology State
   const [geoData, setGeoData] = useState(null);
   const [geoData3, setGeoData3] = useState(null);
   const [geoData5, setGeoData5] = useState(null);
   const [geoDataBL, setGeoDataBL] = useState(null);
-  
-  const [detailLevel, setDetailLevel] = useState("PLZ-Bereiche");
-  const [valueType, setValueType] = useState("Absolut");
-  const [apiData, setApiData] = useState([]);
-  
-  // --------------------------------------------------------------------------
-  // Data Fetching: Topology
-  // --------------------------------------------------------------------------
+
   useEffect(() => {
       const fetchTopology = async (url, setter) => {
         try {
@@ -323,9 +373,6 @@ export default function MapPage() {
       fetchTopology(ENDPOINTS.BUNDESLAND, setGeoDataBL);
   }, []);
   
-  // --------------------------------------------------------------------------
-  // Data Fetching: Database Metrics
-  // --------------------------------------------------------------------------
   const getApiLevel = (detail) => {
     if (detail === "Bundesländer") return "Bundesland";
     if (detail === "PLZ-Bereich (2-stellig)") return "plz2";
@@ -333,61 +380,86 @@ export default function MapPage() {
     return "plz5";
   };
 
+  // 1. Fetching API Data
   useEffect(() => {
     if (detailLevel === "kontinuierlich") return; 
 
     const level = getApiLevel(detailLevel);
+    setIsFetching(true);
+    setMergedGeoData(null); 
     
+    // Wipe stale data immediately so the merge effect won't map it
+    setApiPayload({ level: null, data: [] }); 
+
+    let isCancelled = false; 
+
     fetch(`${ENDPOINTS.STATS}?level=${level}`)
       .then(res => res.json())
       .then(data => {
-        if (data.length > 0) Logger.info("API Data Initialized", data[0]); 
-        setApiData(data);
+        if (isCancelled) return;
+        if (data.length > 0) Logger.info("API Data Fetched", data[0]); 
+        
+        // Save the new data AND explicitly tag it with its corresponding detail level
+        setApiPayload({ level: detailLevel, data }); 
       })
-      .catch(err => Logger.error("Error fetching stats:", err));
+      .catch(err => {
+        if (isCancelled) return;
+        Logger.error("Error fetching stats:", err);
+        setIsFetching(false);
+      });
+
+    return () => { isCancelled = true; };
   }, [detailLevel]);
 
-  // --------------------------------------------------------------------------
-  // Data Merging
-  // --------------------------------------------------------------------------
-  const mergedGeoData = useMemo(() => {
+  // 2. Merging Data
+  useEffect(() => {
+    // STRICT GUARD: If the data payload doesn't belong to the current map mode, abort.
+    if (apiPayload.level !== detailLevel || apiPayload.data.length === 0) {
+      return;
+    }
+
     let baseShapes;
-        if (detailLevel === "PLZ-Bereiche") baseShapes = geoData5;
-        else if (detailLevel === "PLZ-Bereich (3-stellig)") baseShapes = geoData3;
-        else if (detailLevel === "Bundesländer") baseShapes = geoDataBL;
-        else baseShapes = geoData; // Default for PLZ2 and Bundesland
+    if (detailLevel === "PLZ-Bereiche") baseShapes = geoData5;
+    else if (detailLevel === "PLZ-Bereich (3-stellig)") baseShapes = geoData3;
+    else if (detailLevel === "Bundesländer") baseShapes = geoDataBL;
+    else baseShapes = geoData;
 
-    if (!baseShapes?.features || !apiData?.length) return baseShapes;
+    // Wait until shapes are loaded
+    if (!baseShapes || !baseShapes.features) {
+      return;
+    }
 
-    const levelKey = getApiLevel(detailLevel); 
-    const apiDict = apiData.reduce((acc, row) => {
-      if (!row) return acc;
+    // Yield to main thread for the CSS spinner
+    const timer = setTimeout(() => {
+      const levelKey = getApiLevel(detailLevel); 
+      
+      const apiDict = apiPayload.data.reduce((acc, row) => {
+        if (!row) return acc;
+        acc[row[levelKey]] = { 
+          total_power: Number(row.total_power) || 0, 
+          total_units: Number(row.total_units) || 0,
+          relative_area_power: Number(row.relative_area_power) || 0,
+          relative_population_power: Number(row.relative_population_power) || 0
+        };
+        return acc;
+      }, {});
 
-      acc[row[levelKey]] = { 
-        total_power: row.total_power, 
-        total_units: row.total_units,
-        relative_area_power: row.relative_area_power,
-        relative_population_power: row.relative_population_power
-      };
-      return acc;
-    }, {});
-
-    return {
-      ...baseShapes,
-      features: baseShapes.features.map(feature => {
+      const mergedFeatures = baseShapes.features.map(feature => {
         const matchKey = feature.properties.plz || feature.properties.name || feature.properties.Bundesland;
         const metrics = apiDict[matchKey] || { total_power: 0, total_units: 0, relative_area_power: 0, relative_population_power: 0 };
         return {
           ...feature,
           properties: { ...feature.properties, ...metrics }
         };
-      })
-    };
-  }, [geoData, geoData3, geoData5, geoDataBL, apiData, detailLevel]);
+      });
 
-  // --------------------------------------------------------------------------
-  // Render Helpers
-  // --------------------------------------------------------------------------
+      setMergedGeoData({ ...baseShapes, features: mergedFeatures });
+      setIsFetching(false); 
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [apiPayload, detailLevel, geoData, geoData3, geoData5, geoDataBL]);
+
   const renderDynamicMap = () => {
     const valueMap = {
       "Absolut": "total_power",
@@ -396,18 +468,19 @@ export default function MapPage() {
     };
     
     const selectedValueKey = valueMap[valueType] || "total_power";
+    const isLoading = isFetching || !mergedGeoData;
 
     switch (detailLevel) {
       case "Bundesländer":
-        return <SeparateMapCard title="PV-Leistung nach Bundesländern" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        return <SeparateMapCard key={detailLevel} title="PV-Leistung nach Bundesländern" geoData={mergedGeoData} valueKey={selectedValueKey} isLoading={isLoading}/>;
       case "PLZ-Bereich (2-stellig)":
-        return <SeparateMapCard title="Relative PV-Leistung, PLZ2 (Leitregion)" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        return <SeparateMapCard key={detailLevel} title="Relative PV-Leistung, PLZ2 (Leitregion)" geoData={mergedGeoData} valueKey={selectedValueKey} isLoading={isLoading}/>;
       case "PLZ-Bereiche":
-        return <SeparateMapCard title="PV-Leistung nach 5-stelligen PLZ-Bereichen" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        return <SeparateMapCard key={detailLevel} title="PV-Leistung nach 5-stelligen PLZ-Bereichen" geoData={mergedGeoData} valueKey={selectedValueKey} isLoading={isLoading} />;
       case "kontinuierlich":
-        return <HeatmapMapCard title="PV-Leistung Deutschland: Gauß-Heatmap" geoData={geoData} />;
+        return <HeatmapMapCard key={detailLevel} title="PV-Leistung Deutschland: Gauß-Heatmap" geoData={geoData} />;
       default:
-        return <SeparateMapCard title="Relative PV-Leistung" geoData={mergedGeoData} valueKey={selectedValueKey} />;
+        return <SeparateMapCard key={detailLevel} title="Relative PV-Leistung" geoData={mergedGeoData} valueKey={selectedValueKey} isLoading={isLoading} />;
     }
   };
 
@@ -417,34 +490,47 @@ export default function MapPage() {
       <div style={STYLES.container}>
 
         <div style={STYLES.mainSection}>
-          <div style={{ flex: 3 }}>
+          
+          {/* MAP FRAME */}
+          <div style={STYLES.mapCard}>
             {renderDynamicMap()}
+            
+            <div style={{ 
+              textAlign: 'right', 
+              fontSize: '12px', 
+              color: '#666', 
+              marginTop: '8px', 
+              fontStyle: 'italic' 
+            }}>
+              Zuletzt aktualisiert: 14.05.2026
+            </div>
           </div>
 
+          {/* CONFIG MENU FRAME */}
           <div style={STYLES.sidebar}>
-             <div style={{ textAlign: 'right', marginBottom: '10px' }}>
-               <span style={{ color: 'black', fontSize: '24px', cursor: 'pointer' }}>ⓧ</span>
+             <div style={STYLES.sidebarHeader}>
+               Einstellungen
              </div>
-             
-             {Object.keys(SIDEBAR_OPTIONS).map(label => {
-               const isSingle = ["Detailgrad der Regionen", "Wert"].includes(label);
-               const currentVal = label === "Detailgrad der Regionen" ? detailLevel : (label === "Wert" ? valueType : undefined);
-               
-               return (
-                 <SidebarItem 
-                    key={label} 
-                    label={label} 
-                    options={SIDEBAR_OPTIONS[label]} 
-                    isSingleChoice={isSingle} 
-                    currentSelection={currentVal}
-                    onSelect={(opt) => {
-                      if (label === "Detailgrad der Regionen") setDetailLevel(opt);
-                      else if (label === "Wert") setValueType(opt);
-                    }}
-                 />
-               );
-             })}
+             <div style={STYLES.sidebarBody}>
+               {Object.keys(SIDEBAR_OPTIONS).map(label => {
+                 const currentVal = label === "Detailgrad der Regionen" ? detailLevel : (label === "Wert" ? valueType : undefined);
+                 
+                 return (
+                   <SidebarItem 
+                      key={label} 
+                      label={label} 
+                      options={SIDEBAR_OPTIONS[label]} 
+                      currentSelection={currentVal}
+                      onSelect={(opt) => {
+                        if (label === "Detailgrad der Regionen") setDetailLevel(opt);
+                        else if (label === "Wert") setValueType(opt);
+                      }}
+                   />
+                 );
+               })}
+             </div>
           </div>
+
         </div>
       </div>
     </div>
