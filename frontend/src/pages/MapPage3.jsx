@@ -66,50 +66,37 @@ const STYLES = {
   page: { minHeight: '100vh', width: '100%', background: '#fcfcfc' },
   container: { width: '90%', maxWidth: '1450px', margin: '0 auto', padding: '36px 0' },
   topGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '48px', marginBottom: '60px' },
-  card: { background: '#fff', padding: '22px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
-  
-  // NEW STYLES: Removed background from mainSection to separate the cards
   mainSection: { display: 'flex', gap: '24px', alignItems: 'flex-start' },
-  mapCard: { background: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', flex: 3 },
-  mapWrapper: { height: '620px', borderRadius: '6px', overflow: 'hidden', position: 'relative' },
-  mapTitle: { margin: '0 0 18px 0', fontSize: '24px', color: '#0b4ea2', minHeight: '60px' },
   
-  // NEW STYLES: Sidebar framing and dropdowns
+  // MAP FRAME
+  mapCard: { flex: 3, background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  mapTitle: { margin: 0, padding: '14px 16px', fontSize: '15px', fontWeight: '600', color: '#333', textAlign: 'left', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0' },
+  mapWrapper: { height: '620px', borderRadius: '6px', overflow: 'hidden', position: 'relative' },
+  
+  // SIDEBAR FRAME
   sidebar: { flex: 1, minWidth: '300px', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' },
-  sidebarHeader: { background: '#f5f5f5', padding: '14px 16px', fontSize: '15px', color: '#333', borderBottom: '1px solid #e0e0e0' },
+  sidebarHeader: { background: '#f5f5f5', padding: '14px 16px', fontSize: '15px', fontWeight: '600', color: '#333', borderBottom: '1px solid #e0e0e0', textAlign: 'left' },
   sidebarBody: { padding: '16px' },
-  sidebarItem: {
-    marginBottom: '18px', 
-    textAlign: 'left' // Forces all text (labels) inside to align left
-  },
-  sidebarLabel: { 
-    display: 'block', 
-    fontSize: '13px', 
-    fontWeight: '600', 
-    color: '#333', 
-    marginBottom: '6px' 
-  },
+  sidebarItem: { marginBottom: '18px', textAlign: 'left' },
+  sidebarLabel: { display: 'block', fontSize: '13px', fontWeight: '600', color: '#333', marginBottom: '6px' },
   sidebarSelect: { 
     width: '100%', 
-    padding: '8px 30px 8px 12px', // Extra right padding (30px) so text doesn't overlap the triangle
+    padding: '8px 30px 8px 12px', 
     borderRadius: '4px', 
     border: '1px solid #ccc', 
     fontSize: '13px', 
     background: '#fff', 
-    color: 'black', // Forces text to black instead of white
+    color: 'black', 
     cursor: 'pointer', 
     outline: 'none',
-    
-    // Wipes out the default browser dropdown arrow
     appearance: 'none', 
     WebkitAppearance: 'none', 
     MozAppearance: 'none',
-    
-    // Injects a custom black triangle SVG on the right side
     backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 4px center'
-  }};
+  }
+};
 
 // ============================================================================
 // UTILITY COMPONENTS
@@ -244,71 +231,74 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power", isLoading})
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={STYLES.mapTitle}>{title}</h2>
-      <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
-        
-        <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
-          <ResizeFix /> 
-          <ScrollHandler />
+      
+      <div style={{ padding: '16px' }}>
+        <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
           
-          {geoData && (
-            <GeoJSON 
-              key={`${title}-${valueKey}`}
-              ref={geoJsonRef} 
-              data={geoData} 
-              onEachFeature={bindFeatureEvents}
-              style={(feature) => ({
-                fillColor: getColor(feature.properties[valueKey] || 0),
-                weight: 0.2,       
-                color: '#888',     
-                fillOpacity: 0.9
-             })}
-            />
+          <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
+            <ResizeFix /> 
+            <ScrollHandler />
+            
+            {geoData && (
+              <GeoJSON 
+                key={`${title}-${valueKey}`}
+                ref={geoJsonRef} 
+                data={geoData} 
+                onEachFeature={bindFeatureEvents}
+                style={(feature) => ({
+                  fillColor: getColor(feature.properties[valueKey] || 0),
+                  weight: 0.2,       
+                  color: '#888',     
+                  fillOpacity: 0.9
+               })}
+              />
+            )}
+
+            {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
+              <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>
+                <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">{name}</Tooltip>
+              </Marker>
+            ))}
+          </MapContainer>
+          
+          <div style={{
+            position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000,
+            background: 'rgba(255, 255, 255, 0.95)', padding: '12px', borderRadius: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)', width: '260px'
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+              {valueKey === 'total_power' ? 'Leistung absolut (MWp)' : 
+               valueKey === 'relative_area_power' ? 'Leistung / Fläche' : 'Leistung / Einwohner'}
+            </div>
+            <div style={{
+              height: '14px', width: '100%', borderRadius: '4px',
+              background: 'linear-gradient(to right, rgb(26,152,80), rgb(166,217,106), rgb(255,255,191), rgb(253,141,60), rgb(215,48,39))',
+              border: '1px solid #ccc'
+            }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#555', fontWeight: '500' }}>
+              <span>{minValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+              <span>{((minValue + maxValue) / 2).toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+              <span>{maxValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+            </div>
+          </div>
+
+          {isLoading && (
+            <div style={{ 
+              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+              background: 'rgba(255, 255, 255, 0.85)', zIndex: 9999 
+            }}>
+              <svg width="60" height="60" viewBox="0 0 50 50" style={{ marginBottom: '15px' }}>
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#e0e0e0" strokeWidth="5" />
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#0b4ea2" strokeWidth="5" strokeDasharray="30 100" strokeLinecap="round">
+                  <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
+                </circle>
+              </svg>
+              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#0b4ea2' }}>Lade Daten...</span>
+            </div>
           )}
 
-          {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
-            <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>
-              <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">{name}</Tooltip>
-            </Marker>
-          ))}
-        </MapContainer>
-        
-        <div style={{
-          position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000,
-          background: 'rgba(255, 255, 255, 0.95)', padding: '12px', borderRadius: '8px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.2)', width: '260px'
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
-            {valueKey === 'total_power' ? 'Leistung absolut (MWp)' : 
-             valueKey === 'relative_area_power' ? 'Leistung / Fläche' : 'Leistung / Einwohner'}
-          </div>
-          <div style={{
-            height: '14px', width: '100%', borderRadius: '4px',
-            background: 'linear-gradient(to right, rgb(26,152,80), rgb(166,217,106), rgb(255,255,191), rgb(253,141,60), rgb(215,48,39))',
-            border: '1px solid #ccc'
-          }}></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#555', fontWeight: '500' }}>
-            <span>{minValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
-            <span>{((minValue + maxValue) / 2).toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
-            <span>{maxValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
-          </div>
         </div>
-
-        {isLoading && (
-          <div style={{ 
-            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-            background: 'rgba(255, 255, 255, 0.85)', zIndex: 9999 
-          }}>
-            <svg width="60" height="60" viewBox="0 0 50 50" style={{ marginBottom: '15px' }}>
-              <circle cx="25" cy="25" r="20" fill="none" stroke="#e0e0e0" strokeWidth="5" />
-              <circle cx="25" cy="25" r="20" fill="none" stroke="#0b4ea2" strokeWidth="5" strokeDasharray="30 100" strokeLinecap="round">
-                <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
-              </circle>
-            </svg>
-            <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#0b4ea2' }}>Lade Daten...</span>
-          </div>
-        )}
-
       </div>
     </div>
   );
@@ -318,18 +308,21 @@ function HeatmapMapCard({ title, geoData }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={STYLES.mapTitle}>{title}</h2>
-      <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
-        <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
-          <ResizeFix /> 
-          <ScrollHandler />
-          <ImageOverlay url={ENDPOINTS.HEATMAP_IMG} bounds={MAP_BOUNDS} opacity={0.85} />
-          <GeoJSON data={geoData} style={{ fillColor: 'transparent', weight: 0.4, color: 'black', fillOpacity: 0 }} />
-          {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
-            <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>
-              <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">{name}</Tooltip>
-            </Marker>
-          ))}
-        </MapContainer>
+      
+      <div style={{ padding: '16px' }}>
+        <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
+          <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
+            <ResizeFix /> 
+            <ScrollHandler />
+            <ImageOverlay url={ENDPOINTS.HEATMAP_IMG} bounds={MAP_BOUNDS} opacity={0.85} />
+            <GeoJSON data={geoData} style={{ fillColor: 'transparent', weight: 0.4, color: 'black', fillOpacity: 0 }} />
+            {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
+              <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>
+                <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">{name}</Tooltip>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
       </div>
     </div>
   );
@@ -343,12 +336,10 @@ export default function MapPage() {
   const [detailLevel, setDetailLevel] = useState("Bundesländer");
   const [valueType, setValueType] = useState("Absolut");
   
-  // Data State: strictly track which map level the data belongs to
   const [apiPayload, setApiPayload] = useState({ level: null, data: [] });
   const [isFetching, setIsFetching] = useState(false);
   const [mergedGeoData, setMergedGeoData] = useState(null);
 
-  // Topology State
   const [geoData, setGeoData] = useState(null);
   const [geoData3, setGeoData3] = useState(null);
   const [geoData5, setGeoData5] = useState(null);
@@ -380,15 +371,12 @@ export default function MapPage() {
     return "plz5";
   };
 
-  // 1. Fetching API Data
   useEffect(() => {
     if (detailLevel === "kontinuierlich") return; 
 
     const level = getApiLevel(detailLevel);
     setIsFetching(true);
     setMergedGeoData(null); 
-    
-    // Wipe stale data immediately so the merge effect won't map it
     setApiPayload({ level: null, data: [] }); 
 
     let isCancelled = false; 
@@ -398,8 +386,6 @@ export default function MapPage() {
       .then(data => {
         if (isCancelled) return;
         if (data.length > 0) Logger.info("API Data Fetched", data[0]); 
-        
-        // Save the new data AND explicitly tag it with its corresponding detail level
         setApiPayload({ level: detailLevel, data }); 
       })
       .catch(err => {
@@ -411,12 +397,8 @@ export default function MapPage() {
     return () => { isCancelled = true; };
   }, [detailLevel]);
 
-  // 2. Merging Data
   useEffect(() => {
-    // STRICT GUARD: If the data payload doesn't belong to the current map mode, abort.
-    if (apiPayload.level !== detailLevel || apiPayload.data.length === 0) {
-      return;
-    }
+    if (apiPayload.level !== detailLevel || apiPayload.data.length === 0) return;
 
     let baseShapes;
     if (detailLevel === "PLZ-Bereiche") baseShapes = geoData5;
@@ -424,12 +406,8 @@ export default function MapPage() {
     else if (detailLevel === "Bundesländer") baseShapes = geoDataBL;
     else baseShapes = geoData;
 
-    // Wait until shapes are loaded
-    if (!baseShapes || !baseShapes.features) {
-      return;
-    }
+    if (!baseShapes || !baseShapes.features) return;
 
-    // Yield to main thread for the CSS spinner
     const timer = setTimeout(() => {
       const levelKey = getApiLevel(detailLevel); 
       
@@ -491,7 +469,6 @@ export default function MapPage() {
 
         <div style={STYLES.mainSection}>
           
-          {/* MAP FRAME */}
           <div style={STYLES.mapCard}>
             {renderDynamicMap()}
             
@@ -499,14 +476,13 @@ export default function MapPage() {
               textAlign: 'right', 
               fontSize: '12px', 
               color: '#666', 
-              marginTop: '8px', 
+              padding: '0 16px 16px 16px',
               fontStyle: 'italic' 
             }}>
               Zuletzt aktualisiert: 14.05.2026
             </div>
           </div>
 
-          {/* CONFIG MENU FRAME */}
           <div style={STYLES.sidebar}>
              <div style={STYLES.sidebarHeader}>
                Einstellungen
