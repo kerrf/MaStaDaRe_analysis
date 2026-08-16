@@ -9,7 +9,7 @@ WITH plz5_solar_agg AS (
         "Postleitzahl" AS plz5,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power
-    FROM stg.solar_units
+    FROM raw.solar_units
     GROUP BY "Postleitzahl"
 )
 -- 2. Join the 1-to-1 data and run the ROLLUP
