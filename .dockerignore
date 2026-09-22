@@ -1,0 +1,14 @@
+.git
+.venv
+node_modules
+frontend
+notebooks
+*.ipynb
+backend/data
+backend/__pycache__
+backend/app.log
+**/__pycache__
+*.pyc
+.env
+.env.*
+!backend/.env.production.example

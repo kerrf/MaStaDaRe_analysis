@@ -18,8 +18,15 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "psycopg[binary]>=3.3.3",
     "pyarrow>=23.0.1",
+    "pydantic-settings>=2.15.0",
     "requests>=2.33.1",
     "scipy>=1.17.1",
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.42.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
 ]
