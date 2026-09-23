@@ -39,7 +39,7 @@ export default function Footer() {
       
       <span style={{ color: '#d0d0d0' }}>|</span>
       
-      <a href="https://linkedin.com/in/YOUR_LINKEDIN_HANDLE" target="_blank" rel="noopener noreferrer" style={STYLES.link} onMouseOver={(e) => e.target.style.color = '#0b4ea2'} onMouseOut={(e) => e.target.style.color = '#555'}>
+      <a href="https://www.linkedin.com/in/maxim-sokol-3997b6291/" target="_blank" rel="noopener noreferrer" style={STYLES.link} onMouseOver={(e) => e.target.style.color = '#0b4ea2'} onMouseOut={(e) => e.target.style.color = '#555'}>
         LinkedIn
       </a>
     </footer>

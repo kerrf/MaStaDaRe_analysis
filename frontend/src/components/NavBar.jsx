@@ -5,20 +5,23 @@ import './NavBar.css';
 function NavBar() {
   const items = [
     { label: 'Home', to: '/' },
-    { label: 'Overview', to: '/map' },
-    { label: 'Battery Charts', to: '/map' },
-    { label: 'Revenue Index', to: '/map' },
-    { label: 'Mobility Charts', to: '/map' },
+    { label: 'Erzeuger', to: '/map3' },
+    { label: 'Speicher', to: '/storage-map' },
   ];
 
   return (
     <header className="navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__brand" aria-label="Go to home page">
-          <div className="navbar__logoBox">CARI</div>
+          {/* Replaced CARI box with a clean energy SVG icon */}
+          <div className="navbar__logoIcon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+          </div>
           <div className="navbar__brandText">
-            <div className="navbar__brandTitle">Marktstammdatenregister</div>
-            <div className="navbar__brandSubtitle">Dashboard</div>
+            <div className="navbar__brandTitle">MaStR Dashboard</div>
+            <div className="navbar__brandSubtitle">Marktstammdatenregister Visualisierung</div>
           </div>
         </Link>
 
@@ -37,39 +40,26 @@ function NavBar() {
 
           <div className="navbar__dropdown">
             <button type="button" className="navbar__dropdownToggle">
-              <span>More</span>
+              <span>Märkte</span>
               <span className="navbar__dropdownChevron">⌄</span>
             </button>
 
             <div className="navbar__dropdownMenu">
-              <NavLink to="/maps2" className="navbar__dropdownItem">
-                Power
-              </NavLink>
-              <NavLink to="/market/gas" className="navbar__dropdownItem">
-                Gas
-              </NavLink>
-              <NavLink to="/market/co2" className="navbar__dropdownItem">
-                CO₂
-              </NavLink>
+              <NavLink to="/maps2" className="navbar__dropdownItem">Power</NavLink>
+              <NavLink to="/market/gas" className="navbar__dropdownItem">Gas</NavLink>
+              <NavLink to="/market/co2" className="navbar__dropdownItem">CO₂</NavLink>
             </div>
           </div>
         </nav>
 
         <div className="navbar__actions">
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {/* Short vertical dash */}
-            <div style={{ width: '1px', height: '32px', backgroundColor: '#d0d0d0', marginRight: '16px' }}></div>
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#e0e0e0', marginRight: '16px' }}></div>
 
-            {/* Language Selector */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-              
               <div style={{ display: 'flex', gap: '6px', marginBottom: '2px' }}>
                 {/* Active: German Flag */}
-                <div style={{
-                  width: '18px', height: '18px', borderRadius: '50%',
-                  border: '1px solid #d0d0d0', padding: '1px',
-                  display: 'flex', justifyContent: 'center', alignItems: 'center'
-                }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1px solid #d0d0d0', padding: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}>
                     <svg viewBox="0 0 3 3" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
                       <rect width="3" height="1" y="0" fill="#000000" />
@@ -80,12 +70,7 @@ function NavBar() {
                 </div>
 
                 {/* Inactive: English (UK) Flag */}
-                <div style={{
-                  width: '18px', height: '18px', borderRadius: '50%',
-                  border: '1px solid #d0d0d0', padding: '1px',
-                  display: 'flex', justifyContent: 'center', alignItems: 'center',
-                  opacity: 0.4 // Dimmed to show it is inactive
-                }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1px solid #d0d0d0', padding: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: 0.3 }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}>
                     <svg viewBox="0 0 60 60" preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
                       <rect width="60" height="60" fill="#012169" />
@@ -97,8 +82,7 @@ function NavBar() {
                   </div>
                 </div>
               </div>
-              
-              <span style={{ fontSize: '11px', color: '#1a73e8', fontFamily: 'sans-serif' }}>Sprache</span>
+              <span style={{ fontSize: '11px', color: '#666', fontFamily: 'sans-serif', fontWeight: '500' }}>Sprache</span>
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ import * as topojson from 'topojson-client';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat/dist/leaflet-heat.js';
 import NavBar from '../components/NavBar';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 // ============================================================================
 // LOGGING UTILITY
@@ -20,13 +22,15 @@ const Logger = {
 // CONSTANTS & CONFIGURATION
 // ============================================================================
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const ENDPOINTS = {
   PLZ2: '/plz2_boundaries.topojson',
   PLZ3: '/plz3_boundaries.topojson',
   PLZ5: '/plz5_boundaries.topojson',
   BUNDESLAND: '/states_boundaries.topojson',
-  STATS: 'http://localhost:8000/solar/dashboard-stats',
-  HEATMAP_IMG: 'http://localhost:8000/solar/plz5_heatmap_image'
+  STATS: `${API_BASE_URL}/solar/dashboard-stats`,
+  HEATMAP_IMG: `${API_BASE_URL}/plz5_heatmap_image`
 };
 
 const MAP_BOUNDS = [
@@ -47,7 +51,6 @@ const SIDEBAR_OPTIONS = {
   "Detailgrad der Regionen": ["Bundesländer", "PLZ-Bereich (2-stellig)", "PLZ-Bereich (3-stellig)", "PLZ-Bereiche", "kontinuierlich"],
   "Anordnung": ["Standard Layout", "Kompakt"],
   "Beschreibung": ["Methodik", "Legende"],
-  "Export": ["PDF Export", "CSV Export"],
   "Hinweise": ["Datenschutz", "Nutzung"]
 };
 
@@ -68,12 +71,10 @@ const STYLES = {
   topGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))', gap: '48px', marginBottom: '60px' },
   mainSection: { display: 'flex', gap: '24px', alignItems: 'flex-start' },
   
-  // MAP FRAME
   mapCard: { flex: 3, background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   mapTitle: { margin: 0, padding: '14px 16px', fontSize: '15px', fontWeight: '600', color: '#333', textAlign: 'left', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0' },
   mapWrapper: { height: '620px', borderRadius: '6px', overflow: 'hidden', position: 'relative' },
   
-  // SIDEBAR FRAME
   sidebar: { flex: 1, minWidth: '300px', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' },
   sidebarHeader: { background: '#f5f5f5', padding: '14px 16px', fontSize: '15px', fontWeight: '600', color: '#333', borderBottom: '1px solid #e0e0e0', textAlign: 'left' },
   sidebarBody: { padding: '16px' },
@@ -193,21 +194,39 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power", isLoading})
         fillOpacity: 0.9
       }));
     }
-  }, [geoData, valueKey, maxValue, 0]);
+  }, [geoData, valueKey, maxValue]);
 
   const bindFeatureEvents = (feature, layer) => {
     const props = feature.properties;
-    const tooltipContent = `
-      <div style="text-align: left; font-family: sans-serif; color: #333;">
-        <h3 style="margin: 0 0 5px 0; font-size: 16px; border-bottom: 2px solid #0b4ea2; padding-bottom: 2px;">
+  const tooltipContent = `
+      <div style="text-align: left; font-family: sans-serif; color: #333; min-width: 250px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; border-bottom: 2px solid #0b4ea2; padding-bottom: 4px;">
           Region: ${props.plz || props.name || 'Unbekannt'}
         </h3>
-        <div style="font-size: 13px; line-height: 1.4;">
-          <strong>Anzahl Anlagen:</strong> ${props.total_units?.toLocaleString() || 0}<br/>
-          <strong>Leistung absolut:</strong> ${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0} MWp<br/>
-          <strong>Leistung pro Fläche:</strong> ${props.relative_area_power?.toLocaleString(undefined, {maximumFractionDigits: 4}) || 0} kWp/km<sup>2</sup><br/>
-          <strong>Leistung pro Einwohner:</strong> ${props.relative_population_power?.toLocaleString(undefined, {maximumFractionDigits: 6})|| 0} kWp/Einwohner
-        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+              <td style="padding: 1px 0; font-weight: 600; color: #444;">Anlagen</td>
+              <td style="padding: 1px 8px; text-align: right; font-family: monospace; font-size: 12px;">${props.total_units?.toLocaleString() || 0}</td>
+              <td style="padding: 1px 0; color: #888; width: 60px;"></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+              <td style="padding: 1px 0; font-weight: 600; color: #444;">Absolut</td>
+              <td style="padding: 1px 8px; text-align: right; font-family: monospace; font-size: 12px;">${props.total_power?.toLocaleString(undefined, {maximumFractionDigits: 2}) || 0}</td>
+              <td style="padding: 1px 0; color: #888; width: 60px;">MWp</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+              <td style="padding: 1px 0; font-weight: 600; color: #444;">Pro Fläche</td>
+              <td style="padding: 1px 8px; text-align: right; font-family: monospace; font-size: 12px;">${props.relative_area_power?.toLocaleString(undefined, {maximumFractionDigits: 4}) || 0}</td>
+              <td style="padding: 1px 0; color: #888; width: 60px;">kWp/km²</td>
+            </tr>
+            <tr>
+              <td style="padding: 1px 0; font-weight: 600; color: #444;">Pro Einw.</td>
+              <td style="padding: 1px 8px; text-align: right; font-family: monospace; font-size: 12px;">${props.relative_population_power?.toLocaleString(undefined, {maximumFractionDigits: 6})|| 0}</td>
+              <td style="padding: 1px 0; color: #888; width: 60px;">kWp</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     `;
     
@@ -233,7 +252,7 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power", isLoading})
       <h2 style={STYLES.mapTitle}>{title}</h2>
       
       <div style={{ padding: '16px' }}>
-        <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
+        <div id="map-export-container" style={{ ...STYLES.mapWrapper, background: '#fff' }}>
           
           <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
             <ResizeFix /> 
@@ -276,9 +295,9 @@ function SeparateMapCard({ title, geoData, valueKey = "total_power", isLoading})
               border: '1px solid #ccc'
             }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '6px', color: '#555', fontWeight: '500' }}>
-              <span>{minValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
-              <span>{((minValue + maxValue) / 2).toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
-              <span>{maxValue.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
+              <span>{Math.round(minValue).toLocaleString('de-DE')}</span>
+              <span>{Math.round((minValue + maxValue) / 2).toLocaleString('de-DE')}</span>
+              <span>{Math.round(maxValue).toLocaleString('de-DE')}</span>
             </div>
           </div>
 
@@ -310,7 +329,7 @@ function HeatmapMapCard({ title, geoData }) {
       <h2 style={STYLES.mapTitle}>{title}</h2>
       
       <div style={{ padding: '16px' }}>
-        <div style={{ ...STYLES.mapWrapper, background: '#fff' }}>
+        <div id="map-export-container" style={{ ...STYLES.mapWrapper, background: '#fff' }}>
           <MapContainer preferCanvas={true} center={[51.1657, 10.4515]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} attributionControl={false}>
             <ResizeFix /> 
             <ScrollHandler />
@@ -335,6 +354,7 @@ function HeatmapMapCard({ title, geoData }) {
 export default function MapPage() {
   const [detailLevel, setDetailLevel] = useState("Bundesländer");
   const [valueType, setValueType] = useState("Absolut");
+  const [exportType, setExportType] = useState("Graphik");
   
   const [apiPayload, setApiPayload] = useState({ level: null, data: [] });
   const [isFetching, setIsFetching] = useState(false);
@@ -438,6 +458,39 @@ export default function MapPage() {
     return () => clearTimeout(timer);
   }, [apiPayload, detailLevel, geoData, geoData3, geoData5, geoDataBL]);
 
+  const handleExport = async (format) => {
+    if (exportType === "Rohdaten") {
+      if (!apiPayload.data || apiPayload.data.length === 0) return alert("Keine Daten zum Exportieren");
+      const headers = Object.keys(apiPayload.data[0]).join(",");
+      const rows = apiPayload.data.map(row => Object.values(row).join(",")).join("\n");
+      const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "mastr_daten.csv";
+      link.click();
+    } else {
+      const mapEl = document.getElementById("map-export-container");
+      if (!mapEl) return alert("Karte nicht gefunden.");
+      
+      const canvas = await html2canvas(mapEl, { useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+
+      if (format === "PNG") {
+        const link = document.createElement("a");
+        link.href = imgData;
+        link.download = "map_export.png";
+        link.click();
+      } else if (format === "PDF") {
+        const pdf = new jsPDF("landscape");
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save("map_export.pdf");
+      }
+    }
+  };
+
   const renderDynamicMap = () => {
     const valueMap = {
       "Absolut": "total_power",
@@ -504,6 +557,31 @@ export default function MapPage() {
                    />
                  );
                })}
+
+               {/* EXPORT SECTION */}
+               <div style={{ ...STYLES.sidebarItem, marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e0e0e0' }}>
+                 <label style={STYLES.sidebarLabel}>Export</label>
+                 <select 
+                   value={exportType}
+                   onChange={(e) => setExportType(e.target.value)}
+                   style={{ ...STYLES.sidebarSelect, marginBottom: '12px' }}
+                 >
+                   <option value="Graphik">Graphik (PNG / PDF)</option>
+                   <option value="Rohdaten">Rohdaten (CSV)</option>
+                 </select>
+
+                 <div style={{ display: 'flex', gap: '8px' }}>
+                   {exportType === "Graphik" ? (
+                     <>
+                       <button onClick={() => handleExport("PNG")} style={{ background: '#0b4ea2', color: '#fff', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', flex: 1 }}>PNG</button>
+                       <button onClick={() => handleExport("PDF")} style={{ background: '#0b4ea2', color: '#fff', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', flex: 1 }}>PDF</button>
+                     </>
+                   ) : (
+                     <button onClick={() => handleExport("CSV")} style={{ background: '#0b4ea2', color: '#fff', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', width: '100%' }}>CSV Download</button>
+                   )}
+                 </div>
+               </div>
+
              </div>
           </div>
 
