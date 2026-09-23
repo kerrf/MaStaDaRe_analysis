@@ -12,32 +12,32 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from app.core.config import settings
+from app.routers import solar
+
+
 app = FastAPI(
-    title="Get Data from Marktstammdatenregister"
-    description="api to fetch data from the Marktstammdatenregister-abbrevated database"
-    version="0.1.0"
-    docs_url="/docs"
+    title="Get Data from Marktstammdatenregister",
+    description="api to fetch data from the Marktstammdatenregister-abbrevated database",
+    version="0.1.0",
+    docs_url="/docs",
     redocs_url="/redoc"
 )
+app.include_router(solar.router)
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://mastr-data.de"
-    "https://www.mastr-data.de"
-    "https://my-frontend.vercel.app"
-]
-
-# Allow React (running on port 5173) to talk to Python
+# Allow the deployed frontend(s) to talk to the API (origins come from ALLOWED_ORIGINS in .env)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-PROCESSED_DIR = "/home/kerf/energy_projects/mastadatregpv_korrekt-main/data/processed"
+PROCESSED_DIR = os.getenv(
+    "PROCESSED_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "processed"),
+)
 
 @app.get("/plz2_solar_brutto")
 def get_plz2_data():
@@ -67,6 +67,9 @@ def get_plz5_heatmap_image():
     # FileResponse is heavily optimized by FastAPI to serve static files instantly
     return FileResponse(image_path, media_type="image/png")
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

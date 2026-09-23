@@ -18,8 +18,10 @@ class SolarBundeslandStats(Base):
     
     Bundesland = Column(String, primary_key=True)
     
-    total_power = Column(Float)
     total_units = Column(Integer)
+    total_power = Column(Float)
+    relative_area_power = Column(Float)
+    relative_population_power = Column(Float)
 
 class SolarRollupStats(Base):
     __tablename__ = "solar_rollup_stats"

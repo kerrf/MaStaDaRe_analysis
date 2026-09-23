@@ -30,3 +30,9 @@ if __name__ == "__main__":
     
     query_path = Path("app/etl/queries/aggregate_by_bundesland.sql")
     run_sql_file(engine, query_path)
+    
+    query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
+    run_sql_file(engine, query_path)
+    
+    # query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
+    # run_sql_file(engine, query_path)
