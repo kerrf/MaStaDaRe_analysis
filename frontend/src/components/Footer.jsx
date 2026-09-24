@@ -1,47 +1,86 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowUpRight, Clock, Zap } from 'lucide-react';
+import Badge from './ui/Badge';
+import { SITE } from '../config/site';
+import { formatDate } from '../lib/format';
+import './Footer.css';
 
-const STYLES = {
-  footer: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderTop: '1px solid #e0e0e0',
-    padding: '24px 0',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '32px', // Space between links
-    fontSize: '14px',
-    color: '#555',
-    // marginTop: 'auto' ensures it gets pushed to the bottom if the page content is short
-    marginTop: 'auto' 
+const COLUMNS = [
+  {
+    title: 'Dashboards',
+    links: [
+      { label: 'Erzeuger', to: '/erzeuger' },
+      { label: 'Speicher', to: '/speicher' },
+      { label: 'Märkte', to: '/maerkte/strom' },
+    ],
   },
-  link: {
-    color: '#555',
-    textDecoration: 'none',
-    fontWeight: '500',
-    transition: 'color 0.2s ease'
-  }
-};
+  {
+    title: 'Projekt',
+    links: [
+      { label: 'Info & Methodik', to: '/info' },
+      { label: 'Datenquellen', to: '/info#quellen' },
+      { label: 'FAQ', to: '/info#faq' },
+      { label: 'GitHub', href: SITE.links.github },
+      { label: 'LinkedIn', href: SITE.links.linkedin },
+    ],
+  },
+  {
+    title: 'Rechtliches',
+    links: [
+      { label: 'Impressum', to: '/impressum' },
+      { label: 'Datenschutz', to: '/datenschutz' },
+    ],
+  },
+];
 
 export default function Footer() {
   return (
-    <footer style={STYLES.footer}>
-      <Link to="/datenschutz" style={STYLES.link} onMouseOver={(e) => e.target.style.color = '#0b4ea2'} onMouseOut={(e) => e.target.style.color = '#555'}>
-        Datenschutz
-      </Link>
-      
-      <span style={{ color: '#d0d0d0' }}>|</span>
-      
-      <a href="https://github.com/YOUR_GITHUB_HANDLE" target="_blank" rel="noopener noreferrer" style={STYLES.link} onMouseOver={(e) => e.target.style.color = '#0b4ea2'} onMouseOut={(e) => e.target.style.color = '#555'}>
-        GitHub
-      </a>
-      
-      <span style={{ color: '#d0d0d0' }}>|</span>
-      
-      <a href="https://www.linkedin.com/in/maxim-sokol-3997b6291/" target="_blank" rel="noopener noreferrer" style={STYLES.link} onMouseOver={(e) => e.target.style.color = '#0b4ea2'} onMouseOut={(e) => e.target.style.color = '#555'}>
-        LinkedIn
-      </a>
+    <footer className="footer">
+      <div className="container footer__inner">
+        <div className="footer__brand">
+          <Link to="/" className="footer__logo">
+            <span className="navbar__logo" aria-hidden="true">
+              <Zap size={16} strokeWidth={2.25} />
+            </span>
+            {SITE.name}
+          </Link>
+          <p>Interaktive Analysen zum Ausbau erneuerbarer Energien in Deutschland – auf Basis des Marktstammdatenregisters.</p>
+          <Badge icon={Clock}>Datenstand {formatDate(SITE.dataStand)}</Badge>
+        </div>
+
+        <nav className="footer__cols" aria-label="Fußzeile">
+          {COLUMNS.map((col) => (
+            <div key={col.title}>
+              <h2 className="footer__heading">{col.title}</h2>
+              <ul>
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    {link.href ? (
+                      <a href={link.href} target="_blank" rel="noopener noreferrer">
+                        {link.label} <ArrowUpRight size={13} aria-hidden="true" />
+                      </a>
+                    ) : (
+                      <Link to={link.to}>{link.label}</Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      <div className="container footer__bottom">
+        <span>
+          © {new Date().getFullYear()} {SITE.owner.name || SITE.name}
+        </span>
+        <span>
+          Daten: Marktstammdatenregister der Bundesnetzagentur,{' '}
+          <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener noreferrer">
+            dl-de/by-2-0
+          </a>
+        </span>
+      </div>
     </footer>
   );
 }

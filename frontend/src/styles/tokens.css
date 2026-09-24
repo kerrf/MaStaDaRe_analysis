@@ -1,0 +1,83 @@
+:root {
+  color-scheme: light;
+
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  /* Brand */
+  --brand-50: #eef4fc;
+  --brand-100: #d9e6f8;
+  --brand-500: #1c64c8;
+  --brand-600: #0b4ea2;
+  --brand-700: #093f84;
+
+  /* Ink */
+  --ink-primary: #101828;
+  --ink-secondary: #475467;
+  --ink-muted: #667085;
+
+  /* Surfaces & borders */
+  --surface-page: #f6f7f9;
+  --surface-card: #ffffff;
+  --surface-sunken: #f2f4f7;
+  --surface-hover: #f4f6f9;
+  --border-subtle: #eaecf0;
+  --border: #dde1e7;
+  --border-strong: #c4cad3;
+
+  /* Topic accents: each dashboard gets its own hue (matches its map ramp) */
+  --topic-erzeuger: #e28316;
+  --topic-erzeuger-strong: #9a4700;
+  --topic-erzeuger-soft: #fef2e1;
+  --topic-speicher: #2a78d6;
+  --topic-speicher-strong: #1c5cab;
+  --topic-speicher-soft: #e8f1fd;
+  --topic-maerkte: #4a3aa7;
+  --topic-maerkte-strong: #3b2e8a;
+  --topic-maerkte-soft: #efedfb;
+
+  /* Status */
+  --warn-bg: #fff8eb;
+  --warn-border: #f3cf8b;
+  --warn-ink: #7a4a00;
+  --danger-bg: #fef3f2;
+  --danger-border: #fecdca;
+  --danger-ink: #b42318;
+  --success-bg: #ecfdf3;
+  --success-ink: #067647;
+
+  /* Map */
+  --map-surface: #fbfbfa;
+  --map-nodata: #e4e7ec;
+  --map-outline: #475467;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 16px 40px -8px rgba(16, 24, 40, 0.18);
+
+  /* Layout */
+  --container: 1440px;
+  --gutter: clamp(16px, 3vw, 32px);
+  --nav-h: 64px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}
