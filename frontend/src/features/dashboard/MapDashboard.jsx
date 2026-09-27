@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Clock, Construction, Download, Info, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
@@ -63,13 +63,25 @@ function MapOverlay({ state, technology, onRetry }) {
   return null;
 }
 
+// Comma-separated ids from the URL, in option order; missing or invalid means all options.
+function parseSubtypes(value, options) {
+  const ids = options.map((o) => o.id);
+  const picked = value?.split(',') ?? [];
+  const selected = ids.filter((id) => picked.includes(id));
+  return selected.length ? selected : ids;
+}
+
 export default function MapDashboard({ config }) {
   const { land: landParam, kreis: kreisParam } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const region = landParam ? findBundesland(landParam) : null;
   const technology = config.technologies.find((t) => t.id === searchParams.get('technologie')) ?? config.technologies[0];
+  // Selection only for now – not yet passed to the data requests.
+  const subtypes = technology.subtypes ? parseSubtypes(searchParams.get(technology.subtypes.param), technology.subtypes.options) : null;
+  const analyses = technology.analyses ? [...config.analyses, ...technology.analyses] : config.analyses;
   const metric = config.metrics.find((m) => m.id === searchParams.get('kennzahl')) ?? config.metrics[0];
   const defaultGranularity = GRANULARITIES.find((g) => g.id === config.defaultGranularity);
   let granularity = GRANULARITIES.find((g) => g.id === searchParams.get('ebene') && g.available !== false) ?? defaultGranularity;
@@ -87,21 +99,34 @@ export default function MapDashboard({ config }) {
           else next.set(key, value);
           return next;
         },
-        { replace: true },
+        { replace: true, state: location.state },
       ),
-    [setSearchParams],
+    [setSearchParams, location.state],
   );
 
-  // Drilling into a Bundesland refines the shading, otherwise the map would show a single region.
+  // Drilling into a Bundesland refines the shading, otherwise the map would show a single region. The history
+  // entry remembers that switch, so going back to Deutschland restores the resolution the user came from.
   const selectRegion = useCallback(
     (code) => {
       const params = new URLSearchParams(searchParams);
-      if (code && (params.get('ebene') ?? config.defaultGranularity) === 'bundesland') params.set('ebene', 'plz3');
+      const ebene = params.get('ebene');
+      let drill = location.state?.drill ?? null;
+      if (code && (ebene ?? config.defaultGranularity) === 'bundesland') {
+        params.set('ebene', 'plz3');
+        drill = { from: ebene, to: 'plz3' };
+      } else if (!code && drill) {
+        if (drill.to === ebene) {
+          if (drill.from == null) params.delete('ebene');
+          else params.set('ebene', drill.from);
+        }
+        drill = null;
+      }
       const query = params.toString();
-      navigate(`${config.basePath}${code ? `/${code}` : ''}${query ? `?${query}` : ''}`);
+      navigate(`${config.basePath}${code ? `/${code}` : ''}${query ? `?${query}` : ''}`, { state: drill && { drill } });
     },
-    [searchParams, navigate, config.basePath, config.defaultGranularity],
+    [searchParams, location.state, navigate, config.basePath, config.defaultGranularity],
   );
+  const exitRegion = useCallback(() => selectRegion(null), [selectRegion]);
 
   // ------------------------------------------------------------------ data
   const hasData = Boolean(technology.statsPath);
@@ -157,6 +182,8 @@ export default function MapDashboard({ config }) {
   );
 
   const canDrill = hasData && activeGranularity.id === 'bundesland';
+  // Inside a Bundesland the map click leads back out (see ChoroplethMap); the ranking can still switch Länder.
+  const mapCanDrill = canDrill && !region;
   const onRegionClick = useCallback(
     (f) => {
       const target = findBundeslandByMapId(f.properties.id);
@@ -183,10 +210,10 @@ export default function MapDashboard({ config }) {
             )
             .join('')
         : '<tr><td class="map-tooltip__empty" colspan="3">Keine Daten</td></tr>';
-      const hint = canDrill ? '<div class="map-tooltip__hint">Klicken für Bundesland-Ansicht</div>' : '';
+      const hint = mapCanDrill ? '<div class="map-tooltip__hint">Klicken für Bundesland-Ansicht</div>' : '';
       return `<div class="map-tooltip__title">${escapeHtml(labelFor(f))}</div><table>${rows}</table>${hint}`;
     },
-    [config.tooltipRows, metric.id, labelFor, canDrill],
+    [config.tooltipRows, metric.id, labelFor, mapCanDrill],
   );
 
   // ----------------------------------------------------- fullscreen, hints
@@ -316,7 +343,8 @@ export default function MapDashboard({ config }) {
                 showOutlines={activeGranularity.id !== 'bundesland'}
                 focusFeature={focusFeature}
                 focusColor={focusColor}
-                onRegionClick={canDrill ? onRegionClick : undefined}
+                onExitFocus={exitRegion}
+                onRegionClick={mapCanDrill ? onRegionClick : undefined}
                 heatmapUrl={heatmapUrl}
                 onPlainWheel={onPlainWheel}
               />
@@ -332,7 +360,14 @@ export default function MapDashboard({ config }) {
 
             <footer className="map-card__footer">
               <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(SITE.dataStand)}</span>
-              <span className="map-card__footer-hint">Strg/⌘ + Mausrad zum Zoomen{canDrill ? ' · Klick auf ein Land zum Hineinzoomen' : ''}</span>
+              <span className="map-card__footer-hint">
+                Strg/⌘ + Mausrad zum Zoomen
+                {region
+                  ? ` · Klick außerhalb von ${region.name}: zurück zur Deutschland-Ansicht`
+                  : mapCanDrill
+                    ? ' · Klick auf ein Land zum Hineinzoomen'
+                    : ''}
+              </span>
             </footer>
           </section>
 
@@ -340,6 +375,8 @@ export default function MapDashboard({ config }) {
             config={config}
             technology={technology}
             onTechnology={(id) => setParam('technologie', id, config.technologies[0].id)}
+            subtypes={subtypes}
+            onSubtypes={(ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','))}
             metric={metric}
             onMetric={(id) => setParam('kennzahl', id, config.metrics[0].id)}
             granularity={granularity}
@@ -356,7 +393,8 @@ export default function MapDashboard({ config }) {
               <p className="section-head__lead">Vertiefende Auswertungen für {scopeLabel}. Weitere Ansichten folgen.</p>
             </div>
           </div>
-          <div className="analyses-grid">
+          {/* Top 10 + analyses: an even number of cards goes in pairs, so no row is left half empty. */}
+          <div className={`analyses-grid${analyses.length % 2 ? ' analyses-grid--pairs' : ''}`}>
             <article className="card">
               <header className="card__header">
                 <div>
@@ -378,7 +416,7 @@ export default function MapDashboard({ config }) {
                 />
               </div>
             </article>
-            {config.analyses.map((a) => (
+            {analyses.map((a) => (
               <article className="card" key={a.id}>
                 <header className="card__header">
                   <div>

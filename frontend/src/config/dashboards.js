@@ -23,7 +23,31 @@ export const ERZEUGER = {
   ramp: RAMPS.orange,
   defaultGranularity: 'bundesland',
   technologies: [
-    { id: 'solar', label: 'Solar', icon: Sun, statsPath: '/solar/dashboard-stats', heatmapPath: '/plz5_heatmap_image' },
+    {
+      id: 'solar',
+      label: 'Solar',
+      icon: Sun,
+      statsPath: '/solar/dashboard-stats',
+      heatmapPath: '/plz5_heatmap_image',
+      // Multiple choice shown below the chip while the technology is active; no param in the URL = all selected.
+      subtypes: {
+        param: 'anlagenart',
+        label: 'Anlagenart',
+        options: [
+          { id: 'gebaeude', label: 'Gebäude' },
+          { id: 'freiflaeche', label: 'Freifläche' },
+        ],
+      },
+      // Shown after the dashboard-wide analyses while the technology is active.
+      analyses: [
+        {
+          id: 'ausrichtung',
+          title: 'Ausrichtung',
+          description: 'Hauptausrichtung der Module – Anteile je Himmelsrichtung, Ost-West und nachgeführt.',
+          variant: 'radial',
+        },
+      ],
+    },
     { id: 'wind-an-land', label: 'Wind an Land', icon: Wind },
     { id: 'wind-auf-see', label: 'Wind auf See', icon: Waves },
     { id: 'biomasse', label: 'Biomasse', icon: Leaf },
@@ -55,6 +79,8 @@ export const ERZEUGER = {
     'Backend: Bundesland-Spalte in die PLZ-Rollups aufnehmen, damit Rangliste und Karte im Bundesland-Modus filtern können.',
     'Landkreise: Kreisgrenzen (BKG VG250) als TopoJSON + Aggregation über die ersten 5 Stellen des Gemeindeschlüssels.',
     'Weitere Technologien: statsPath in src/config/dashboards.js setzen, sobald die Endpoints existieren.',
+    'Solar-Anlagenart (Gebäude/Freifläche): Auswahl steht als ?anlagenart=… in der URL, wird aber noch nicht an den Endpoint übergeben (ArtDerSolaranlage 853/852).',
+    'Analyse „Ausrichtung“: Endpoint für Anlagen/Leistung je Hauptausrichtung (Nord … Nordwest, Ost-West, nachgeführt) und Chart statt Platzhalter.',
   ],
 };
 

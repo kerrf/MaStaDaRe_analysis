@@ -1,4 +1,5 @@
-import { BookOpen, Scale } from 'lucide-react';
+import { Fragment } from 'react';
+import { BookOpen, Check, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { GRANULARITIES } from '../../config/dashboards';
@@ -15,7 +16,56 @@ function Section({ title, children, aside }) {
   );
 }
 
-export default function ControlPanel({ config, technology, onTechnology, metric, onMetric, granularity, onGranularity }) {
+// Multiple choice below the active technology chip. At least one option stays selected.
+function SubtypePicker({ id, subtypes, selected, onChange }) {
+  const toggle = (optionId) =>
+    onChange(subtypes.options.map((o) => o.id).filter((x) => (x === optionId ? !selected.includes(x) : selected.includes(x))));
+
+  return (
+    <div id={id} className="tech-subtypes" role="group" aria-labelledby={`${id}-label`}>
+      <div id={`${id}-label`} className="tech-subtypes__label">
+        {subtypes.label}
+      </div>
+      <div className="tech-subtypes__options">
+        {subtypes.options.map((option) => {
+          const checked = selected.includes(option.id);
+          const locked = checked && selected.length === 1;
+          return (
+            <label
+              key={option.id}
+              className={`tech-subtypes__option${checked ? ' is-checked' : ''}${locked ? ' is-locked' : ''}`}
+              title={locked ? 'Mindestens eine Auswahl bleibt aktiv' : undefined}
+            >
+              <input
+                type="checkbox"
+                className="tech-subtypes__input visually-hidden"
+                checked={checked}
+                disabled={locked}
+                onChange={() => toggle(option.id)}
+              />
+              <span className="tech-subtypes__box" aria-hidden="true">
+                <Check size={12} strokeWidth={3} />
+              </span>
+              {option.label}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function ControlPanel({
+  config,
+  technology,
+  onTechnology,
+  subtypes,
+  onSubtypes,
+  metric,
+  onMetric,
+  granularity,
+  onGranularity,
+}) {
   return (
     <aside className="card controls" aria-label="Ansicht anpassen">
       <header className="card__header">
@@ -28,18 +78,24 @@ export default function ControlPanel({ config, technology, onTechnology, metric,
             {config.technologies.map((tech) => {
               const Icon = tech.icon;
               const active = tech.id === technology.id;
+              const expanded = active && Boolean(tech.subtypes);
+              const pickerId = `subtypes-${tech.id}`;
               return (
-                <button
-                  key={tech.id}
-                  type="button"
-                  className={`tech-chip${active ? ' is-active' : ''}`}
-                  aria-pressed={active}
-                  onClick={() => onTechnology(tech.id)}
-                >
-                  <Icon size={16} aria-hidden="true" />
-                  <span className="tech-chip__label">{tech.label}</span>
-                  {!tech.statsPath && <span className="tech-chip__soon">bald</span>}
-                </button>
+                <Fragment key={tech.id}>
+                  <button
+                    type="button"
+                    className={`tech-chip${active ? ' is-active' : ''}${expanded ? ' is-expanded' : ''}`}
+                    aria-pressed={active}
+                    aria-expanded={tech.subtypes ? expanded : undefined}
+                    aria-controls={expanded ? pickerId : undefined}
+                    onClick={() => onTechnology(tech.id)}
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    <span className="tech-chip__label">{tech.label}</span>
+                    {!tech.statsPath && <span className="tech-chip__soon">bald</span>}
+                  </button>
+                  {expanded && <SubtypePicker id={pickerId} subtypes={tech.subtypes} selected={subtypes} onChange={onSubtypes} />}
+                </Fragment>
               );
             })}
           </div>

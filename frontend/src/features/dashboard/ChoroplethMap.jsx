@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { GeoJSON, ImageOverlay, MapContainer, Marker, Pane, Polygon, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { GERMANY_BOUNDS } from '../../config/regions';
 
@@ -27,7 +28,7 @@ const TOP_CITIES = {
 const CITY_ICON = new L.DivIcon({ className: 'city-dot', html: '<span></span>', iconSize: [8, 8], iconAnchor: [4, 4] });
 
 const NODATA_FILL = '#e4e7ec';
-const MASK_FILL = '#f6f7f9';
+const MASK_STYLE = { stroke: false, fillColor: '#f6f7f9', fillOpacity: 0.85 };
 const WORLD_RING = [
   [-85, -180],
   [-85, 180],
@@ -132,6 +133,7 @@ export default function ChoroplethMap({
   showOutlines,
   focusFeature,
   focusColor,
+  onExitFocus,
   onRegionClick,
   heatmapUrl,
   onPlainWheel,
@@ -140,6 +142,12 @@ export default function ChoroplethMap({
     () => (focusFeature ? [WORLD_RING, ...ringsOf(focusFeature.geometry)] : null),
     [focusFeature],
   );
+
+  // The focus layers are drawn as SVG (the rest of the map is canvas): an SVG path only catches the pointer
+  // where it is painted, so the mask takes clicks outside the Bundesland while the hole passes them through
+  // to the choropleth below. A canvas would swallow every event on top of the map.
+  const focusRenderer = useMemo(() => L.svg({ pane: 'focus' }), []);
+  const exitHandlers = useMemo(() => ({ click: () => onExitFocus?.() }), [onExitFocus]);
 
   return (
     <MapContainer
@@ -177,22 +185,37 @@ export default function ChoroplethMap({
         </Pane>
       )}
 
-      {focusFeature && (
-        <Pane name="focus" style={{ zIndex: 430, pointerEvents: 'none' }}>
-          <Polygon
-            key={`mask-${focusFeature.properties.id}`}
-            positions={maskPositions}
-            interactive={false}
-            pathOptions={{ stroke: false, fillColor: MASK_FILL, fillOpacity: 0.85 }}
-          />
-          <GeoJSON
-            key={`outline-${focusFeature.properties.id}`}
-            data={focusFeature}
-            interactive={false}
-            style={{ fill: false, color: focusColor, weight: 2.5, opacity: 1 }}
-          />
-        </Pane>
-      )}
+      {/* Always mounted: the SVG renderer lives inside this pane for the lifetime of the map. */}
+      <Pane name="focus" style={{ zIndex: 430, pointerEvents: 'none' }}>
+        {focusFeature && (
+          <>
+            <Polygon
+              key={`mask-${focusFeature.properties.id}`}
+              positions={maskPositions}
+              renderer={focusRenderer}
+              className="map-focus-mask"
+              interactive={Boolean(onExitFocus)}
+              pathOptions={MASK_STYLE}
+              eventHandlers={exitHandlers}
+            >
+              {/* Explicit pane: inside <Pane> the tooltip would inherit "focus" and end up below the mask. */}
+              {onExitFocus && (
+                <Tooltip pane="tooltipPane" sticky direction="top" offset={[0, -10]} opacity={1} className="map-exit-hint">
+                  <ZoomOut size={14} aria-hidden="true" />
+                  Klicken für Deutschland-Ansicht
+                </Tooltip>
+              )}
+            </Polygon>
+            <GeoJSON
+              key={`outline-${focusFeature.properties.id}`}
+              data={focusFeature}
+              renderer={focusRenderer}
+              interactive={false}
+              style={{ fill: false, color: focusColor, weight: 2.5, opacity: 1 }}
+            />
+          </>
+        )}
+      </Pane>
 
       {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
         <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>

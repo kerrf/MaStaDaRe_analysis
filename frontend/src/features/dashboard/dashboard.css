@@ -373,6 +373,38 @@
   font-weight: 600;
 }
 
+/* Mask around a selected Bundesland: a click on it leads back to Deutschland. */
+body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
+  cursor: zoom-out;
+}
+
+.map-focus-mask.leaflet-interactive {
+  transition: fill-opacity var(--dur) var(--ease);
+}
+
+.map-focus-mask.leaflet-interactive:hover {
+  fill-opacity: 0.7;
+}
+
+.leaflet-tooltip.map-exit-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 24, 40, 0.86);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.leaflet-tooltip.map-exit-hint::before {
+  display: none;
+}
+
 /* Legend, chips, overlays */
 .map-legend {
   position: absolute;
@@ -525,6 +557,9 @@
 .tech-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  /* Dense packing lets the chips after an expanded chip backfill its row, so the sub-selection
+     (.tech-subtypes) opens in the row right below it. */
+  grid-auto-flow: row dense;
   gap: 6px;
 }
 
@@ -576,6 +611,103 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-muted);
+}
+
+/* Caret from the sub-selection up to its chip, centred on the panel's top border:
+   chip border 1px + grid gap 6px + panel margin 4px + half a border 0.5px - half the caret 4px. */
+.tech-chip.is-expanded::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 7.5px);
+  left: 14px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--surface-sunken);
+  transform: rotate(45deg);
+}
+
+.tech-subtypes {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+  padding: 8px 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  animation: tech-subtypes-in var(--dur) var(--ease);
+}
+
+@keyframes tech-subtypes-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.tech-subtypes__label {
+  padding: 0 6px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.tech-subtypes__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 2px;
+}
+
+.tech-subtypes__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tech-subtypes__option:hover:not(.is-locked) {
+  background: var(--surface-card);
+  color: var(--ink-primary);
+}
+
+.tech-subtypes__option.is-checked {
+  color: var(--ink-primary);
+}
+
+.tech-subtypes__option.is-locked {
+  cursor: not-allowed;
+}
+
+.tech-subtypes__box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-card);
+  color: transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.tech-subtypes__option.is-checked .tech-subtypes__box {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.tech-subtypes__input:focus-visible + .tech-subtypes__box {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
 }
 
 .option-list {
@@ -671,6 +803,10 @@
   gap: 20px;
 }
 
+.analyses-grid--pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .ranking {
   width: 100%;
   border-collapse: collapse;
@@ -752,6 +888,10 @@
 
   .analyses-grid > :first-child {
     grid-column: 1 / -1;
+  }
+
+  .analyses-grid--pairs > :first-child {
+    grid-column: auto;
   }
 }
 
