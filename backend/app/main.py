@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from app.core.config import settings
-from app.routers import solar
+from app.routers import battery, meta, pumped_storage, solar, water, wind, zubau
 
 
 app = FastAPI(
@@ -24,6 +24,12 @@ app = FastAPI(
     redocs_url="/redoc"
 )
 app.include_router(solar.router)
+app.include_router(wind.router)
+app.include_router(water.router)
+app.include_router(battery.router)
+app.include_router(pumped_storage.router)
+app.include_router(zubau.router)
+app.include_router(meta.router)
 
 # Allow the deployed frontend(s) to talk to the API (origins come from ALLOWED_ORIGINS in .env)
 app.add_middleware(

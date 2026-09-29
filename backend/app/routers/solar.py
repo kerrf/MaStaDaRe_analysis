@@ -1,7 +1,10 @@
+from typing import Literal, get_args
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.models.solar import SolarUnit, SolarRollupStats, SolarBundeslandStats
+from app.models.regions import RegionLevel, SolarRegionStats
+from app.models.solar import SolarUnit, SolarRollupStats
 from app.schemas.solar import SolarResponse, SolarFilter
 from app.db.database import get_db
 
@@ -28,16 +31,15 @@ async def get_solar_data(
 # TODO: Define response_model
 @router.get("/dashboard-stats", response_model=None)
 async def get_dashboard_stats(
-    level: str,
+    level: Literal["bundesland", "landkreis", "gemeinde", "plz2", "plz3", "plz5"],
     db: Session = Depends(get_db)
 ):
-    query = db.query(SolarRollupStats)
-    query_bl = db.query(SolarBundeslandStats)
+    if level in get_args(RegionLevel):
+        return db.query(SolarRegionStats).filter(*SolarRegionStats.at_level(level)).all()
 
-    if level == "Bundesland":
-        query = query_bl.filter()
-    
-    elif level == "plz2":
+    query = db.query(SolarRollupStats)
+
+    if level == "plz2":
         query = query.filter(
             SolarRollupStats.plz2.isnot(None),
             SolarRollupStats.plz3.is_(None)

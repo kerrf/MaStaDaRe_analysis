@@ -28,10 +28,28 @@ if __name__ == "__main__":
     # query_path = Path("app/etl/queries/aggregate_plz_einwohner.sql")
     # run_sql_file(engine, query_path)
     
-    query_path = Path("app/etl/queries/aggregate_by_bundesland.sql")
+    query_path = Path("app/etl/queries/aggregate_pv_by_plz_power.sql")
     run_sql_file(engine, query_path)
-    
-    query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
+
+    # Bundesland > Landkreis > Gemeinde, needs geo.gemeinden and geo.offshore (db_migrate.migrate_regions)
+    query_path = Path("app/etl/queries/aggregate_pv_by_region_power.sql")
+    run_sql_file(engine, query_path)
+
+    query_path = Path("app/etl/queries/aggregate_wind_by_region_power.sql")
+    run_sql_file(engine, query_path)
+
+    query_path = Path("app/etl/queries/aggregate_bat_by_region_power.sql")
+    run_sql_file(engine, query_path)
+
+    query_path = Path("app/etl/queries/aggregate_water_by_region_power.sql")
+    run_sql_file(engine, query_path)
+
+    # Needs raw.storage_plants (AnlagenStromSpeicher) for the storage capacity
+    query_path = Path("app/etl/queries/aggregate_pumpspeicher.sql")
+    run_sql_file(engine, query_path)
+
+    # Zubau im Zeitverlauf (Germany-wide, per month and year); battery capacity also from raw.storage_plants
+    query_path = Path("app/etl/queries/aggregate_zubau.sql")
     run_sql_file(engine, query_path)
     
     # query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")

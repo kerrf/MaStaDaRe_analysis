@@ -7,8 +7,16 @@ db_migrate builds the raw tables from the bulk export, this job keeps them curre
    and fetches all of their fields (1 API call per unit),
 3. translates them into the export's format (codes.encode) and upserts them into the table.
 
+Storage units have no capacity: the register keeps it on their Speicheranlage (raw.storage_plants). After the storage
+units, the job fetches the plants of the units changed since the same day and of units whose plant is missing
+(1 API call per plant, GetStromSpeicher), and upserts them the same way.
+
 Starting at the beginning of that day re-fetches units the table already has. They have to come back identical,
 which tests the whole chain (API -> format -> database) on every run: the sanity check in the log.
+
+Afterwards it refreshes the dashboard's materialized views (schema mrt), so the website shows the new data. If nothing
+failed, it notes the Datenstand in meta.update_runs: the day up to which the data includes every change of the register.
+The API serves it (GET /meta/datenstand), the website shows it.
 
     cd backend
     uv run python -m app.etl.update
@@ -22,13 +30,13 @@ import sys
 import time
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from logging import getLogger
 
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Engine
 
-from app.codes import SOLAR, STORAGE, WIND, CodeSpec, encode
+from app.codes import SOLAR, STORAGE, STORAGE_PLANT, WATER, WIND, CodeSpec, encode
 from app.etl.db_migrate import connect_to_db, copy_chunk, raw_table, table_columns
 from app.etl.extract import Chunk
 from app.etl.mastr_api import MastrApi
@@ -49,18 +57,25 @@ class UnitType:
     spec: CodeSpec  # how the API's format differs from the export's
 
 
+STORAGE_UNITS = UnitType("storage_units", "Speicher", "Stromspeichereinheit", "GetEinheitStromSpeicher", STORAGE)
 UNIT_TYPES = (
     UnitType("wind_units", "Wind", "Windeinheit", "GetEinheitWind", WIND),
-    UnitType("storage_units", "Speicher", "Stromspeichereinheit", "GetEinheitStromSpeicher", STORAGE),
+    UnitType("water_units", "Wasser", "Wasser", "GetEinheitWasser", WATER),
+    STORAGE_UNITS,
     UnitType("solar_units", "SolareStrahlungsenergie", "Solareinheit", "GetEinheitSolar", SOLAR),
 )
+PLANTS = "storage_plants"
+UNIT_KEY, PLANT_KEY = "EinheitMastrNummer", "MaStRNummer"
+DASHBOARD_SCHEMA = "mrt"  # the materialized views the API serves
 
-# A unit is unchanged if both dates are: the grid operator's check doesn't move DatumLetzteAktualisierung
+# A row is unchanged if these dates are (those the table has): the grid operator's check doesn't move
+# DatumLetzteAktualisierung
 CHANGE_DATES = ("DatumLetzteAktualisierung", "NetzbetreiberpruefungDatum")
 
 
-def update(unit_type: UnitType, api: MastrApi, engine: Engine) -> None:
-    """Upsert every unit changed since the start of the day of the newest unit in the table."""
+def update(unit_type: UnitType, api: MastrApi, engine: Engine) -> tuple[datetime, datetime]:
+    """Upsert every unit changed since the start of the day of the newest unit in the table.
+    Returns that start and the time up to which the table now has every change."""
     table = unit_type.table
     with engine.connect() as conn:
         newest = newest_change(conn, table)
@@ -80,7 +95,33 @@ def update(unit_type: UnitType, api: MastrApi, engine: Engine) -> None:
     chunk = to_chunk(fetch(api, unit_type, ids, until), columns)
     if chunk:
         with engine.begin() as conn:
-            load(conn, table, chunk, unit_type.spec)
+            load(conn, table, chunk, unit_type.spec, UNIT_KEY)
+    return since, until
+
+
+def update_plants(api: MastrApi, engine: Engine, since: datetime) -> None:
+    """Upsert the storage plants of the units changed since `since`, and those still missing for a unit."""
+    with engine.connect() as conn:
+        columns = table_columns(conn, PLANTS)
+        ids = conn.execute(text(f"""
+            SELECT DISTINCT unit."SpeMastrNummer"
+            FROM {raw_table(STORAGE_UNITS.table)} AS unit
+            LEFT JOIN {raw_table(PLANTS)} AS plant ON plant."{PLANT_KEY}" = unit."SpeMastrNummer"
+            WHERE unit."SpeMastrNummer" IS NOT NULL
+              AND (unit."DatumLetzteAktualisierung" >= :since OR plant."{PLANT_KEY}" IS NULL)
+            ORDER BY 1
+        """), {"since": since}).scalars().all()
+    logger.info(f"{PLANTS}: {len(ids):,} plants of storage units changed since {since:%Y-%m-%d} or without a plant yet")
+
+    budget = calls_left(api)
+    if len(ids) > budget:  # the missing ones come again next night
+        logger.warning(f"{PLANTS}: only {budget:,} API calls left today, fetching {budget:,} of {len(ids):,} plants")
+        ids = ids[:budget]
+
+    chunk = to_chunk(fetch_plants(api, ids), columns)
+    if chunk:
+        with engine.begin() as conn:
+            load(conn, PLANTS, chunk, STORAGE_PLANT, PLANT_KEY)
 
 
 def newest_change(conn: Connection, table_name: str) -> datetime:
@@ -120,6 +161,26 @@ def fetch(api: MastrApi, unit_type: UnitType, ids: list[str], until: datetime) -
         logger.info(f"{table}: {later:,} units changed again during the run, the next run takes them")
 
 
+def fetch_plants(api: MastrApi, ids: list[str]) -> Iterator[dict[str, str | None]]:
+    """All fields of the storage plants, in the export's format."""
+    gone = 0
+    start = time.perf_counter()
+    for i, plant in enumerate(api.details("GetStromSpeicher", ids, id_field="speMastrNummer"), start=1):
+        if plant is None:
+            gone += 1
+        else:
+            # The export lists the plant's units as "SEE…, SEE…", the API as objects
+            units = plant.pop("VerknuepfteEinheit") or []
+            plant["VerknuepfteEinheitenMaStRNummern"] = ", ".join(unit["MaStRNummer"] for unit in units) or None
+            yield encode(plant, STORAGE_PLANT)
+        if i % PROGRESS_EVERY == 0:
+            logger.info(f"{PLANTS}: {i:,} / {len(ids):,} plants fetched")
+
+    logger.info(f"{PLANTS}: fetched {len(ids):,} plants in {time.perf_counter() - start:.0f} s")
+    if gone:
+        logger.warning(f"{PLANTS}: {gone:,} plants of storage units are not in the register")
+
+
 def to_chunk(rows: Iterable[dict[str, str | None]], columns_in_table: set[str]) -> Chunk | None:
     """The rows as CSV for COPY, written as they come in: a fraction of the memory the dicts would need.
 
@@ -136,31 +197,33 @@ def to_chunk(rows: Iterable[dict[str, str | None]], columns_in_table: set[str]) 
     return Chunk(columns, buffer.getvalue().encode(), count) if count else None
 
 
-def load(conn: Connection, table_name: str, chunk: Chunk, spec: CodeSpec) -> None:
-    """Upsert the rows through a staging table, which also lets the database compare them with what it has."""
+def load(conn: Connection, table_name: str, chunk: Chunk, spec: CodeSpec, key: str) -> None:
+    """Upsert the rows through a staging table, which also lets the database compare them with what it has.
+    key: the table's primary key (EinheitMastrNummer, for plants MaStRNummer)."""
     conn.execute(text(f"CREATE TEMP TABLE staging (LIKE {raw_table(table_name)}) ON COMMIT DROP"))  # same column types
     copy_chunk(conn, "staging", chunk)
-    check(conn, table_name, chunk.columns, spec.multi)
-    upsert(conn, table_name, chunk.columns)
+    check(conn, table_name, chunk.columns, spec.multi, key)
+    upsert(conn, table_name, chunk.columns, key)
 
 
-def check(conn: Connection, table_name: str, columns: tuple[str, ...], multi: frozenset[str]) -> None:
+def check(conn: Connection, table_name: str, columns: tuple[str, ...], multi: frozenset[str], key: str) -> None:
     """Sort the fetched units into new / changed / unchanged and check that the unchanged ones are identical.
 
     Unchanged (same dates as in the table) means the API must return exactly what the table holds.
     A difference points at the translation into the export's format, or at the register itself.
     """
-    unchanged = " AND ".join(f'staged."{date}" IS NOT DISTINCT FROM stored."{date}"' for date in CHANGE_DATES)
+    dates = [date for date in CHANGE_DATES if date in columns]
+    unchanged = " AND ".join(f'staged."{date}" IS NOT DISTINCT FROM stored."{date}"' for date in dates)
     per_column = []
     for column in columns:
         differs = f"{unchanged} AND {comparable('staged', column, multi)} IS DISTINCT FROM {comparable('stored', column, multi)}"
-        per_column.append(f'count(*) FILTER (WHERE {differs}), min("EinheitMastrNummer") FILTER (WHERE {differs})')
+        per_column.append(f'count(*) FILTER (WHERE {differs}), min("{key}") FILTER (WHERE {differs})')
     total, new, same, *differences = conn.execute(text(f"""
-        SELECT count(*), count(*) FILTER (WHERE stored."EinheitMastrNummer" IS NULL), count(*) FILTER (WHERE {unchanged}),
+        SELECT count(*), count(*) FILTER (WHERE stored."{key}" IS NULL), count(*) FILTER (WHERE {unchanged}),
                {", ".join(per_column)}
-        FROM staging AS staged LEFT JOIN {raw_table(table_name)} AS stored USING ("EinheitMastrNummer")
+        FROM staging AS staged LEFT JOIN {raw_table(table_name)} AS stored USING ("{key}")
     """)).one()
-    logger.info(f"{table_name}: {new:,} new, {total - new - same:,} changed, {same:,} unchanged units")
+    logger.info(f"{table_name}: {new:,} new, {total - new - same:,} changed, {same:,} unchanged rows")
 
     mismatches = [
         f"{column} ({n:,}, e.g. {example})"
@@ -170,9 +233,9 @@ def check(conn: Connection, table_name: str, columns: tuple[str, ...], multi: fr
     if mismatches:
         logger.warning(f"{table_name}: sanity check: unchanged units differ from the table in {', '.join(mismatches)}")
     elif same:
-        logger.info(f"{table_name}: sanity check passed, all {same:,} unchanged units came back identical")
+        logger.info(f"{table_name}: sanity check passed, all {same:,} unchanged rows came back identical")
     else:
-        logger.warning(f"{table_name}: no sanity check, none of the fetched units was unchanged")
+        logger.warning(f"{table_name}: no sanity check, none of the fetched rows was unchanged")
 
 
 def comparable(alias: str, column: str, multi: frozenset[str]) -> str:
@@ -182,16 +245,52 @@ def comparable(alias: str, column: str, multi: frozenset[str]) -> str:
     return value
 
 
-def upsert(conn: Connection, table_name: str, columns: tuple[str, ...]) -> None:
-    """Insert new units, overwrite changed ones. Identical rows are left alone (no needless writes)."""
+def upsert(conn: Connection, table_name: str, columns: tuple[str, ...], key: str) -> None:
+    """Insert new rows, overwrite changed ones. Identical rows are left alone (no needless writes)."""
     names = ", ".join(f'"{column}"' for column in columns)
     new_values = ", ".join(f'EXCLUDED."{column}"' for column in columns)
     written = conn.execute(text(f"""
         INSERT INTO {raw_table(table_name)} AS stored ({names}) SELECT {names} FROM staging
-        ON CONFLICT ("EinheitMastrNummer") DO UPDATE SET ({names}) = ({new_values})
+        ON CONFLICT ("{key}") DO UPDATE SET ({names}) = ({new_values})
         WHERE ({", ".join(f'stored."{column}"' for column in columns)}) IS DISTINCT FROM ({new_values})
     """)).rowcount
     logger.info(f"{table_name}: {written:,} rows inserted or updated")
+
+
+def refresh_views(engine: Engine) -> list[str]:
+    """Recompute the dashboard's materialized views from the updated tables. They read the raw and geo tables only,
+    so the order doesn't matter. (transform.py creates them, again after a change of their SQL.) Returns the failed ones."""
+    with engine.connect() as conn:
+        views = conn.execute(
+            text("SELECT matviewname FROM pg_matviews WHERE schemaname = :schema ORDER BY 1"), {"schema": DASHBOARD_SCHEMA}
+        ).scalars().all()
+    failed = []
+    for view in views:
+        name = f'{DASHBOARD_SCHEMA}."{view}"'
+        start = time.perf_counter()
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"REFRESH MATERIALIZED VIEW {name}"))
+        except Exception:  # the other views still get the new data
+            logger.exception(f"{name}: refresh failed")
+            failed.append(name)
+            continue
+        logger.info(f"{name}: refreshed in {time.perf_counter() - start:.0f} s")
+    return failed
+
+
+def record_datenstand(engine: Engine, datenstand: date) -> None:
+    """Note the day up to which the data includes every change of the register, one row per complete run."""
+    with engine.begin() as conn:
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS meta"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS meta.update_runs (
+                finished_at timestamptz PRIMARY KEY DEFAULT now(),
+                datenstand date NOT NULL
+            )
+        """))
+        conn.execute(text("INSERT INTO meta.update_runs (datenstand) VALUES (:datenstand)"), {"datenstand": datenstand})
+    logger.info(f"Datenstand {datenstand:%d.%m.%Y} recorded")
 
 
 if __name__ == "__main__":
@@ -203,17 +302,30 @@ if __name__ == "__main__":
     used_before, limit = api.quota()
     logger.info(f"Update started, {used_before:,} of {limit:,} API calls used today")
 
-    failed = []
+    failed, complete_until = [], []
     for unit_type in UNIT_TYPES:
         try:
-            update(unit_type, api, engine)
+            since, until = update(unit_type, api, engine)
         except Exception:  # one broken unit type shouldn't stop the others
             logger.exception(f"{unit_type.table}: update failed")
             failed.append(unit_type.table)
+            continue
+        complete_until.append(until)
+        if unit_type is STORAGE_UNITS:
+            try:
+                update_plants(api, engine, since)
+            except Exception:
+                logger.exception(f"{PLANTS}: update failed")
+                failed.append(PLANTS)
+
+    # Also after a failure: what did update should reach the website
+    failed += refresh_views(engine)
 
     used_after, _ = api.quota()
     summary = f"in {(time.perf_counter() - started) / 60:.1f} min, {used_after - used_before:,} API calls"
-    if failed:
+    if failed:  # the Datenstand stays at the last complete run
         logger.error(f"Update FAILED for {', '.join(failed)} {summary}")
         sys.exit(1)
+    # Usually the start of this run; earlier if the API quota cut a catch-up short
+    record_datenstand(engine, min(complete_until).date())
     logger.info(f"Update done {summary}")

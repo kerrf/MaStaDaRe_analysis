@@ -36,6 +36,10 @@ PAGE_SIZE = 2000  # the most a list call returns
 WORKERS = 4  # parallel detail calls
 TIMEOUT = 60  # seconds per call; normal: 0.2 s for details, 4 s for a list page. The API sometimes hangs, then we retry
 HEADER = ("Ergebniscode", "AufrufVeraltet", "AufrufLebenszeitEnde", "AufrufVersion")  # in every answer, not data
+# How a detail call says the unit is gone: "Objekt nicht gefunden", "Die Einheit kann nicht abgerufen werden, die Einheit
+# wurde gelöscht / deaktiviert." Any other fault (e.g. quota used up) stops the run instead of passing as a gone unit.
+GONE = ("nicht gefunden", "kann nicht abgerufen werden")
+ACTIVE = "Aktiv"  # EinheitSystemstatus of the units the register hands out (and the export contains)
 
 
 class MastrApi:
@@ -59,25 +63,34 @@ class MastrApi:
         return self.allgemein.GetLokaleUhrzeit().LokaleUhrzeit.replace(tzinfo=None)
 
     def changed_units(self, energietraeger: str, einheittyp: str, since: datetime) -> dict[str, datetime]:
-        """EinheitMastrNummer -> date of the latest change, for every unit of one type changed since `since`.
+        """EinheitMastrNummer -> date of the latest change, for every active unit of one type changed since `since`.
 
         Two lists: units with a newer DatumLetzteAktualisierung, and units whose grid operator check changed.
-        The check doesn't touch the unit's own date, so the first list alone would miss it.
+        The check doesn't touch the unit's own date, so the first list alone would miss it. The second list also
+        names units that were deactivated or deleted since: the register refuses their details, they are skipped.
         """
-        units = {
-            unit.EinheitMastrNummer: unit.DatumLetzeAktualisierung  # sic, this list drops the "t"
-            for unit in self._list(self.anlage.GetGefilterteListeStromErzeuger, energietraeger=energietraeger, datumAb=since)
-        }
+        listed = self._list(self.anlage.GetGefilterteListeStromErzeuger, energietraeger=energietraeger, datumAb=since)
         checked = self._list(
             self.anlage.GetListeLetzteAktualisierung,
             Einheittyp=einheittyp,
             VerknuepftesObjektArt="Netzbetreiberpruefungsprozess",
             VerknuepftesObjektDatumAb=since,
         )
+        units, inactive = {}, set()
+        for unit in listed:
+            if unit.EinheitSystemstatus != ACTIVE:
+                inactive.add(unit.EinheitMastrNummer)
+                continue
+            units[unit.EinheitMastrNummer] = unit.DatumLetzeAktualisierung  # sic, this list drops the "t"
         for unit in checked:
+            if unit.EinheitSystemstatus != ACTIVE:
+                inactive.add(unit.EinheitMastrNummer)
+                continue
             processes = unit.Netzbetreiberpruefungsprozesse or []
             check = max((process.DatumLetzteAktualisierung for process in processes), default=unit.EinheitDatumLetzteAktualisierung)
             units[unit.EinheitMastrNummer] = max(units.get(unit.EinheitMastrNummer, check), check)
+        if inactive:
+            log.info(f"{einheittyp}: {len(inactive):,} units were deactivated or deleted in the register, skipped")
         return units
 
     def _list(self, call: Callable, **filters) -> Iterator:
@@ -88,19 +101,20 @@ class MastrApi:
             if answer.Ergebniscode != "OkWeitereDatenVorhanden":
                 return
 
-    def details(self, method: str, ids: Iterable[str]) -> Iterator[dict | None]:
-        """All fields of each unit (e.g. method="GetEinheitSolar"), in the order of `ids`, several calls at a time."""
+    def details(self, method: str, ids: Iterable[str], id_field: str = "einheitMastrNummer") -> Iterator[dict | None]:
+        """All fields of each unit (e.g. method="GetEinheitSolar"), in the order of `ids`, several calls at a time.
+        Storage plants: method="GetStromSpeicher", id_field="speMastrNummer"."""
         with ThreadPoolExecutor(WORKERS) as pool:
-            yield from pool.map(partial(self.detail, method), ids)
+            yield from pool.map(partial(self.detail, method, id_field=id_field), ids)
 
-    def detail(self, method: str, einheit_mastr_nummer: str) -> dict | None:
-        """All fields of one unit, or None if the register doesn't know it (anymore)."""
+    def detail(self, method: str, mastr_nummer: str, id_field: str = "einheitMastrNummer") -> dict | None:
+        """All fields of one unit (or plant), or None if the register doesn't know it (anymore)."""
         try:
-            answer = getattr(self.anlage, method)(**self.auth, einheitMastrNummer=einheit_mastr_nummer)
+            answer = getattr(self.anlage, method)(**self.auth, **{id_field: mastr_nummer})
         except Fault as error:
-            if error.message != "Objekt nicht gefunden":  # anything else (e.g. quota used up) must not look like a gap
+            if not any(reason in error.message for reason in GONE):
                 raise
-            log.debug(f"{method} {einheit_mastr_nummer}: not in the register")
+            log.info(f"{method} {mastr_nummer}: {error.message}")
             return None
         if answer.Ergebniscode == "KeineDatenVorhanden":
             return None

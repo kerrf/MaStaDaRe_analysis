@@ -6,8 +6,8 @@ the decoded value (e.g. "Gebaeudesolaranlage"). Every catalog below maps ID -> e
 returns, so rows from the bulk export and rows fetched via the API end up identical in the database.
 Comments give the official German label where the value alone isn't clear.
 
-Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|storage]
-Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, STORAGE)
+Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|water|storage]
+Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, WATER, STORAGE)
 
 Bruttoleistung = installierte Leistung: Stromertrag bei optimalem Betrieb
 Nettonennleistung:  Minimum aus Bruttoleistung und Wechselrichter-Wirkleistung
@@ -77,6 +77,7 @@ ENERGIETRAEGER = {
     2495: "SolareStrahlungsenergie",
     2496: "Speicher",
     2497: "Wind",
+    2498: "Wasser",
 }
 
 EINSPEISUNGSART = {
@@ -360,6 +361,24 @@ HERSTELLER = {
 }
 
 
+# ============================================================ hydropower
+
+ART_DER_WASSERKRAFTANLAGE = {
+    890: "Laufwasseranlage",
+    891: "Speicherwasseranlage",
+    894: "WasserkraftanlageInTrinkwassersystem",
+    895: "WasserkraftanlageInBrauchwassersystem",
+    896: "Abwasserkraftanlage",
+    897: "Meeresenergie",
+}
+
+ART_DES_ZUFLUSSES = {
+    724: "Flusskraftwerk",
+    725: "Restwasserkraftwerk",
+    726: "Ausleitungskraftwerk",
+}
+
+
 # ============================================================ storage
 
 SPEICHER_TECHNOLOGIE = {
@@ -521,6 +540,24 @@ WIND = CodeSpec(
     dates_with_time=GENERAL_DATES_WITH_TIME,
 )
 
+WATER = CodeSpec(
+    columns={
+        **GENERAL,
+        "ArtDerWasserkraftanlage": ART_DER_WASSERKRAFTANLAGE,
+        "ArtDesZuflusses": ART_DES_ZUFLUSSES,
+    },
+    booleans=(
+        *GENERAL_BOOLEANS,
+        "MinderungStromerzeugung",
+        "BestandteilGrenzkraftwerk",
+        "NetzreserveZugeordnet",
+        "KapazitaetsreserveZugeordnet",
+    ),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERAL_NOT_IN_API,
+    dates_with_time=(*GENERAL_DATES_WITH_TIME, "DatumKapazitaetsreserve"),
+)
+
 STORAGE = CodeSpec(
     columns={
         **GENERAL,
@@ -546,6 +583,14 @@ STORAGE = CodeSpec(
     },
     not_in_api=(*GENERAL_NOT_IN_API, "EegAnlagentyp"),  # EegAnlagentyp: only sometimes
     dates_with_time=(*GENERAL_DATES_WITH_TIME, "DatumKapazitaetsreserve"),
+)
+
+
+# The storage plant (Speicheranlage, AnlagenStromSpeicher): holds the usable capacity of its units
+STORAGE_PLANT = CodeSpec(
+    columns={"AnlageBetriebsstatus": EINHEIT_BETRIEBSSTATUS},
+    multi=frozenset({"VerknuepfteEinheitenMaStRNummern"}),  # unit numbers, not codes: "SEE…, SEE…"
+    api_names={"MaStRNummer": "SpeMastrNummer"},
 )
 
 
@@ -609,7 +654,7 @@ def encode(unit: dict, spec: CodeSpec) -> dict[str, str | None]:
             row[f"{column}_nv"] = _to_text(value["NichtVorhanden"])
         elif isinstance(value, dict):  # catalog entry, e.g. Hersteller = {"Id": 1586, "Wert": "ENERCON GmbH"}
             row[column] = str(value["Id"]) if value["Wert"] is not None else None
-        elif column in spec.multi:
+        elif column in spec.multi and isinstance(value, list):
             codes = [_to_code(column, v, spec) for v in value]
             row[column] = ", ".join(code for code in codes if code) or None
         elif column in spec.columns:
