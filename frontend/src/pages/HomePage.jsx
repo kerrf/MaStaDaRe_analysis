@@ -55,7 +55,7 @@ const STEPS = [
   {
     icon: Workflow,
     title: 'Aufbereitung',
-    text: 'Bereinigung und Aggregation in PostgreSQL/PostGIS: nach Bundesland, PLZ-Region und Postleitzahl.',
+    text: 'Bereinigung und Aggregation in PostgreSQL/PostGIS: nach Bundesland, Landkreis, Gemeinde und Postleitzahl.',
   },
   {
     icon: MapIcon,
@@ -66,7 +66,7 @@ const STEPS = [
 
 export default function HomePage() {
   useDocumentTitle(null);
-  const kpiStats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'Bundesland'));
+  const kpiStats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'bundesland'));
 
   return (
     <div className="home">
@@ -106,7 +106,7 @@ export default function HomePage() {
             Alle Kennzahlen <ArrowRight size={15} aria-hidden="true" />
           </Link>
         </div>
-        <KpiStrip kpis={ERZEUGER.kpis} rows={kpiStats.data} status={kpiStats.status} region={null} />
+        <KpiStrip kpis={ERZEUGER.kpis} rows={kpiStats.data} status={kpiStats.status} />
       </section>
 
       <section className="container home-section" aria-labelledby="dashboards-title">

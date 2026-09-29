@@ -1,7 +1,8 @@
 import { ChevronRight, MapPin } from 'lucide-react';
 import { BUNDESLAENDER } from '../../config/regions';
 
-export default function ScopeBar({ region, kreisCode, onSelectRegion }) {
+// Deutschland › Bundesland › Landkreis. kreisOptions: the Landkreise of the selected Land ({ ags, name }), null while loading.
+export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope }) {
   return (
     <nav className="scope-bar" aria-label="Gebietsauswahl">
       <span className="scope-bar__label">
@@ -13,7 +14,7 @@ export default function ScopeBar({ region, kreisCode, onSelectRegion }) {
             type="button"
             className={`scope-bar__crumb${region ? '' : ' is-current'}`}
             aria-current={region ? undefined : 'page'}
-            onClick={() => onSelectRegion(null)}
+            onClick={() => onSelectScope(null)}
           >
             Deutschland
           </button>
@@ -29,7 +30,7 @@ export default function ScopeBar({ region, kreisCode, onSelectRegion }) {
             id="scope-bundesland"
             className={`scope-bar__select${region ? ' is-set' : ''}`}
             value={region?.code ?? ''}
-            onChange={(e) => onSelectRegion(e.target.value || null)}
+            onChange={(e) => onSelectScope(e.target.value || null)}
           >
             <option value="">Bundesland wählen</option>
             {BUNDESLAENDER.map((b) => (
@@ -46,8 +47,20 @@ export default function ScopeBar({ region, kreisCode, onSelectRegion }) {
           <label className="visually-hidden" htmlFor="scope-landkreis">
             Landkreis
           </label>
-          <select id="scope-landkreis" className="scope-bar__select" disabled title="Die Landkreis-Ebene ist in Vorbereitung">
-            <option>{kreisCode ? `Kreis ${kreisCode}` : 'Landkreis'} · folgt</option>
+          <select
+            id="scope-landkreis"
+            className={`scope-bar__select${kreis ? ' is-set' : ''}`}
+            value={kreis ?? ''}
+            disabled={!region || !kreisOptions}
+            title={region ? undefined : 'Zuerst ein Bundesland wählen'}
+            onChange={(e) => onSelectScope(region.code, e.target.value || null)}
+          >
+            <option value="">Landkreis wählen</option>
+            {kreisOptions?.map((k) => (
+              <option key={k.ags} value={k.ags}>
+                {k.name}
+              </option>
+            ))}
           </select>
         </li>
       </ol>

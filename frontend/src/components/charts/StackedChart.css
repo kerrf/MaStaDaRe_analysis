@@ -1,0 +1,135 @@
+.stacked-chart {
+  position: relative;
+  min-height: 300px;
+}
+
+.stacked-chart svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+  font-family: var(--font-sans);
+}
+
+.stacked-chart svg:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.stacked-chart__grid line {
+  stroke: var(--border-subtle);
+}
+
+.stacked-chart__baseline {
+  stroke: var(--border-strong);
+}
+
+.stacked-chart__tick {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-muted);
+}
+
+.stacked-chart__unit {
+  font-size: 11px;
+  font-weight: 650;
+  fill: var(--ink-muted);
+}
+
+.stacked-chart__hover {
+  fill: var(--surface-sunken);
+}
+
+/* The period in progress (current month or year): still growing */
+.stacked-chart .is-partial {
+  opacity: 0.45;
+}
+
+.stacked-chart__area {
+  stroke: var(--surface-card);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.stacked-chart__cursor line {
+  stroke: var(--ink-muted);
+  stroke-dasharray: 3 3;
+}
+
+.stacked-chart__cursor circle {
+  stroke: var(--surface-card);
+  stroke-width: 2;
+}
+
+.stacked-chart__tooltip {
+  position: absolute;
+  top: 16px;
+  z-index: 2;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+
+.stacked-chart__tooltip-title {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.stacked-chart__tooltip table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.stacked-chart__tooltip th {
+  padding: 2px 16px 2px 0;
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+.stacked-chart__tooltip td {
+  padding: 2px 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stacked-chart__tooltip tfoot tr {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.stacked-chart__tooltip tfoot th,
+.stacked-chart__tooltip tfoot td {
+  padding-top: 5px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.stacked-chart__swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: 0;
+}
+
+.stacked-chart__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}

@@ -1,5 +1,13 @@
 import StatTile from '../../components/ui/StatTile';
+import { findBundeslandByAgs, isKreisKey, regionName } from '../../config/regions';
 import { formatNumber, formatPercent, formatPower } from '../../lib/format';
+
+// The units the KPIs compare, keyed like the stats rows. Bundesland rows may also contain "offshore" (wind): it counts for
+// the total but isn't a Land.
+const LEVELS = {
+  bundesland: { isPeer: (key) => Boolean(findBundeslandByAgs(key)), peers: 'Bundesländern' },
+  landkreis: { isPeer: isKreisKey, peers: 'Landkreisen' },
+};
 
 const sum = (rows, field) => rows.reduce((acc, row) => acc + (row[field] ?? 0), 0);
 
@@ -8,8 +16,9 @@ function formatValue(kpi, value) {
   return { value: formatNumber(value), unit: kpi.unit };
 }
 
-// rows: Bundesland-level stats. region: selected Bundesland or null (= Deutschland).
-function computeKpi(kpi, rows, status, region) {
+// rows: stats of every unit of `level` within `parentName` – the Bundesländer of Deutschland, or the Landkreise of the Land
+// a selected Landkreis lies in. selected: the unit in scope ({ key, name }), or null for Deutschland.
+function computeKpi(kpi, { rows, status, level, selected, parentName }) {
   const base = { label: kpi.label, icon: kpi.icon };
   if (kpi.kind === 'placeholder') return { ...base, status: 'empty', sub: 'Zeitreihe folgt' };
   if (status === 'loading') return { ...base, status: 'loading' };
@@ -18,43 +27,42 @@ function computeKpi(kpi, rows, status, region) {
   }
 
   const total = sum(rows, kpi.field);
-  const regionRow = region ? rows.find((row) => row.Bundesland === region.name) : null;
-  if (region && !regionRow) return { ...base, status: 'empty', sub: `Keine Daten für ${region.name}` };
+  const selectedRow = selected ? rows.find((row) => row[level] === selected.key) : null;
+  if (selected && !selectedRow) return { ...base, status: 'empty', sub: `Keine Daten für ${selected.name}` };
 
   if (kpi.kind === 'sum') {
-    const value = region ? regionRow[kpi.field] : total;
-    const formatted = formatValue(kpi, value);
-    const national = formatValue(kpi, total);
+    const formatted = formatValue(kpi, selected ? selectedRow[kpi.field] : total);
+    const parent = formatValue(kpi, total);
     return {
       ...base,
       value: formatted.value,
       unit: formatted.unit,
-      sub: region ? `Deutschland: ${national.value} ${national.unit ?? ''}`.trim() : 'Deutschland gesamt',
+      sub: selected ? `${parentName}: ${parent.value} ${parent.unit ?? ''}`.trim() : `${parentName} gesamt`,
     };
   }
 
-  const ranked = rows
-    .filter((row) => row.Bundesland && row.Bundesland !== 'Unbekannt')
-    .sort((a, b) => (b[kpi.field] ?? 0) - (a[kpi.field] ?? 0));
+  const { isPeer, peers } = LEVELS[level];
+  const ranked = rows.filter((row) => isPeer(row[level])).sort((a, b) => (b[kpi.field] ?? 0) - (a[kpi.field] ?? 0));
 
-  if (region) {
-    const rank = ranked.findIndex((row) => row.Bundesland === region.name) + 1;
+  if (selected) {
+    const rank = ranked.findIndex((row) => row[level] === selected.key) + 1;
     return {
       ...base,
-      label: kpi.scopedLabel ?? kpi.label,
-      value: formatPercent(regionRow[kpi.field] / total),
-      sub: `Rang ${rank} von ${ranked.length} Bundesländern`,
+      label: `Anteil an ${parentName}`,
+      value: formatPercent(selectedRow[kpi.field] / total),
+      sub: `Rang ${rank} von ${ranked.length} ${peers}`,
     };
   }
   const top = ranked[0];
-  return { ...base, value: top.Bundesland, textValue: true, sub: `${formatPercent(top[kpi.field] / total)} des Bundeswerts` };
+  return { ...base, value: regionName(top.bundesland), textValue: true, sub: `${formatPercent(top[kpi.field] / total)} des Bundeswerts` };
 }
 
-export default function KpiStrip({ kpis, rows, status, region }) {
+export default function KpiStrip({ kpis, rows, status, level = 'bundesland', selected = null, parentName = 'Deutschland' }) {
+  const scope = { rows, status, level, selected, parentName };
   return (
     <section className="kpi-strip" aria-label="Kennzahlen">
       {kpis.map((kpi) => (
-        <StatTile key={kpi.id} {...computeKpi(kpi, rows, status, region)} />
+        <StatTile key={kpi.id} {...computeKpi(kpi, scope)} />
       ))}
     </section>
   );

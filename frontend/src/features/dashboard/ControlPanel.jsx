@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { BookOpen, Check, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SegmentedControl from '../../components/ui/SegmentedControl';
-import { GRANULARITIES } from '../../config/dashboards';
+import { GRANULARITIES, hasData, isAvailable } from '../../config/dashboards';
 
 function Section({ title, children, aside }) {
   return (
@@ -61,6 +61,7 @@ export default function ControlPanel({
   onTechnology,
   subtypes,
   onSubtypes,
+  metrics,
   metric,
   onMetric,
   granularity,
@@ -92,7 +93,7 @@ export default function ControlPanel({
                   >
                     <Icon size={16} aria-hidden="true" />
                     <span className="tech-chip__label">{tech.label}</span>
-                    {!tech.statsPath && <span className="tech-chip__soon">bald</span>}
+                    {!hasData(tech) && <span className="tech-chip__soon">bald</span>}
                   </button>
                   {expanded && <SubtypePicker id={pickerId} subtypes={tech.subtypes} selected={subtypes} onChange={onSubtypes} />}
                 </Fragment>
@@ -106,33 +107,35 @@ export default function ControlPanel({
             label="Kennzahl"
             value={metric.id}
             onChange={onMetric}
-            options={config.metrics.map((m) => ({ id: m.id, label: m.label, title: `${m.legend} (${m.unit})` }))}
+            options={metrics.map((m) => ({ id: m.id, label: m.label, title: `${m.legend} (${m.unit})` }))}
           />
         </Section>
 
-        <Section title="Räumliche Auflösung">
-          <div className="option-list" role="radiogroup" aria-label="Räumliche Auflösung">
-            {GRANULARITIES.map((g) => {
-              const disabled = g.available === false || (g.kind === 'heatmap' && !technology.heatmapPath);
-              const active = g.id === granularity.id;
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  disabled={disabled}
-                  className={`option-list__item${active ? ' is-active' : ''}`}
-                  onClick={() => onGranularity(g.id)}
-                >
-                  <span className="option-list__dot" aria-hidden="true" />
-                  <span>{g.label}</span>
-                  {disabled && <span className="option-list__note">{g.note ?? 'nicht verfügbar'}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
+        {!technology.plantsPath && (
+          <Section title="Räumliche Auflösung">
+            <div className="option-list" role="radiogroup" aria-label="Räumliche Auflösung">
+              {GRANULARITIES.map((g) => {
+                const disabled = !isAvailable(g, technology);
+                const active = g.id === granularity.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={disabled}
+                    className={`option-list__item${active ? ' is-active' : ''}`}
+                    onClick={() => onGranularity(g.id)}
+                  >
+                    <span className="option-list__dot" aria-hidden="true" />
+                    <span>{g.label}</span>
+                    {(disabled || g.note) && <span className="option-list__note">{g.note ?? 'nicht verfügbar'}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        )}
 
         {config.segments && (
           <Section title={config.segments.label} aside={<span className="controls__note">folgt</span>}>

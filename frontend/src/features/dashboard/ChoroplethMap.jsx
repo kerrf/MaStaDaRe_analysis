@@ -28,6 +28,8 @@ const TOP_CITIES = {
 const CITY_ICON = new L.DivIcon({ className: 'city-dot', html: '<span></span>', iconSize: [8, 8], iconAnchor: [4, 4] });
 
 const NODATA_FILL = '#e4e7ec';
+// Areas that carry no values (plant icons on top, borders only, no data yet) look like a plain map instead of "Keine Daten".
+const NEUTRAL_STYLE = { fillColor: '#f3efe7', fillOpacity: 1, color: '#aab2be', opacity: 1 };
 const MASK_STYLE = { stroke: false, fillColor: '#f6f7f9', fillOpacity: 0.85 };
 const WORLD_RING = [
   [-85, -180],
@@ -42,18 +44,18 @@ function ringsOf(geometry) {
   return polygons.flatMap((polygon) => polygon.map((ring) => ring.map(([lng, lat]) => [lat, lng])));
 }
 
-function ViewController({ focusFeature }) {
+function ViewController({ focusFeature, homeBounds }) {
   const map = useMap();
   const firstRun = useRef(true);
 
   useEffect(() => {
-    const bounds = focusFeature ? L.geoJSON(focusFeature).getBounds() : L.latLngBounds(GERMANY_BOUNDS);
+    const bounds = focusFeature ? L.geoJSON(focusFeature).getBounds() : L.latLngBounds(homeBounds);
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const options = { padding: [28, 28] };
     if (firstRun.current || reduceMotion) map.fitBounds(bounds, options);
     else map.flyToBounds(bounds, { ...options, duration: 0.6 });
     firstRun.current = false;
-  }, [map, focusFeature]);
+  }, [map, focusFeature, homeBounds]);
 
   return null;
 }
@@ -89,34 +91,46 @@ function WheelHandler({ onPlainWheel }) {
   return null;
 }
 
-function ChoroplethLayer({ geo, valueKey, colorFor, lineWeight, tooltipFor, onRegionClick }) {
+function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltipFor, onRegionClick }) {
   const layerRef = useRef(null);
+  // Leaflet binds the handlers once per layer. Read the latest ones through a ref, so a new scope (another Land, a
+  // Landkreis) that keeps the same layer doesn't click and label with the old one.
+  const handlers = useRef({ tooltipFor, onRegionClick });
+  useEffect(() => {
+    handlers.current = { tooltipFor, onRegionClick };
+  }, [tooltipFor, onRegionClick]);
 
   const styleFor = useCallback(
-    (feature) => ({
-      fillColor: feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL,
-      fillOpacity: 1,
-      color: '#ffffff',
-      weight: lineWeight,
-      opacity: 0.9,
-    }),
-    [colorFor, valueKey, lineWeight],
+    (feature) =>
+      neutral
+        ? { ...NEUTRAL_STYLE, weight: lineWeight }
+        : {
+            fillColor: feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL,
+            fillOpacity: 1,
+            color: '#ffffff',
+            weight: lineWeight,
+            opacity: 0.9,
+          },
+    [neutral, colorFor, valueKey, lineWeight],
   );
 
-  const onEachFeature = useCallback(
-    (feature, layer) => {
-      layer.bindTooltip(() => tooltipFor(feature), { sticky: true, direction: 'top', offset: [0, -8], opacity: 1, className: 'map-tooltip' });
-      layer.on({
-        mouseover: (e) => {
-          e.target.setStyle({ weight: 2, color: '#101828', opacity: 1 });
-          e.target.bringToFront();
-        },
-        mouseout: (e) => layerRef.current?.resetStyle(e.target),
-        click: () => onRegionClick?.(feature),
-      });
-    },
-    [tooltipFor, onRegionClick],
-  );
+  const onEachFeature = useCallback((feature, layer) => {
+    layer.bindTooltip(() => handlers.current.tooltipFor(feature), {
+      sticky: true,
+      direction: 'top',
+      offset: [0, -8],
+      opacity: 1,
+      className: 'map-tooltip',
+    });
+    layer.on({
+      mouseover: (e) => {
+        e.target.setStyle({ weight: 2, color: '#101828', opacity: 1 });
+        e.target.bringToFront();
+      },
+      mouseout: (e) => layerRef.current?.resetStyle(e.target),
+      click: () => handlers.current.onRegionClick?.(feature),
+    });
+  }, []);
 
   return <GeoJSON ref={layerRef} data={geo} style={styleFor} onEachFeature={onEachFeature} />;
 }
@@ -127,16 +141,20 @@ export default function ChoroplethMap({
   layerKey,
   valueKey,
   colorFor,
+  neutral = false,
   lineWeight = 0.5,
   tooltipFor,
   outlines,
   showOutlines,
   focusFeature,
+  homeBounds = GERMANY_BOUNDS,
   focusColor,
   onExitFocus,
+  exitHint,
   onRegionClick,
   heatmapUrl,
   onPlainWheel,
+  children,
 }) {
   const maskPositions = useMemo(
     () => (focusFeature ? [WORLD_RING, ...ringsOf(focusFeature.geometry)] : null),
@@ -144,15 +162,15 @@ export default function ChoroplethMap({
   );
 
   // The focus layers are drawn as SVG (the rest of the map is canvas): an SVG path only catches the pointer
-  // where it is painted, so the mask takes clicks outside the Bundesland while the hole passes them through
-  // to the choropleth below. A canvas would swallow every event on top of the map.
+  // where it is painted, so the mask takes clicks outside the focused Land or Kreis while the hole passes them
+  // through to the choropleth below. A canvas would swallow every event on top of the map.
   const focusRenderer = useMemo(() => L.svg({ pane: 'focus' }), []);
   const exitHandlers = useMemo(() => ({ click: () => onExitFocus?.() }), [onExitFocus]);
 
   return (
     <MapContainer
       className="map-canvas"
-      bounds={GERMANY_BOUNDS}
+      bounds={homeBounds}
       boundsOptions={{ padding: [28, 28] }}
       preferCanvas
       zoomSnap={0.25}
@@ -163,7 +181,7 @@ export default function ChoroplethMap({
     >
       <SizeWatcher />
       <WheelHandler onPlainWheel={onPlainWheel} />
-      <ViewController focusFeature={focusFeature} />
+      <ViewController focusFeature={focusFeature} homeBounds={homeBounds} />
 
       {mode === 'heatmap' && heatmapUrl && <ImageOverlay url={heatmapUrl} bounds={HEATMAP_BOUNDS} opacity={0.9} />}
 
@@ -173,6 +191,7 @@ export default function ChoroplethMap({
           geo={geo}
           valueKey={valueKey}
           colorFor={colorFor}
+          neutral={neutral}
           lineWeight={lineWeight}
           tooltipFor={tooltipFor}
           onRegionClick={onRegionClick}
@@ -190,7 +209,7 @@ export default function ChoroplethMap({
         {focusFeature && (
           <>
             <Polygon
-              key={`mask-${focusFeature.properties.id}`}
+              key={`mask-${focusFeature.properties.ags}`}
               positions={maskPositions}
               renderer={focusRenderer}
               className="map-focus-mask"
@@ -202,12 +221,12 @@ export default function ChoroplethMap({
               {onExitFocus && (
                 <Tooltip pane="tooltipPane" sticky direction="top" offset={[0, -10]} opacity={1} className="map-exit-hint">
                   <ZoomOut size={14} aria-hidden="true" />
-                  Klicken für Deutschland-Ansicht
+                  {exitHint}
                 </Tooltip>
               )}
             </Polygon>
             <GeoJSON
-              key={`outline-${focusFeature.properties.id}`}
+              key={`outline-${focusFeature.properties.ags}`}
               data={focusFeature}
               renderer={focusRenderer}
               interactive={false}
@@ -224,6 +243,7 @@ export default function ChoroplethMap({
           </Tooltip>
         </Marker>
       ))}
+      {children}
     </MapContainer>
   );
 }

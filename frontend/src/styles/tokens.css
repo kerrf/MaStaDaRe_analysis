@@ -46,6 +46,14 @@
   --success-bg: #ecfdf3;
   --success-ink: #067647;
 
+  /* Chart series (Zubau im Zeitverlauf) */
+  --series-solar: #f2b200;
+  --series-wind-land: #5ea66b;
+  --series-wind-sea: #2a6496;
+  --series-grossspeicher: #0b4b93;
+  --series-gewerbespeicher: #d9434b;
+  --series-heimspeicher: #8dbce9;
+
   /* Map */
   --map-surface: #fbfbfa;
   --map-nodata: #e4e7ec;
