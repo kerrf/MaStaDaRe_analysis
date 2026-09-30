@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Clock, Zap } from 'lucide-react';
 import Badge from './ui/Badge';
 import { SITE } from '../config/site';
+import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
 import './Footer.css';
 
@@ -34,6 +35,7 @@ const COLUMNS = [
 ];
 
 export default function Footer() {
+  const datenstand = useDatenstand();
   return (
     <footer className="footer">
       <div className="container footer__inner">
@@ -45,7 +47,7 @@ export default function Footer() {
             {SITE.name}
           </Link>
           <p>Interaktive Analysen zum Ausbau erneuerbarer Energien in Deutschland – auf Basis des Marktstammdatenregisters.</p>
-          <Badge icon={Clock}>Datenstand {formatDate(SITE.dataStand)}</Badge>
+          <Badge icon={Clock}>Datenstand {formatDate(datenstand)}</Badge>
         </div>
 
         <nav className="footer__cols" aria-label="Fußzeile">

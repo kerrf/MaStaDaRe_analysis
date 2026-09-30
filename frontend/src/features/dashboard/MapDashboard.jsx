@@ -2,20 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Clock, Construction, Download, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
-import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import TodoNote from '../../components/ui/TodoNote';
 import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundesland, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
-import { API_BASE_URL, SITE } from '../../config/site';
+import { API_BASE_URL } from '../../config/site';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
-import { statsUrl, useStats, useTopology } from '../../lib/data';
+import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import useDocumentTitle from '../../lib/useDocumentTitle';
+import AnalysisCard from './AnalysisCard';
 import ChoroplethMap from './ChoroplethMap';
 import ControlPanel from './ControlPanel';
 import KpiStrip from './KpiStrip';
 import MapLegend from './MapLegend';
 import RankingPanel from './RankingPanel';
+import RegionTable from './RegionTable';
 import ScopeBar from './ScopeBar';
 import SiteMarkers from './SiteMarkers';
 import TimelineAnalysis from './TimelineAnalysis';
@@ -97,6 +98,7 @@ export default function MapDashboard({ config }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const datenstand = useDatenstand();
 
   const region = landParam ? findBundesland(landParam) : null;
   // A Landkreis of that Land, by its 5-digit key; its name and shape come with the Kreis boundaries.
@@ -117,6 +119,8 @@ export default function MapDashboard({ config }) {
     [kreisAgs, kreise.data],
   );
   const scopeName = kreisAgs ? kreisFeature?.properties.name ?? `Kreis ${kreisAgs}` : region?.name ?? 'Deutschland';
+  // The scope as the analyses' API knows it: "DE", or the key of the Land or Kreis
+  const scopeKey = kreisAgs ?? region?.ags ?? 'DE';
   const parentName = kreisAgs ? region.name : 'Deutschland';
   const technology = config.technologies.find((t) => t.id === searchParams.get('technologie')) ?? config.technologies[0];
   // Selection only for now – not yet passed to the data requests.
@@ -381,7 +385,7 @@ export default function MapDashboard({ config }) {
     setExporting(kind);
     try {
       if (kind === 'png') await exportPng(frameRef.current, fileBase);
-      if (kind === 'pdf') await exportPdf(frameRef.current, fileBase, `${technology.label}: ${mapTitle} – ${scopeLabel} (${layerLabel})`);
+      if (kind === 'pdf') await exportPdf(frameRef.current, fileBase, `${technology.label}: ${mapTitle} – ${scopeLabel} (${layerLabel})`, datenstand);
       if (kind === 'csv') exportCsv(exportRows, fileBase);
     } finally {
       setExporting(null);
@@ -410,7 +414,7 @@ export default function MapDashboard({ config }) {
             <p className="dashboard-header__lead">{config.description}</p>
           </div>
           <div className="dashboard-header__meta">
-            <Badge icon={Clock}>Datenstand {formatDate(SITE.dataStand)}</Badge>
+            <Badge icon={Clock}>Datenstand {formatDate(datenstand)}</Badge>
             {withData ? <Badge tone="live">Live-Daten</Badge> : <Badge tone="soon">In Vorbereitung</Badge>}
           </div>
         </div>
@@ -500,7 +504,7 @@ export default function MapDashboard({ config }) {
             </div>
 
             <footer className="map-card__footer">
-              <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(SITE.dataStand)}</span>
+              <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(datenstand)}</span>
               <span className="map-card__footer-hint">{mapHints.join(' · ')}</span>
             </footer>
           </section>
@@ -519,6 +523,36 @@ export default function MapDashboard({ config }) {
           />
         </div>
 
+        {/* Right below the map, for its scope: Top 10 + analysis cards. An even number of cards goes in pairs, so no
+            row is left half empty. */}
+        <div className={`analyses-grid${cards.length % 2 ? ' analyses-grid--pairs' : ''}`}>
+          <article className="card">
+            <header className="card__header">
+              <div>
+                <h3 className="card__title">Top 10 · {isSites ? PLANTS.label : activeGranularity.label}</h3>
+                <div className="card__subtitle">
+                  {metric.legend} ({metric.unit})
+                </div>
+              </div>
+            </header>
+            <div className="card__body">
+              <RankingPanel
+                features={isSites ? plantFeatures : merged?.features}
+                metric={metric}
+                granularity={isSites ? PLANTS : activeGranularity}
+                within={rankingWithin}
+                focusKey={rankingFocus}
+                status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
+                labelFor={isSites ? (f) => f.properties.name : labelFor}
+                onRowClick={canDrill && !isSites ? onRankingRowClick : undefined}
+              />
+            </div>
+          </article>
+          {cards.map((a) => (
+            <AnalysisCard key={a.id} analysis={a} technology={technology} region={scopeKey} scopeName={scopeName} />
+          ))}
+        </div>
+
         <section className="dashboard-analyses" aria-labelledby="analysen-title">
           <div className="section-head">
             <div>
@@ -531,47 +565,8 @@ export default function MapDashboard({ config }) {
           {timelines.map((a) => (
             <TimelineAnalysis key={a.id} analysis={a} />
           ))}
-          {/* Top 10 + analyses: an even number of cards goes in pairs, so no row is left half empty. */}
-          <div className={`analyses-grid${cards.length % 2 ? ' analyses-grid--pairs' : ''}`}>
-            <article className="card">
-              <header className="card__header">
-                <div>
-                  <h3 className="card__title">Top 10 · {isSites ? PLANTS.label : activeGranularity.label}</h3>
-                  <div className="card__subtitle">
-                    {metric.legend} ({metric.unit})
-                  </div>
-                </div>
-              </header>
-              <div className="card__body">
-                <RankingPanel
-                  features={isSites ? plantFeatures : merged?.features}
-                  metric={metric}
-                  granularity={isSites ? PLANTS : activeGranularity}
-                  within={rankingWithin}
-                  focusKey={rankingFocus}
-                  status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
-                  labelFor={isSites ? (f) => f.properties.name : labelFor}
-                  onRowClick={canDrill && !isSites ? onRankingRowClick : undefined}
-                />
-              </div>
-            </article>
-            {cards.map((a) => (
-              <article className="card" key={a.id}>
-                <header className="card__header">
-                  <div>
-                    <h3 className="card__title">{a.title}</h3>
-                    <div className="card__subtitle">{a.description}</div>
-                  </div>
-                  <Badge tone="soon" size="xs">
-                    bald
-                  </Badge>
-                </header>
-                <div className="card__body">
-                  <ChartPlaceholder variant={a.variant} />
-                </div>
-              </article>
-            ))}
-          </div>
+          {/* The analyses for every Land, Kreis or Gemeinde in the scope, for technologies that have them */}
+          <RegionTable technology={technology} scopeKey={scopeKey} scopeName={scopeName} ramp={config.ramp} fileBase={`mastr_${config.id}_${technology.id}`} />
         </section>
 
         {config.todos?.map((todo) => (

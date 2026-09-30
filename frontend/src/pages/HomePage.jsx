@@ -5,7 +5,7 @@ import GermanyPreview from '../features/home/GermanyPreview';
 import KpiStrip from '../features/dashboard/KpiStrip';
 import { ERZEUGER } from '../config/dashboards';
 import { SITE } from '../config/site';
-import { statsUrl, useStats } from '../lib/data';
+import { statsUrl, useDatenstand, useStats } from '../lib/data';
 import { formatDate } from '../lib/format';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './HomePage.css';
@@ -66,6 +66,7 @@ const STEPS = [
 
 export default function HomePage() {
   useDocumentTitle(null);
+  const datenstand = useDatenstand();
   const kpiStats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'bundesland'));
 
   return (
@@ -73,7 +74,7 @@ export default function HomePage() {
       <section className="home-hero">
         <div className="container home-hero__inner">
           <div className="home-hero__text">
-            <Badge tone="brand">Marktstammdatenregister · Datenstand {formatDate(SITE.dataStand)}</Badge>
+            <Badge tone="brand">Marktstammdatenregister · Datenstand {formatDate(datenstand)}</Badge>
             <h1 className="home-hero__title">
               Die Energiewende <span className="home-hero__highlight">im Blick</span>
             </h1>

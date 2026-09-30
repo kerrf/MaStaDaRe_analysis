@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
+import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
@@ -80,6 +81,7 @@ const FAQ = [
 
 export default function InfoPage() {
   useDocumentTitle('Info & Methodik');
+  const datenstand = useDatenstand();
 
   return (
     <div className="page">
@@ -239,10 +241,10 @@ export default function InfoPage() {
           <section id="aktualitaet">
             <h2>Aktualität</h2>
             <p>
-              Aktueller Datenstand: <strong>{formatDate(SITE.dataStand)}</strong>. Die Bundesnetzagentur veröffentlicht den
-              Gesamtdatenexport regelmäßig neu; die Daten dieses Dashboards werden in festen Abständen aktualisiert.
+              Aktueller Datenstand: <strong>{formatDate(datenstand)}</strong>. Jede Nacht holt das Dashboard alle Änderungen
+              des Marktstammdatenregisters seit dem letzten Abgleich über dessen Webdienst und berechnet Karten und Kennzahlen
+              neu. Der Datenstand ist der Tag, bis zu dem alle Änderungen enthalten sind.
             </p>
-            <TodoNote>Aktualisierungsrhythmus festlegen, sobald die Update-Pipeline steht – und den Datenstand vom Backend ausliefern lassen.</TodoNote>
           </section>
 
           <section id="glossar">
