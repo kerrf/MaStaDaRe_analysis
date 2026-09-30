@@ -51,6 +51,13 @@ if __name__ == "__main__":
     # Zubau im Zeitverlauf (Germany-wide, per month and year); battery capacity also from raw.storage_plants
     query_path = Path("app/etl/queries/aggregate_zubau.sql")
     run_sql_file(engine, query_path)
+
+    # Analyses per Deutschland / Land / Kreis: size classes (solar, wind, hydro) and orientation of the solar modules
+    query_path = Path("app/etl/queries/aggregate_size_distribution.sql")
+    run_sql_file(engine, query_path)
+
+    query_path = Path("app/etl/queries/aggregate_solar_orientation.sql")
+    run_sql_file(engine, query_path)
     
     # query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
     # run_sql_file(engine, query_path)
