@@ -50,9 +50,10 @@
   --series-solar: #f2b200;
   --series-wind-land: #5ea66b;
   --series-wind-sea: #2a6496;
-  --series-grossspeicher: #0b4b93;
-  --series-gewerbespeicher: #d9434b;
-  --series-heimspeicher: #8dbce9;
+  /* Speicher size classes are ordered: one blue from the Speicher ramp, light for small, dark for large */
+  --series-heimspeicher: #86b6ef;
+  --series-gewerbespeicher: #2a78d6;
+  --series-grossspeicher: #104281;
 
   /* Map */
   --map-surface: #fbfbfa;

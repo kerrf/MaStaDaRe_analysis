@@ -1,8 +1,8 @@
 import { SITE } from '../../config/site';
 import { formatDate } from '../../lib/format';
 
-const SOURCE_LINE = () =>
-  `Quelle: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · Datenstand ${formatDate(SITE.dataStand)} · ${SITE.url.replace('https://', '')}`;
+const sourceLine = (datenstand) =>
+  `Quelle: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · Datenstand ${formatDate(datenstand)} · ${SITE.url.replace('https://', '')}`;
 
 function download(href, filename) {
   const link = document.createElement('a');
@@ -22,7 +22,7 @@ export async function exportPng(node, filename) {
   download(canvas.toDataURL('image/png'), `${filename}.png`);
 }
 
-export async function exportPdf(node, filename, title) {
+export async function exportPdf(node, filename, title, datenstand) {
   const [canvas, { jsPDF }] = await Promise.all([capture(node), import('jspdf')]);
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
@@ -41,7 +41,7 @@ export async function exportPdf(node, filename, title) {
 
   pdf.setFontSize(8);
   pdf.setTextColor(102, 112, 133);
-  pdf.text(SOURCE_LINE(), margin, pageH - margin + 4);
+  pdf.text(sourceLine(datenstand), margin, pageH - margin + 4);
   pdf.save(`${filename}.pdf`);
 }
 

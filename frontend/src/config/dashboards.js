@@ -42,6 +42,8 @@ export const ERZEUGER = {
       icon: Sun,
       statsPath: '/solar/dashboard-stats',
       heatmapPath: '/plz5_heatmap_image',
+      // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution)
+      sizesPath: '/solar/size-distribution',
       // Multiple choice shown below the chip while the technology is active; no param in the URL = all selected.
       subtypes: {
         param: 'anlagenart',
@@ -58,6 +60,8 @@ export const ERZEUGER = {
           title: 'Ausrichtung',
           description: 'Hauptausrichtung der Module – Anteile je Himmelsrichtung, Ost-West und nachgeführt.',
           variant: 'radial',
+          kind: 'orientation',
+          path: '/solar/orientation', // mrt.solar_orientation
         },
       ],
     },
@@ -66,12 +70,20 @@ export const ERZEUGER = {
       label: 'Wind',
       icon: Wind,
       statsPath: '/wind/dashboard-stats',
+      sizesPath: '/wind/size-distribution',
       granularities: REGION_LEVELS,
       // Offshore wind is shown as an area of its own in the sea (key "offshore" on every level)
       offshore: true,
     },
     { id: 'biomasse', label: 'Biomasse', icon: Leaf },
-    { id: 'wasserkraft', label: 'Wasserkraft', icon: Droplets, statsPath: '/water/dashboard-stats', granularities: REGION_LEVELS },
+    {
+      id: 'wasserkraft',
+      label: 'Wasserkraft',
+      icon: Droplets,
+      statsPath: '/water/dashboard-stats',
+      sizesPath: '/water/size-distribution',
+      granularities: REGION_LEVELS,
+    },
   ],
   metrics: [
     { id: 'total_power', label: 'Absolut', legend: 'Installierte Leistung', unit: 'MW', digits: 1 },
@@ -107,14 +119,20 @@ export const ERZEUGER = {
         ],
       },
     },
-    { id: 'distribution', title: 'Verteilung nach Anlagengröße', description: 'Balkon-PV bis Freiflächenanlage – Anteile nach Leistungsklasse.', variant: 'bars' },
+    // In the scope, for the active technology (its sizesPath); a placeholder for technologies without one
+    {
+      id: 'distribution',
+      title: 'Verteilung nach Anlagengröße',
+      description: 'Anteile an Leistung und Anlagen je Leistungsklasse.',
+      variant: 'bars',
+      kind: 'sizes',
+    },
   ],
   todos: [
     'Backend: Bundesland-Spalte in die PLZ-Rollups aufnehmen, damit die Rangliste im Bundesland-Modus auch PLZ-Regionen filtern kann (Landkreise/Gemeinden filtern schon über den Gemeindeschlüssel).',
     'Solar-PLZ-Rollup (aggregate_pv_by_plz_power.sql) zählt alle Betriebsstatus mit, die Bundesland/Landkreis/Gemeinde-Rollups nur Einheiten in Betrieb – angleichen.',
     'Weitere Technologien: statsPath in src/config/dashboards.js setzen, sobald die Endpoints existieren.',
     'Solar-Anlagenart (Gebäude/Freifläche): Auswahl steht als ?anlagenart=… in der URL, wird aber noch nicht an den Endpoint übergeben (ArtDerSolaranlage 853/852).',
-    'Analyse „Ausrichtung“: Endpoint für Anlagen/Leistung je Hauptausrichtung (Nord … Nordwest, Ost-West, nachgeführt) und Chart statt Platzhalter.',
   ],
 };
 

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { feature } from 'topojson-client';
-import { API_BASE_URL } from '../config/site';
+import { API_BASE_URL, SITE } from '../config/site';
 import { NUMERIC_FIELDS } from '../config/dashboards';
 
 // Module-level caches: switching views back and forth never refetches.
 const topologyCache = new Map();
 const statsCache = new Map();
+const metaCache = new Map();
 
 function cached(cache, key, load) {
   if (!cache.has(key)) {
@@ -73,3 +74,16 @@ function useAsync(key, load) {
 
 export const useTopology = (url) => useAsync(url, loadTopology);
 export const useStats = (url) => useAsync(url, loadStats);
+
+// The day up to which the data includes every change of the register, noted by the last complete nightly update
+// (backend app.etl.update). Until one is noted, or while the API is unreachable, the date in site.js.
+const DATENSTAND_URL = `${API_BASE_URL}/meta/datenstand`;
+const loadDatenstand = (url) => cached(metaCache, url, async () => (await fetchJson(url)).datenstand);
+export function useDatenstand() {
+  return useAsync(DATENSTAND_URL, loadDatenstand).data ?? SITE.dataStand;
+}
+
+// Other JSON of the API as it comes, e.g. the tables of the analyses ({ columns, rows })
+const jsonCache = new Map();
+const loadJson = (url) => cached(jsonCache, url, () => fetchJson(url));
+export const useJson = (url) => useAsync(url, loadJson);

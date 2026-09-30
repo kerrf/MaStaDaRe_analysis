@@ -66,3 +66,7 @@ The rollups join units via their `Gemeindeschluessel` (the AGS), not via names: 
 2 700 solar units ("Alt Mölln" / "Alt-Mölln", "Schmitten" / "Schmitten im Taunus"), the keys don't. About 0.1 % of the
 units carry the key of a Gemeinde merged after the Stand of the geodata (mostly Thüringen); they still count for their
 Landkreis and Bundesland, but have no Gemeinde area.
+
+afterwards please change the color layout of speicher - zubau zeitverlauf. You just copied the screenshot I gave you, but I want my own color palett. I like how you made solar kinda orange and speicher kinda blue. Think of something for the Zubau Zeitverlauf Speicher.
+
+Afterwards I want you to implement Verteilung nach Anlagegröße and Ausrichtung. How you fetch the data from the data bank you can decide by yourself. Do it in a fast, clean, SOTA way. For Ausrichtung have a circle with all ausrichtungen and inside the values (absolute power, % of total) and somewhere a "unknown" category if we don't know by MaStR

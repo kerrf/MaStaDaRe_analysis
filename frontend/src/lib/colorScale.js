@@ -29,3 +29,12 @@ export function makeColorScale(ramp, max) {
 }
 
 export const rampGradient = (ramp) => `linear-gradient(to right, ${ramp.join(', ')})`;
+
+// White text on the dark end of a ramp, dark text elsewhere (relative luminance of an "rgb(r,g,b)" colour)
+export function inkOn(rgb) {
+  const [r, g, b] = rgb.match(/\d+/g).map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25 ? '#fff' : 'var(--ink-primary)';
+}

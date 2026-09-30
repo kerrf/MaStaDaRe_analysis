@@ -21,6 +21,13 @@ export function formatTick(value) {
 export const formatPercent = (value) =>
   value == null || Number.isNaN(value) ? '—' : nf({ style: 'percent', maximumFractionDigits: 1 }).format(value);
 
+// Shares of a whole: tiny ones read "< 0,1 %", not "0 %"
+export const formatShare = (share) => (share > 0 && share < 0.001 ? '< 0,1 %' : formatPercent(share));
+
+// Counts: "214.175", from a million on "2,7 Mio."
+export const formatCount = (value) =>
+  Math.abs(value) >= 1e6 ? nf({ notation: 'compact', maximumFractionDigits: 1 }).format(value) : formatNumber(value);
+
 // Power arrives in MW; large totals read better in GW.
 export function formatPower(mw) {
   if (mw == null || Number.isNaN(mw)) return { value: '—', unit: '' };

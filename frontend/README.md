@@ -64,6 +64,41 @@ it in the row right below the chip, the caret is the chip's `::after`. At least 
 is parsed in `MapDashboard.jsx` (`subtypes`) but **not yet sent to the API** – MaStR field `ArtDerSolaranlage`
 (853 Gebäude, 852 Freifläche).
 
+### Analysis cards with data (`kind`)
+
+`AnalysisCard.jsx` renders an analysis by its `kind`, in the scope (`region`: `DE`, the Land or the Kreis key, from
+the URL), and falls back to the `ChartPlaceholder` ("bald") where the active technology has no data for it:
+
+| kind | Chart | Data |
+| --- | --- | --- |
+| `sizes` | `SizeDistribution.jsx`: share of power and units per size class, one bar scale | `technology.sizesPath` (`/{solar,wind,water}/size-distribution`, `mrt.size_distribution`) |
+| `orientation` | `OrientationRose.jsx`: compass rose, power and share inside the 8 sectors, Ost-West and nachgeführt in the centre, unknown below | `analysis.path` (`/solar/orientation`, `mrt.solar_orientation`) |
+
+Both views hold one row per region (Deutschland, Länder, Kreise, Gemeinden) and class, also empty ones, so a request
+returns exactly the rows of one scope. Classes, thresholds and labels live in the SQL only
+(`backend/app/etl/queries/aggregate_size_distribution.sql`).
+
+### Table per region (`RegionTable.jsx`)
+
+In the "Analysen" section, below the Zubau: the same analyses for every Land, Kreis or Gemeinde below the scope (a Land
+lists its Kreise or Gemeinden, a Kreis its Gemeinden), one column per orientation or size class. The cells of a row are
+shaded against each other on the dashboard's ramp, like the rose: an area's largest category is its darkest. Sortable by
+every column, searchable by name or key, 50 rows at a time; the CSV holds every row found, in the chosen values plus
+both totals.
+
+The controls look like what they choose: the analysis (Ausrichtung / Anlagengröße) as tabs in the header, the rows as
+the labelled dropdown "Gebiete", the cells as the labelled unit switch "Werte" (Anteil %, Leistung MW, Anzahl), search
+and CSV as tools on the right.
+
+Page order: map, then the cards for its scope (Top 10, Verteilung, Ausrichtung), then the "Analysen" heading with the
+wide ones (Zubau im Zeitverlauf, this table).
+
+Data: `{path of the card}/regions?level=…&within=…` (e.g. `/solar/orientation/regions?level=gemeinde&within=09`),
+`{ columns: [{ key, label, hint }], rows: [{ region, units: [...], power: [...] }] }` with the values in the order of
+the columns. The names come from the boundaries of the level, like on the map. The views are indexed by
+(level, region, column) with byte-ordered keys, so a level is read presorted: all 10 956 Gemeinden take ~0.6 s, the
+Kreise of a Land ~0.1 s.
+
 ### Technology-specific analyses (`analyses` on a technology)
 
 Appended to the dashboard's `analyses` while that technology is active; Solar adds "Ausrichtung" (placeholder,
@@ -113,6 +148,13 @@ hides one. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG,
 - Erzeuger: Solar, Wind an Land, Wind auf See in MW (`Bruttoleistung`).
 - Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage), by size class and with the
   plausibility check of battery-charts.de.
+
+## Datenstand
+
+Every "Datenstand" on the site (dashboard header, map footer, site footer, home page, Info page, PDF export) comes from
+`useDatenstand()` in `src/lib/data.js`: `GET /meta/datenstand`, which serves the day noted by the last complete nightly
+update (`backend/app/etl/update.py`, table `meta.update_runs`). Until one is noted, or while the API is unreachable, it
+falls back to `SITE.dataStand` in `src/config/site.js`.
 
 ## Known issues
 
