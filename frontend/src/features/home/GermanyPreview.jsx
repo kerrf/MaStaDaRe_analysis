@@ -6,39 +6,7 @@ import { findBundeslandByAgs, withoutOffshore } from '../../config/regions';
 import { makeColorScale, rampGradient } from '../../lib/colorScale';
 import { statsUrl, useStats, useTopology } from '../../lib/data';
 import { formatPower } from '../../lib/format';
-
-const COS_LAT = Math.cos((51 * Math.PI) / 180);
-const project = ([lng, lat]) => [lng * COS_LAT * 100, -lat * 100];
-
-function toSvg(collection) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  const shapes = collection.features.map((f) => {
-    const { type, coordinates } = f.geometry;
-    const polygons = type === 'Polygon' ? [coordinates] : coordinates;
-    const d = polygons
-      .flatMap((polygon) =>
-        polygon.map(
-          (ring) =>
-            `M${ring
-              .map((point) => {
-                const [x, y] = project(point);
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-              })
-              .join('L')}Z`,
-        ),
-      )
-      .join('');
-    return { ags: f.properties.ags, name: f.properties.name, d };
-  });
-  return { shapes, viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}` };
-}
+import { toSvg } from '../../lib/svgMap';
 
 export default function GermanyPreview() {
   const navigate = useNavigate();

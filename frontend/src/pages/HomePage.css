@@ -167,138 +167,297 @@
   white-space: nowrap;
 }
 
-/* ------------------------------------------------------------ Topic cards */
-.topic-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.topic-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 22px;
-  color: inherit;
-  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-
-.topic-card:hover {
-  color: inherit;
-  transform: translateY(-2px);
-  border-color: var(--border);
-  box-shadow: var(--shadow-md);
-}
-
-.topic-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.topic-card__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.topic-card__title {
-  font-size: 19px;
-}
-
-.topic-card__text {
-  color: var(--ink-secondary);
-}
-
-.topic-card__points {
+/* ------------------------------------------------------ Section intros */
+.home-intro {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13.5px;
-  color: var(--ink-secondary);
+  margin-bottom: 22px;
 }
 
-.topic-card__points li {
+.home-intro__title {
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+/* ------------------------------------------------ The register in numbers */
+/* Four large numbers between two rules, like the figures of a newspaper page; each one leads to its dashboard */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid var(--border);
+}
+
+.figure {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 26px 28px 24px;
+  border-left: 1px solid var(--border);
+  color: inherit;
+  transition: background var(--dur) var(--ease);
+}
+
+.figure:first-child {
+  border-left: 0;
+}
+
+.figure:hover {
+  color: inherit;
+  background: var(--surface-card);
+}
+
+.figure__label {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 
-.topic-card__points svg {
-  flex: none;
+.figure__label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.figure__value {
+  font-size: clamp(34px, 3.6vw, 50px);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  transition: color var(--dur) var(--ease);
+}
+
+.figure:hover .figure__value {
   color: var(--accent-strong);
 }
 
-.topic-card__cta {
+.figure__context {
+  font-size: 14px;
+  color: var(--ink-secondary);
+}
+
+.figure__arrow {
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  color: var(--accent-strong);
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.figure:hover .figure__arrow {
+  opacity: 1;
+  transform: none;
+}
+
+/* ------------------------------------------------------------- Chapters */
+/* One chapter per dashboard: what it answers on the left, a live chart of its data on the right */
+.chapters {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapter {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 64px);
+  padding-block: clamp(28px, 3.5vw, 48px);
+  border-top: 1px solid var(--border);
+}
+
+.chapter:first-child {
+  padding-top: 8px;
+  border-top: 0;
+}
+
+.chapter__eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.chapter__eyebrow .tabular {
+  margin-right: 6px;
+  padding-right: 8px;
+  border-right: 1px solid currentColor;
+}
+
+.chapter__title {
+  margin-top: 10px;
+  font-size: clamp(30px, 3.2vw, 42px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.chapter__lead {
+  margin-top: 14px;
+  max-width: 48ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-secondary);
+}
+
+.chapter__cta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: auto;
-  padding-top: 12px;
-  font-size: 14px;
+  gap: 8px;
+  margin-top: 22px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--accent);
+  font-size: 15px;
   font-weight: 650;
-  color: var(--brand-600);
+  color: var(--ink-primary);
 }
 
-.topic-card:hover .topic-card__cta svg {
-  transform: translateX(2px);
+.chapter__cta:hover {
+  color: var(--accent-strong);
 }
 
-.topic-card__cta svg {
+.chapter__cta svg {
   transition: transform var(--dur) var(--ease);
 }
 
-/* ------------------------------------------------------------------ Steps */
-.steps {
+.chapter__cta:hover svg {
+  transform: translateX(3px);
+}
+
+.chapter__visual {
+  margin: 0;
+  padding: 18px 18px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.chapter__caption {
+  margin-bottom: 6px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-secondary);
+}
+
+.chapter__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.chapter__legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+
+.chapter__loading {
+  height: 300px;
+}
+
+.chapters__next {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.chapters__next a {
+  font-weight: 650;
+}
+
+/* The gas storages as circles on the map */
+.gas-map {
+  display: block;
+  width: 100%;
+  height: 330px;
+}
+
+.gas-map__land {
+  fill: var(--surface-sunken);
+  stroke: #fff;
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.gas-map__bubble {
+  fill: var(--accent);
+  fill-opacity: 0.5;
+  stroke: var(--accent-strong);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.gas-map__bubble:hover {
+  fill-opacity: 0.85;
+}
+
+/* In map units: the map is drawn at about 0.4 px per unit */
+.gas-map__label {
+  font-size: 34px;
+  font-weight: 700;
+  fill: var(--accent-strong);
+  paint-order: stroke;
+  stroke: var(--surface-card);
+  stroke-width: 8px;
+}
+
+/* ------------------------------------------------------ How it's made */
+.sources {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
+  gap: 16px 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.sources__title {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.sources__list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  gap: 28px;
   margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.step {
-  position: relative;
-  padding: 22px;
-}
-
-.step__index {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  font-size: 13px;
+.sources__list dt {
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--border-strong);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 
-.step__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: var(--brand-50);
-  color: var(--brand-600);
-}
-
-.step__title {
-  margin-top: 14px;
-  font-size: 17px;
-}
-
-.step__text {
-  margin-top: 6px;
-  font-size: 14px;
+.sources__list dd {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  line-height: 1.6;
   color: var(--ink-secondary);
+}
+
+.sources .home-link {
+  grid-column: 2;
 }
 
 /* --------------------------------------------------------------- CTA band */
@@ -354,14 +513,45 @@
 }
 
 /* ------------------------------------------------------------ Responsive */
+@media (max-width: 1100px) {
+  .figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .figure:nth-child(3) {
+    border-left: 0;
+  }
+
+  .figure:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
 @media (max-width: 960px) {
-  .home-hero__inner {
+  .home-hero__inner,
+  .chapter,
+  .sources,
+  .sources__list {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .topic-grid,
-  .steps {
+  .sources .home-link {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .figures {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .figure {
+    padding-inline: 0;
+    border-left: 0;
+  }
+
+  .figure:nth-child(n + 2) {
+    border-top: 1px solid var(--border);
   }
 }
 

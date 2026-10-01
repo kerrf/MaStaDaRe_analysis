@@ -1,82 +1,27 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BatteryCharging, Check, ChartLine, Database, Map as MapIcon, Sun, Workflow } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Badge from '../components/ui/Badge';
+import Chapters from '../features/home/Chapters';
 import GermanyPreview from '../features/home/GermanyPreview';
-import KpiStrip from '../features/dashboard/KpiStrip';
-import { ERZEUGER } from '../config/dashboards';
+import RegisterFigures from '../features/home/RegisterFigures';
 import { SITE } from '../config/site';
-import { statsUrl, useDatenstand, useStats } from '../lib/data';
+import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './HomePage.css';
 
-const TOPICS = [
-  {
-    id: 'erzeuger',
-    to: '/erzeuger',
-    icon: Sun,
-    title: 'Erzeuger',
-    status: 'live',
-    text: 'Wo wird wie viel Strom erzeugt? Photovoltaik heute – Wind, Biomasse und Wasserkraft folgen.',
-    points: ['Bundesland- und PLZ-Ebene', 'Absolut, je km² oder je Einwohner', 'Export als PNG, PDF und CSV'],
-  },
-  {
-    id: 'speicher',
-    to: '/speicher',
-    icon: BatteryCharging,
-    title: 'Speicher',
-    status: 'soon',
-    text: 'Batterie- und Pumpspeicher mit Kapazität und Leistung – vom Heimspeicher bis zum Großspeicher.',
-    points: ['Kapazität (MWh) und Leistung (MW)', 'Größenklassen Heim, Gewerbe, Groß', 'Speicher je PV-Leistung'],
-  },
-  {
-    id: 'maerkte',
-    to: '/maerkte/strom',
-    icon: ChartLine,
-    title: 'Märkte',
-    status: 'planned',
-    text: 'Strom-, Gas- und CO₂-Preise – der wirtschaftliche Kontext zum Ausbau.',
-    points: ['Day-Ahead-Strompreise', 'Gaspreise und Speicherfüllstände', 'CO₂-Zertifikatspreise'],
-  },
-];
-
-const STATUS_BADGE = {
-  live: <Badge tone="live">Live</Badge>,
-  soon: <Badge tone="soon">In Vorbereitung</Badge>,
-  planned: <Badge>Geplant</Badge>,
-};
-
-const STEPS = [
-  {
-    icon: Database,
-    title: 'Rohdaten',
-    text: 'Gesamtdatenexport des Marktstammdatenregisters der Bundesnetzagentur – Millionen registrierter Einheiten.',
-  },
-  {
-    icon: Workflow,
-    title: 'Aufbereitung',
-    text: 'Bereinigung und Aggregation in PostgreSQL/PostGIS: nach Bundesland, Landkreis, Gemeinde und Postleitzahl.',
-  },
-  {
-    icon: MapIcon,
-    title: 'Visualisierung',
-    text: 'Interaktive Karten mit relativen Kennzahlen je Fläche und Einwohner – teil- und exportierbar.',
-  },
-];
-
 export default function HomePage() {
   useDocumentTitle(null);
   const datenstand = useDatenstand();
-  const kpiStats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'bundesland'));
 
   return (
     <div className="home">
       <section className="home-hero">
         <div className="container home-hero__inner">
           <div className="home-hero__text">
-            <Badge tone="brand">Marktstammdatenregister · Datenstand {formatDate(datenstand)}</Badge>
+            <Badge tone="brand">Datenstand {formatDate(datenstand)}</Badge>
             <h1 className="home-hero__title">
-              Die Energiewende <span className="home-hero__highlight">im Blick</span>
+              Unsere Energiewende <span className="home-hero__highlight">im Blick</span>
             </h1>
             <p className="home-hero__lead">
               Interaktive Analysen und Visualisierungen zum Ausbau erneuerbarer Energien in Deutschland – basierend auf hochauflösenden
@@ -95,83 +40,61 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="container home-section" data-topic="erzeuger" aria-labelledby="zahlen-title">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">Photovoltaik</span>
-            <h2 id="zahlen-title" className="section-head__title">
-              Deutschland in Zahlen
-            </h2>
-          </div>
-          <Link to="/erzeuger" className="home-link">
-            Alle Kennzahlen <ArrowRight size={15} aria-hidden="true" />
-          </Link>
+      <section className="container home-section" aria-labelledby="register-title">
+        <div className="home-intro">
+          <span className="eyebrow">Stand {formatDate(datenstand)} · in Betrieb</span>
+          <h2 id="register-title" className="home-intro__title">
+            Was heute im Register steht
+          </h2>
         </div>
-        <KpiStrip kpis={ERZEUGER.kpis} rows={kpiStats.data} status={kpiStats.status} />
+        <RegisterFigures />
       </section>
 
       <section className="container home-section" aria-labelledby="dashboards-title">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">Dashboards</span>
-            <h2 id="dashboards-title" className="section-head__title">
-              Drei Blickwinkel auf das Energiesystem
-            </h2>
-          </div>
+        <div className="home-intro">
+          <span className="eyebrow">Drei Dashboards</span>
+          <h2 id="dashboards-title" className="home-intro__title">
+            Wo, wie viel und wie schnell
+          </h2>
         </div>
-        <div className="topic-grid">
-          {TOPICS.map(({ id, to, icon: Icon, title, status, text, points }) => (
-            <Link key={id} to={to} className="topic-card card" data-topic={id}>
-              <div className="topic-card__top">
-                <span className="topic-card__icon" aria-hidden="true">
-                  <Icon size={20} />
-                </span>
-                {STATUS_BADGE[status]}
-              </div>
-              <h3 className="topic-card__title">{title}</h3>
-              <p className="topic-card__text">{text}</p>
-              <ul className="topic-card__points">
-                {points.map((p) => (
-                  <li key={p}>
-                    <Check size={14} aria-hidden="true" /> {p}
-                  </li>
-                ))}
-              </ul>
-              <span className="topic-card__cta">
-                Öffnen <ArrowRight size={15} aria-hidden="true" />
-              </span>
-            </Link>
-          ))}
-        </div>
+        <Chapters />
+        <p className="chapters__next">
+          Als Nächstes: <Link to="/maerkte/strom">Märkte</Link> – Strom-, Gas- und CO₂-Preise als wirtschaftlicher Kontext.
+        </p>
       </section>
 
-      <section className="container home-section" aria-labelledby="methodik-title">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">Methodik</span>
-            <h2 id="methodik-title" className="section-head__title">
-              Von Rohdaten zur Karte
-            </h2>
-            <p className="section-head__lead">
-              Das Marktstammdatenregister ist öffentlich, aber schwer lesbar. Dieses Projekt macht die Daten regional vergleichbar.
-            </p>
-          </div>
+      <section className="container home-section" aria-labelledby="quelle-title">
+        <div className="sources">
+          <h2 id="quelle-title" className="sources__title">
+            So entstehen die Zahlen
+          </h2>
+          <dl className="sources__list">
+            <div>
+              <dt>Quelle</dt>
+              <dd>
+                Das Marktstammdatenregister der Bundesnetzagentur: Wer Strom oder Gas erzeugt oder speichert, muss seine Anlage dort
+                eintragen – vom Balkonkraftwerk bis zum Gasspeicher.
+              </dd>
+            </div>
+            <div>
+              <dt>Aktualität</dt>
+              <dd>
+                Jede Nacht holt ein Abgleich alle geänderten Einheiten über die Webdienste des Registers. Aktueller Datenstand:{' '}
+                {formatDate(datenstand)}.
+              </dd>
+            </div>
+            <div>
+              <dt>Aufbereitung</dt>
+              <dd>
+                Jede Einheit wird ihrer Gemeinde zugeordnet, zu Kreisen und Ländern summiert und je Fläche und Einwohner verglichen –
+                nachvollziehbar dokumentiert.
+              </dd>
+            </div>
+          </dl>
           <Link to="/info#methodik" className="home-link">
-            Mehr zur Methodik <ArrowRight size={15} aria-hidden="true" />
+            Methodik im Detail <ArrowRight size={15} aria-hidden="true" />
           </Link>
         </div>
-        <ol className="steps">
-          {STEPS.map(({ icon: Icon, title, text }, i) => (
-            <li key={title} className="step card">
-              <span className="step__index tabular">{String(i + 1).padStart(2, '0')}</span>
-              <span className="step__icon" aria-hidden="true">
-                <Icon size={20} />
-              </span>
-              <h3 className="step__title">{title}</h3>
-              <p className="step__text">{text}</p>
-            </li>
-          ))}
-        </ol>
       </section>
 
       <section className="container home-section">
