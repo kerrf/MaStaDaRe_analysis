@@ -34,66 +34,13 @@ const splitUnit = (label) => {
 const percent = (share) => formatShare(share);
 const tickLabel = (share) => `${formatNumber(share * 100, 1)} %`;
 
-// Horizontal: a row per category, its bars one below the other, the value at the end of each bar
-function Horizontal({ width, categories, series, active, onActive }) {
-  const LABEL = 88;
-  const VALUE = 46;
-  const ROW = 32;
-  const BAR = 10;
-  const AXIS = 22;
-  const plot = Math.max(0, width - LABEL - VALUE);
-  const max = Math.max(...categories.flatMap((c) => series.map((s) => c.values[s.id] ?? 0)));
-  const ticks = niceTicks(max * 100).map((t) => t / 100);
-  const top = ticks.at(-1);
-  const x = (share) => LABEL + (plot * share) / top;
-  const height = categories.length * ROW + AXIS;
-  const barsHeight = series.length * BAR + (series.length - 1) * 2;
-
-  return (
-    <svg width={width} height={height} onPointerLeave={() => onActive(null)}>
-      {ticks.map((t) => (
-        <g key={t} className="bar-chart__grid">
-          <line x1={x(t)} x2={x(t)} y1={0} y2={categories.length * ROW} />
-          <text className="bar-chart__tick" x={x(t)} y={height - 6} textAnchor="middle">
-            {tickLabel(t)}
-          </text>
-        </g>
-      ))}
-      {categories.map((c, i) => {
-        const y0 = i * ROW + (ROW - barsHeight) / 2;
-        return (
-          <g key={c.key} className={active === i ? 'is-active' : undefined} onPointerEnter={() => onActive(i)}>
-            <rect className="bar-chart__band" x={0} y={i * ROW} width={width} height={ROW} />
-            <text className="bar-chart__label" x={LABEL - 10} y={i * ROW + ROW / 2} dy="0.35em" textAnchor="end">
-              {c.label}
-            </text>
-            {series.map((s, k) => {
-              const value = c.values[s.id] ?? 0;
-              const y = y0 + k * (BAR + 2);
-              return (
-                <g key={s.id}>
-                  <rect x={LABEL} y={y} width={Math.max(value > 0 ? 1.5 : 0, x(value) - LABEL)} height={BAR} rx={2} style={{ fill: s.color }} />
-                  <text className="bar-chart__value" x={x(value) + 5} y={y + BAR / 2} dy="0.35em">
-                    {percent(value)}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        );
-      })}
-      <line className="bar-chart__baseline" x1={LABEL} x2={LABEL} y1={0} y2={categories.length * ROW} />
-    </svg>
-  );
-}
-
 // Width of a label per character (12px font)
 const CHAR_WIDTH = 6.6;
 const TILT = 40; // degrees, for labels that don't fit side by side
 
-// Vertical: a group of columns per category, the categories along the bottom: in two lines ("0,1–1" over "MWp"), or
-// tilted where even that doesn't fit
-function Vertical({ width, categories, series, active, onActive }) {
+// A group of columns per category, the categories along the bottom: in two lines ("0,1–1" over "MWp"), or tilted where
+// even that doesn't fit
+function Columns({ width, categories, series, active, onActive }) {
   const AXIS = 40;
   const PLOT = 210;
   const TOP = 12;
@@ -158,22 +105,21 @@ function Vertical({ width, categories, series, active, onActive }) {
 }
 
 /**
- * Bars for a few categories and two or three series side by side, e.g. the shares of the power and of the units per size
- * class. Horizontal (a row per category) or vertical (columns); hovering a category shows its details.
+ * Columns for a few categories and two or three series side by side, e.g. the shares of the power and of the units per
+ * size class; hovering a category shows its details.
  *
  * categories: [{ key, label, values: { [series.id]: share 0..1 }, details: [{ id, text }] (tooltip lines per series) }]
  * series:     [{ id, label, color }]
  */
-export default function GroupedBarChart({ categories, series, orientation = 'horizontal', label }) {
+export default function GroupedBarChart({ categories, series, label }) {
   const frameRef = useRef(null);
   const width = useWidth(frameRef);
   const [active, setActive] = useState(null);
-  const Chart = orientation === 'vertical' ? Vertical : Horizontal;
   const current = active != null ? categories[active] : null;
 
   return (
-    <div className={`bar-chart bar-chart--${orientation}`} ref={frameRef} role="img" aria-label={label}>
-      {width > 0 && <Chart width={width} categories={categories} series={series} active={active} onActive={setActive} />}
+    <div className="bar-chart" ref={frameRef} role="img" aria-label={label}>
+      {width > 0 && <Columns width={width} categories={categories} series={series} active={active} onActive={setActive} />}
       {current && (
         <div className="bar-chart__tooltip" role="presentation">
           <div className="bar-chart__tooltip-title">{current.label}</div>

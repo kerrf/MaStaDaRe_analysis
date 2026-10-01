@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import GroupedBarChart from '../../components/charts/GroupedBarChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
 import { formatAmount, formatCount } from '../../lib/format';
@@ -13,16 +12,9 @@ const SERIES = [
   { id: 'units', label: 'Anlagen', color: '#98a2b3' },
 ];
 
-// Both layouts, to choose one: bars across (a row per class) or columns (the classes along the bottom)
-const ORIENTATIONS = [
-  { id: 'horizontal', label: 'Horizontal' },
-  { id: 'vertical', label: 'Vertikal' },
-];
-
-// Units and power per size class of the active technology in the scope (mrt.size_distribution), as bars
+// Units and power per size class of the active technology in the scope (mrt.size_distribution), as columns
 export default function SizeDistribution({ path, region, query }) {
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
-  const [orientation, setOrientation] = useState('horizontal');
 
   const categories = useMemo(() => {
     if (stats.status !== 'ready') return null;
@@ -57,12 +49,10 @@ export default function SizeDistribution({ path, region, query }) {
             </span>
           ))}
         </div>
-        <SegmentedControl label="Darstellung" value={orientation} onChange={setOrientation} options={ORIENTATIONS} />
       </div>
       <GroupedBarChart
         categories={categories}
         series={SERIES}
-        orientation={orientation}
         label="Anteile an Leistung und Anlagen je Leistungsklasse"
       />
     </div>
