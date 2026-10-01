@@ -12,6 +12,7 @@ import {
   Mountain,
   Package,
   Sun,
+  Timer,
   TrendingUp,
   Trophy,
   Wind,
@@ -57,6 +58,39 @@ export const isAvailable = (granularity, technology) =>
   (granularity.kind !== 'heatmap' || Boolean(technology.heatmapPath)) &&
   (!technology.granularities || technology.granularities.includes(granularity.id));
 
+// Analyses on more than one dashboard. view: the page of the dashboard that shows them (config/views.js).
+
+// Registrierungen im MaStR per year and Zeit bis zur Registrierung, Germany-wide, one technology at a time
+// (mrt.registrierungen, mrt.registrierungsverzug). series: the technologies of the switch, as the API names them.
+const registrations = (series) => [
+  {
+    id: 'registrierungen',
+    title: 'Registrierungen im MaStR',
+    kind: 'registrations',
+    view: 'zubau',
+    icon: ClipboardList,
+    registrations: { path: '/zubau/registrierungen', series },
+  },
+  {
+    id: 'registrierungsverzug',
+    title: 'Zeit bis zur Registrierung',
+    kind: 'registration-delay',
+    view: 'zubau',
+    icon: Timer,
+    delay: { path: '/zubau/registrierungsverzug', series },
+  },
+];
+
+// Solar units and batteries at the same Lokation, Germany-wide (mrt.pv_speicher): for solar and for the batteries
+const PV_SPEICHER = {
+  id: 'pv-speicher',
+  title: 'Solaranlagen mit Batteriespeicher',
+  kind: 'pv-speicher',
+  view: 'anlagen',
+  path: '/solar/pv-speicher',
+  icon: BatteryCharging,
+};
+
 export const ERZEUGER = {
   id: 'erzeuger',
   basePath: '/erzeuger',
@@ -98,7 +132,7 @@ export const ERZEUGER = {
           'Für jede Solaranlage gibt das MaStR eine Bruttoleistung und Nettonennleistung an. Dabei ist die Bruttoleistung ' +
           'die Peakproduktion der Anlage, während die Nettonennleistung = min(Bruttoleistung, Wechselrichterwirkleistung).',
       },
-      // Shown after the dashboard-wide analyses while the technology is active.
+      // Shown after the dashboard-wide analyses of their page while the technology is active
       analyses: [
         {
           id: 'ausrichtung',
@@ -106,17 +140,10 @@ export const ERZEUGER = {
           description: 'Hauptausrichtung der Module – Anteile je Himmelsrichtung, Ost-West und nachgeführt.',
           variant: 'radial',
           kind: 'orientation',
+          view: 'anlagen',
           path: '/solar/orientation', // mrt.solar_orientation
         },
-        // Full width in the Analysen section: solar units and batteries at the same Lokation (mrt.pv_speicher)
-        {
-          id: 'pv-speicher',
-          title: 'Solaranlagen mit Batteriespeicher',
-          kind: 'pv-speicher',
-          path: '/solar/pv-speicher',
-          wide: true,
-          icon: BatteryCharging,
-        },
+        PV_SPEICHER,
       ],
     },
     {
@@ -126,8 +153,17 @@ export const ERZEUGER = {
       statsPath: '/wind/dashboard-stats',
       sizesPath: '/wind/size-distribution',
       granularities: REGION_LEVELS,
-      // Offshore wind is shown as an area of its own in the sea (key "offshore" on every level)
-      offshore: true,
+      // An Land and auf See, like the Anlagenarten of solar: passed as ?lage=… (no param = both, the API sums them)
+      subtypes: {
+        param: 'lage',
+        label: 'Lage',
+        options: [
+          { id: 'an_land', label: 'An Land' },
+          { id: 'auf_see', label: 'Auf See' },
+        ],
+      },
+      // Offshore wind is an area of its own in the sea (key "offshore" on every level), shown while this subtype is chosen
+      offshore: 'auf_see',
     },
     { id: 'biomasse', label: 'Biomasse', icon: Leaf },
     {
@@ -162,6 +198,7 @@ export const ERZEUGER = {
       id: 'timeline',
       title: 'Zubau im Zeitverlauf',
       icon: ChartColumnIncreasing,
+      view: 'zubau',
       // Germany-wide chart across the full width (mrt.zubau_zeitverlauf). Stacked in this order, the first at the bottom.
       timeline: {
         path: '/zubau/zeitverlauf',
@@ -176,22 +213,11 @@ export const ERZEUGER = {
         ],
       },
     },
-    // Germany-wide in the Analysen section: registrations per year, one technology at a time (mrt.registrierungen)
-    {
-      id: 'registrierungen',
-      title: 'Registrierungen im MaStR',
-      kind: 'registrations',
-      wide: true,
-      icon: ClipboardList,
-      registrations: {
-        path: '/zubau/registrierungen',
-        series: [
-          { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
-          { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
-          { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
-        ],
-      },
-    },
+    ...registrations([
+      { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
+      { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
+      { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
+    ]),
     // In the scope, for the active technology (its sizesPath); a placeholder for technologies without one
     {
       id: 'distribution',
@@ -199,6 +225,7 @@ export const ERZEUGER = {
       description: 'Anteile an Leistung und Anlagen je Leistungsklasse.',
       variant: 'bars',
       kind: 'sizes',
+      view: 'anlagen',
     },
   ],
   todos: [
@@ -281,6 +308,7 @@ export const SPEICHER = {
       id: 'timeline',
       title: 'Zubau im Zeitverlauf',
       icon: ChartColumnIncreasing,
+      view: 'zubau',
       // Battery capacity by size class, like battery-charts.de (RWTH Aachen)
       timeline: {
         path: '/zubau/zeitverlauf',
@@ -297,21 +325,12 @@ export const SPEICHER = {
           'Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht enthalten.',
       },
     },
-    {
-      id: 'registrierungen',
-      title: 'Registrierungen im MaStR',
-      kind: 'registrations',
-      wide: true,
-      icon: ClipboardList,
-      registrations: {
-        path: '/zubau/registrierungen',
-        series: [
-          { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
-          { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
-        ],
-      },
-    },
-    { id: 'ratio', title: 'Speicher je PV-Leistung', description: 'Wie viel Speicherkapazität steht je kW Photovoltaik bereit?', variant: 'bars' },
+    ...registrations([
+      { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
+      { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
+    ]),
+    // Batteries at solar units: how many solar units have one, and how much capacity per kW of solar
+    PV_SPEICHER,
   ],
   todos: [
     'Speicherkapazität (kWh) auf der Karte: raw.storage_plants (AnlagenStromSpeicher, NutzbareSpeicherkapazitaet über SpeMastrNummer) ist geladen und fließt schon in den Zubau im Zeitverlauf – noch in aggregate_bat_by_region_power.sql summieren und als Kennzahl ergänzen.',
@@ -414,22 +433,10 @@ export const GAS = {
   metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Leistung', unit: 'MW', digits: 0 }],
   tooltipRows: [],
   kpis: [],
-  analyses: [
-    {
-      id: 'registrierungen',
-      title: 'Registrierungen im MaStR',
-      kind: 'registrations',
-      wide: true,
-      icon: ClipboardList,
-      registrations: {
-        path: '/zubau/registrierungen',
-        series: [
-          { id: 'gaserzeuger', label: 'Gaserzeuger', color: 'var(--topic-gas)' },
-          { id: 'gasspeicher', label: 'Gasspeicher', color: 'var(--topic-gas-strong)' },
-        ],
-      },
-    },
-  ],
+  analyses: registrations([
+    { id: 'gaserzeuger', label: 'Gaserzeuger', color: 'var(--topic-gas)' },
+    { id: 'gasspeicher', label: 'Gasspeicher', color: 'var(--topic-gas-strong)' },
+  ]),
 };
 
 export const NUMERIC_FIELDS = [

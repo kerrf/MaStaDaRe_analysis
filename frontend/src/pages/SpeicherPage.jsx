@@ -1,6 +1,7 @@
-import MapDashboard from '../features/dashboard/MapDashboard';
+import Dashboard from '../features/dashboard/Dashboard';
 import { SPEICHER } from '../config/dashboards';
 
-export default function SpeicherPage() {
-  return <MapDashboard config={SPEICHER} />;
+// view: the page of the dashboard (config/views.js), from the route
+export default function SpeicherPage({ view = 'karte' }) {
+  return <Dashboard config={SPEICHER} view={view} />;
 }

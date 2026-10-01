@@ -25,7 +25,7 @@ const percent = (value) => `${formatNumber(value, 1)} %`;
  */
 export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, anchor }) {
   const data = useJson(`${API_BASE_URL}${analysis.path}`);
-  const netto = leistung?.id === 'netto';
+  const netto = leistung?.id !== 'brutto'; // Netto unless chosen otherwise, like everywhere
   const power = netto ? 'pv_power_net' : 'pv_power';
   const powerWithBattery = netto ? 'with_battery_power_net' : 'with_battery_power';
 

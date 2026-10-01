@@ -1,13 +1,15 @@
 import { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { VIEW_PATHS } from '../../config/views';
 import NavBar from '../NavBar';
 import Footer from '../Footer';
 
-// Scroll to top when switching sections (not when only the region inside a dashboard changes),
+// Scroll to top when switching sections or the pages of a dashboard (not when only the region inside a page changes),
 // and honour #anchors even on lazily loaded pages.
 function ScrollManager() {
   const { pathname, hash } = useLocation();
-  const section = pathname.split('/')[1] ?? '';
+  const [, first = '', second = ''] = pathname.split('/');
+  const section = VIEW_PATHS.has(second) ? `${first}/${second}` : first;
 
   useEffect(() => {
     if (!hash) window.scrollTo(0, 0);

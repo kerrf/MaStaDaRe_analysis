@@ -74,8 +74,9 @@ function buildPeriods({ byPeriod, latest }, { view, range, style }, series, sinc
 }
 
 // "Zubau im Zeitverlauf": Germany-wide, per year or month, with the series stacked (etl/queries/aggregate_zubau.sql).
-// leistung: the solar Leistung chosen (null while another technology is active: the default, Netto). anchor: its id.
-export default function TimelineAnalysis({ analysis, leistung, anchor }) {
+// leistung: the solar Leistung chosen (null: the default, Netto); leistungOption and onLeistung: the choice of it (the
+// solar technology's leistung config), switchable right here. anchor: its id.
+export default function TimelineAnalysis({ analysis, leistung, leistungOption, onLeistung, anchor }) {
   const { title, timeline } = analysis;
   const { series, since, unit, quantity } = timeline;
   const netto = leistung?.id !== 'brutto';
@@ -139,6 +140,17 @@ export default function TimelineAnalysis({ analysis, leistung, anchor }) {
             </select>
             <SegmentedControl label="Darstellung" options={STYLES} value={style} onChange={setStyle} />
           </>
+        )}
+        {hasNetto && leistungOption && onLeistung && (
+          <div className="timeline__leistung">
+            <span className="timeline__leistung-label">Solar</span>
+            <SegmentedControl
+              label="Leistung der Solaranlagen"
+              options={leistungOption.options}
+              value={netto ? 'netto' : 'brutto'}
+              onChange={onLeistung}
+            />
+          </div>
         )}
       </div>
 

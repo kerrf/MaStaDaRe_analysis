@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
+import { VIEWS, viewsOf } from './config/views';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -13,15 +14,34 @@ const InfoPage = lazy(() => import('./pages/InfoPage'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
 const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
 
+// The routes of a dashboard's pages: "/erzeuger/zubau", "/erzeuger/anlagen/sn/14524", … and the map at "/erzeuger/sn/14524".
+// The pages' names never collide with a Land's code (two letters).
+function dashboardRoutes(id, Page) {
+  return (
+    <Route path={id}>
+      {viewsOf(id)
+        .filter((view) => view !== 'karte')
+        .map((view) => (
+          <Route
+            key={view}
+            path={VIEWS[view].scoped ? `${VIEWS[view].path}/:land?/:kreis?` : VIEWS[view].path}
+            element={<Page view={view} />}
+          />
+        ))}
+      <Route path=":land?/:kreis?" element={<Page view="karte" />} />
+    </Route>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="erzeuger/:land?/:kreis?" element={<ErzeugerPage />} />
-          <Route path="speicher/:land?/:kreis?" element={<SpeicherPage />} />
-          <Route path="gas/:land?/:kreis?" element={<GasPage />} />
+          {dashboardRoutes('erzeuger', ErzeugerPage)}
+          {dashboardRoutes('speicher', SpeicherPage)}
+          {dashboardRoutes('gas', GasPage)}
           <Route path="maerkte/:markt" element={<MarktPage />} />
           <Route path="info" element={<InfoPage />} />
           <Route path="impressum" element={<ImpressumPage />} />

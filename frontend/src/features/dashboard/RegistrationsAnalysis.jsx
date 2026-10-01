@@ -11,10 +11,11 @@ const count = (value) => formatNumber(value);
 
 // Registrierungen im MaStR: units registered per year, Germany-wide, one technology at a time – not stacked, the
 // technologies differ by orders of magnitude (mrt.registrierungen, aggregate_registrierungen.sql).
-export default function RegistrationsAnalysis({ analysis, anchor }) {
+export default function RegistrationsAnalysis({ analysis, initial, anchor }) {
   const { path, series } = analysis.registrations;
   const data = useJson(`${API_BASE_URL}${path}`);
-  const [selectedId, setSelectedId] = useState(series[0].id);
+  // initial: the technology to start with (the dashboard's active one), if the switch has it
+  const [selectedId, setSelectedId] = useState(() => (series.some((s) => s.id === initial) ? initial : series[0].id));
   const selected = series.find((s) => s.id === selectedId) ?? series[0];
 
   const view = useMemo(() => {
