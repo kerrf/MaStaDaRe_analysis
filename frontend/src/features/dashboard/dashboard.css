@@ -11,7 +11,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding-block: 28px 24px;
+  padding-block: 28px 20px;
 }
 
 .dashboard-header .eyebrow {
@@ -32,6 +32,72 @@
 .dashboard-header__scope {
   font-weight: 500;
   color: var(--ink-muted);
+}
+
+/* The page of the dashboard beside its name ("Erzeuger  Anlagen"), when it isn't the map */
+.dashboard-header__page {
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+/* The pages of the dashboard: tabs along the bottom edge of the header, the current one underlined in the accent */
+.dashboard-tabs {
+  position: relative; /* the tabs' offsets count from here (Dashboard scrolls the current one into view) */
+  display: flex;
+  gap: 2px;
+  margin-bottom: -1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dashboard-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-tabs__tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.dashboard-tabs__tab:hover {
+  border-bottom-color: var(--border-strong);
+  color: var(--ink-primary);
+}
+
+.dashboard-tabs__tab.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+.dashboard-tabs__tab svg {
+  color: var(--ink-muted);
+}
+
+.dashboard-tabs__tab.is-active svg {
+  color: var(--accent-strong);
+}
+
+.dashboard-loading {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+}
+
+/* A page of analyses below each other (Zubau & Registrierungen) */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
 .dashboard-header__lead {
@@ -81,9 +147,16 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Long Kreis names ("Landkreis Neustadt a.d.Aisch-Bad Windsheim") shrink to the bar instead of overflowing it. */
+.scope-bar__trail > li {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .scope-bar__sep {
@@ -117,8 +190,10 @@
 }
 
 .scope-bar__select {
+  max-width: 100%;
   height: 32px;
   padding: 0 30px 0 10px;
+  text-overflow: ellipsis;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-card)
@@ -141,18 +216,6 @@
 .scope-bar__select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.notice {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--brand-50);
-  border: 1px solid var(--brand-100);
-  color: var(--brand-700);
-  font-size: 14px;
 }
 
 /* -------------------------------------------------------------- Main grid */
@@ -225,13 +288,15 @@
 .map-frame {
   position: relative;
   height: clamp(420px, 68vh, 720px);
-  background: var(--map-surface);
+  background: var(--map-sea);
 }
 
-.map-canvas {
+/* The sea of the background map: the land of Europe is drawn on it (ChoroplethMap). Two classes, to win over Leaflet's
+   own background, whose stylesheet comes later (with the map) */
+.map-canvas.leaflet-container {
   width: 100%;
   height: 100%;
-  background: var(--map-surface);
+  background: var(--map-sea);
   font-family: var(--font-sans);
 }
 
@@ -244,6 +309,25 @@
   border-top: 1px solid var(--border-subtle);
   font-size: 12px;
   color: var(--ink-muted);
+}
+
+/* The map's own sources (boundaries, place names, Europe), on a line of their own */
+.map-card__credit {
+  flex: 1 0 100%;
+  font-size: 11.5px;
+}
+
+.map-card__credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+}
+
+/* Below the source line: the footnote marked in the map title (Solar: Netto/Brutto) */
+.map-card__footnote {
+  flex: 1 0 100%;
+  margin: 2px 0 0;
+  line-height: 1.45;
 }
 
 .map-card.is-fullscreen {
@@ -279,29 +363,150 @@
   color: var(--ink-primary);
 }
 
-.city-dot span {
-  display: block;
-  width: 8px;
-  height: 8px;
+/* Place names (PlaceLabels): a dot and the name beside it, on the side the placement chose. The marker itself has no
+   size; its point is the place. */
+.place {
+  --r: 2px;
+  position: relative;
+  pointer-events: none;
+  animation: place-in var(--dur) var(--ease);
+}
+
+@keyframes place-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.place__dot {
+  position: absolute;
+  left: calc(-1 * var(--r) - 1px);
+  top: calc(-1 * var(--r) - 1px);
+  width: calc(2 * var(--r));
+  height: calc(2 * var(--r));
+  border: 1px solid #fff;
   border-radius: 50%;
   background: var(--ink-primary);
-  border: 1.5px solid #fff;
+  box-sizing: content-box;
 }
 
-.city-label {
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+.place__name {
+  position: absolute;
   font-family: var(--font-sans);
-  font-size: 11.5px;
-  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--ink-primary);
-  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff;
+  text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 5px rgba(255, 255, 255, 0.9);
 }
 
-.city-label::before {
-  display: none !important;
+.place--right .place__name {
+  left: calc(var(--r) + 4px);
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.place--left .place__name {
+  right: calc(var(--r) + 4px);
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.place--top .place__name {
+  left: 0;
+  bottom: calc(var(--r) + 4px);
+  transform: translateX(-50%);
+}
+
+.place--bottom .place__name {
+  left: 0;
+  top: calc(var(--r) + 4px);
+  transform: translateX(-50%);
+}
+
+/* From the largest cities (t0) to the towns (t2); sizes as in PlaceLabels.jsx (TIERS), which measures them */
+.place--t0 {
+  --r: 3.5px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.place--t1 {
+  --r: 3px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.place--t2 {
+  --r: 2.5px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* The Land or Kreis in view, named in the top left corner, beside the zoom buttons */
+.map-scope {
+  position: absolute;
+  top: 12px;
+  left: 56px;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: calc(100% - 70px);
+  padding: 7px 12px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  animation: map-scope-in var(--dur) var(--ease);
+}
+
+@keyframes map-scope-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.map-scope__context {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.map-scope__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
+}
+
+/* Countries and seas around Germany: no dot, the name centred on its point */
+.place--country .place__name,
+.place--sea .place__name {
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+}
+
+.place--country .place__name {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: #98a2b3;
+  text-shadow: none;
+}
+
+.place--sea .place__name {
+  font-size: 12px;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.6px;
+  color: #5b84b1;
+  text-shadow: none;
 }
 
 /* Tooltip */
@@ -371,6 +576,38 @@
   font-size: 11.5px;
   color: var(--brand-600);
   font-weight: 600;
+}
+
+/* Mask around a selected Bundesland: a click on it leads back to Deutschland. */
+body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
+  cursor: zoom-out;
+}
+
+.map-focus-mask.leaflet-interactive {
+  transition: fill-opacity var(--dur) var(--ease);
+}
+
+.map-focus-mask.leaflet-interactive:hover {
+  fill-opacity: 0.7;
+}
+
+.leaflet-tooltip.map-exit-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 24, 40, 0.86);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.leaflet-tooltip.map-exit-hint::before {
+  display: none;
 }
 
 /* Legend, chips, overlays */
@@ -578,6 +815,149 @@
   color: var(--ink-muted);
 }
 
+/* The active technology's filters (Solar: Anlagenart, Leistung): a layer below all chips, hanging off the choice of
+   technology like a branch. The active chip and the layer share the accent, the layer names its technology. */
+.tech-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 0 8px;
+  padding: 1px 0 3px 14px;
+  border-left: 2px solid var(--accent);
+  animation: tech-filters-in var(--dur) var(--ease);
+}
+
+@keyframes tech-filters-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.tech-filters__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--accent-strong);
+}
+
+/* The filter's name above its options, which get the full width of the narrow panel */
+.tech-filters__row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.tech-filters__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* Footnote marks: at the Leistung switch and in the map title, the note itself is below the map */
+.footnote-ref {
+  margin-left: 1px;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 0;
+  color: var(--accent-strong);
+}
+
+.tech-subtypes__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin-left: -6px; /* the first box in line with the label */
+}
+
+.tech-subtypes__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 8px 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tech-subtypes__option:hover:not(.is-locked) {
+  background: var(--surface-hover);
+  color: var(--ink-primary);
+}
+
+.tech-subtypes__option.is-checked {
+  color: var(--ink-primary);
+}
+
+.tech-subtypes__option.is-locked {
+  cursor: not-allowed;
+}
+
+.tech-subtypes__box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-card);
+  color: transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+/* Netto (AC) or Brutto (DC): a small switch */
+.tech-switch__options {
+  display: inline-flex;
+  justify-self: start;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+}
+
+.tech-switch__option {
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.tech-switch__option:hover:not(.is-active) {
+  color: var(--ink-primary);
+}
+
+.tech-switch__option.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.tech-subtypes__option.is-checked .tech-subtypes__box {
+  border-color: var(--option-color, var(--accent));
+  background: var(--option-color, var(--accent));
+  color: #fff;
+}
+
+.tech-subtypes__input:focus-visible + .tech-subtypes__box {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+
 .option-list {
   display: flex;
   flex-direction: column;
@@ -661,14 +1041,1046 @@
 }
 
 /* -------------------------------------------------------------- Analyses */
+/* Below the Steckbrief (Regionen), set off by a rule: the choice of technology and the table per region, each analysis
+   a card of its own that starts with a clear head (AnalysisPanel) */
 .dashboard-analyses {
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 24px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.analyses-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analyses-nav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.analyses-nav__item svg {
+  color: var(--accent-strong);
+}
+
+.analyses-nav__item:hover {
+  border-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+.analysis {
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  scroll-margin-top: calc(var(--nav-h) + 16px);
+}
+
+/* The head marks where an analysis starts: an accent bar on the left, a tinted band, a large title */
+.analysis__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(to right, var(--accent-soft), var(--surface-card) 70%);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.analysis__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--border-subtle), var(--shadow-xs);
+}
+
+.analysis__heading {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.analysis__title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.analysis__lead {
+  margin-top: 3px;
+  font-size: 13.5px;
+  color: var(--ink-secondary);
+}
+
+.analysis__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Switches in the head take the width their labels need */
+.analysis__tools .segmented__option {
+  flex: 0 0 auto;
+  padding: 0 14px;
+}
+
+.analysis__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+/* Registrierungen im MaStR */
+.registrations__summary {
+  font-size: 14px;
+  color: var(--ink-secondary);
+}
+
+.registrations__summary strong {
+  color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .analyses-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+}
+
+.analyses-grid--pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analyses-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Next to the Top 10 of the map: the other pages of the dashboard */
+.more-pages__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+}
+
+.more-pages__link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  color: inherit;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.more-pages__link:hover {
+  background: var(--surface-hover);
+  color: inherit;
+}
+
+.more-pages__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.more-pages__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.more-pages__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.more-pages__scope {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.more-pages__description {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.more-pages__arrow {
+  flex: none;
+  color: var(--ink-muted);
+  transition: transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.more-pages__link:hover .more-pages__arrow {
+  transform: translateX(3px);
+  color: var(--accent-strong);
+}
+
+/* The choice of technology on the pages without the map's controls (Anlagen, Regionen) */
+.selection-bar {
+  padding: 14px 16px;
+}
+
+.selection-bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.selection-bar__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.selection-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.selection-bar__chips .tech-chip {
+  padding-inline: 12px 14px;
+}
+
+.selection-bar .tech-filters {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+}
+
+.selection-bar .tech-filters__title {
+  flex-basis: 100%;
+}
+
+.selection-bar__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+/* Steckbrief of the scope (Regionen): a card per technology, values with their comparison and rank */
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile__lead {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+
+.profile__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 16px;
+}
+
+.profile-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-card__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.profile-card__title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.profile-card__what {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.profile-card__state {
+  padding: 18px 16px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+
+.profile-card__list {
+  margin: 0;
+  padding: 4px 16px 8px;
+}
+
+/* A value per line: its name and the value, below it the comparison and the rank */
+.profile-card__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 0;
+}
+
+.profile-card__item + .profile-card__item {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.profile-card__item dt {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--ink-secondary);
+}
+
+.profile-card__value {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.profile-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.profile-card__rank {
+  color: var(--ink-secondary);
+}
+
+.dashboard-analyses__empty {
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+/* Zubau im Zeitverlauf: a full-width chart card above the others */
+.timeline__leistung {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.timeline__leistung-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.timeline__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline__controls .segmented {
+  flex: none;
+}
+
+.timeline__controls .segmented__option {
+  flex: none;
+  padding: 0 14px;
+}
+
+.timeline__select {
+  height: 40px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card)
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>')
+    no-repeat right 10px center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  appearance: none;
+  cursor: pointer;
+}
+
+
+.timeline__state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 300px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: 13.5px;
+  color: var(--ink-secondary);
+}
+
+/* Legend: a click hides or shows a series; hidden ones are struck through and grey */
+.timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+}
+
+.timeline-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.timeline-legend__item:hover {
+  background: var(--surface-hover);
+}
+
+/* A legend that only explains the colours */
+.timeline-legend__item.is-static {
+  cursor: default;
+}
+
+.timeline-legend__item.is-static:hover {
+  background: transparent;
+}
+
+.timeline-legend__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.timeline-legend__item.is-off {
+  color: var(--ink-muted);
+  text-decoration: line-through;
+}
+
+.timeline__note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* Verteilung nach Anlagengröße: share of power and units per size class, bars on one scale */
+.sizes {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.sizes th,
+.sizes td {
+  padding: 7px 4px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.sizes thead th {
+  padding-top: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.sizes thead th:first-child {
+  width: 34%;
+}
+
+.sizes tbody tr + tr {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sizes__label {
+  display: block;
+  overflow: hidden;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sizes__hint {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.sizes__bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.sizes__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.sizes__fill--power {
+  background: var(--accent);
+}
+
+/* Verteilung nach Anlagengröße as columns: the legend above the chart */
+.sizes-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sizes-chart__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sizes-chart__legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.sizes__fill--units {
+  background: #98a2b3;
+}
+
+.sizes__key {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  border-radius: 50%;
+}
+
+.sizes__value {
+  margin-top: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.sizes__value strong {
+  margin-right: 2px;
+  color: var(--ink-primary);
+  font-weight: 650;
+}
+
+/* Ausrichtung: compass rose, values inside its sectors, Ost-West and tracked in the centre */
+.rose svg {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+}
+
+.rose__part path {
+  stroke: var(--surface-card);
+  stroke-width: 2;
+  transition: filter var(--dur-fast) var(--ease);
+}
+
+.rose__part:hover path {
+  filter: brightness(0.93);
+}
+
+.rose__power {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__share {
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__direction {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink-secondary);
+}
+
+.rose__centre-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.rose__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__foot strong {
+  color: var(--ink-primary);
+}
+
+.rose__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, var(--border-strong) 0 2px, var(--surface-sunken) 2px 4px);
+  vertical-align: -1px;
+}
+
+.rose__note {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+/* Solaranlagen mit Batteriespeicher: KPIs, two charts, the findings */
+.pv-speicher .analysis__body {
+  gap: 16px;
+}
+
+.pv-speicher__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pv-speicher__kpis .stat-tile {
+  box-shadow: none;
+  background: var(--surface-sunken);
+  border-color: transparent;
+}
+
+.pv-speicher__charts {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+}
+
+.pv-speicher__title {
+  margin-bottom: 8px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.pv-speicher__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.pv-speicher__legend i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.pv-speicher__classes thead th:first-child {
+  width: 30%;
+}
+
+.pv-speicher__classes thead th:last-child,
+.pv-speicher__ratio {
+  width: 64px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pv-speicher__facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 14px 12px 30px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+@media (max-width: 1024px) {
+  .pv-speicher__kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pv-speicher__charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Table per region: the analyses for every Land, Kreis or Gemeinde, each row's cells shaded against each other */
+
+/* The analysis: tabs standing on the header's bottom line */
+/* The analysis the table shows, as tabs across the top of the panel */
+.region-table__tabs {
+  display: flex;
+  gap: 24px;
+  margin: -8px -20px 0;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.region-table__tab {
+  padding: 6px 0 11px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.region-table__tab:hover {
+  color: var(--ink-primary);
+}
+
+.region-table__tab.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+
+.region-table__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+/* A control with its label in front: "Gebiete" (the rows), "Werte" (the cells) */
+.region-table__field {
+  display: inline-flex;
+  align-items: stretch;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.region-table__field-label {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.region-table__field select {
+  padding: 0 32px 0 10px;
+  border: 0;
+  background: transparent
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>')
+    no-repeat right 9px center;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  appearance: none;
+  cursor: pointer;
+}
+
+.region-table__field:focus-within {
+  border-color: var(--accent);
+}
+
+/* The values: a light unit switch, the chosen one in the dashboard's colour */
+.region-table__values {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 3px;
+}
+
+.region-table__value {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.region-table__value:hover:not(.is-active) {
+  background: var(--surface-hover);
+  color: var(--ink-primary);
+}
+
+.region-table__value small {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.region-table__value.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.region-table__value.is-active small {
+  color: var(--accent-strong);
+  opacity: 0.7;
+}
+
+.region-table__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.region-table__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--ink-muted);
+}
+
+.region-table__download {
+  height: 36px;
+}
+
+.region-table__search:focus-within {
+  border-color: var(--accent);
+}
+
+.region-table__search input {
+  width: 170px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-primary);
+}
+
+.region-table__scroll {
+  position: relative;
+  max-height: 560px;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.region-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.region-table th,
+.region-table td {
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.region-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
+  vertical-align: bottom;
+}
+
+/* The name column stays in view while scrolling sideways */
+.region-table tbody th,
+.region-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+}
+
+.region-table thead th:first-child {
+  z-index: 3;
+  background: var(--surface-sunken);
+}
+
+.region-table tbody th {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.region-table tbody tr + tr > * {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.region-table td {
+  min-width: 68px;
+  text-align: right;
+}
+
+.region-table td.is-zero {
+  color: var(--ink-muted);
+}
+
+.region-table__total {
+  border-left: 1px solid var(--border-subtle);
+  font-weight: 650;
+}
+
+.region-table__sort {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-secondary);
+  text-align: right;
+  cursor: pointer;
+}
+
+.region-table thead th:first-child .region-table__sort {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.region-table__sort:hover {
+  color: var(--ink-primary);
+}
+
+.region-table__sort small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.region-table__empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.region-table__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
 }
 
 .ranking {
@@ -753,6 +2165,10 @@
   .analyses-grid > :first-child {
     grid-column: 1 / -1;
   }
+
+  .analyses-grid--pairs > :first-child {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -791,4 +2207,79 @@
     width: auto;
   }
 
+}
+
+/* Sites: plants as icons on the map (Pumpspeicher) */
+.site-marker svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.35);
+  fill: #fff;
+}
+
+.site-marker.is-inactive svg {
+  background: var(--ink-muted);
+  opacity: 0.8;
+}
+
+.site-tooltip__plant + .site-tooltip__plant {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.site-tooltip__status {
+  margin: -2px 0 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.site-tooltip__place {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+/* The categories on the map (Gas) or in operation vs. not; wraps on narrow maps */
+.site-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  max-width: calc(100% - 28px);
+  border-radius: var(--radius-md);
+}
+
+.site-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.site-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+}
+
+.site-legend__dot.is-inactive {
+  background: var(--ink-muted);
+  opacity: 0.8;
+}
+
+.site-tooltip__swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: 0;
 }

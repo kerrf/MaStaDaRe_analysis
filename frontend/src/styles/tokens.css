@@ -35,6 +35,9 @@
   --topic-maerkte: #4a3aa7;
   --topic-maerkte-strong: #3b2e8a;
   --topic-maerkte-soft: #efedfb;
+  --topic-gas: #0e8a7e;
+  --topic-gas-strong: #0b675e;
+  --topic-gas-soft: #e3f5f2;
 
   /* Status */
   --warn-bg: #fff8eb;
@@ -46,9 +49,36 @@
   --success-bg: #ecfdf3;
   --success-ink: #067647;
 
-  /* Map */
+  /* Chart series (Zubau im Zeitverlauf) */
+  --series-solar: #f2b200;
+  --series-wind-land: #5ea66b;
+  --series-wind-sea: #2a6496;
+  --series-wasserkraft: #2b8cbe;
+  /* Speicher size classes are ordered: one blue from the Speicher ramp, light for small, dark for large */
+  --series-heimspeicher: #86b6ef;
+  --series-gewerbespeicher: #2a78d6;
+  --series-grossspeicher: #104281;
+  /* Gas sites: producers by technology, storages by Speicherart */
+  --series-biomethan: #4f9a3a;
+  --series-erdgas: #8a6a45;
+  --series-lng: #25467f;
+  --series-wasserstoff: #0f9fc4;
+  --series-methan: #8453d6;
+  --series-kaverne: #0e8a7e;
+  --series-pore: #c27c0e;
+  --series-aquifer: #3b6fd4;
+  /* Time from commissioning to registration: grey early, green within the deadline, then warmer the later */
+  --delay-early: #98a2b3;
+  --delay-in-time: #3f9b63;
+  --delay-months: #e8c14f;
+  --delay-year: #e58a3a;
+  --delay-late: #c2453d;
+
+  /* Map: Germany's areas on the land and sea of Europe */
   --map-surface: #fbfbfa;
-  --map-nodata: #e4e7ec;
+  --map-sea: #dde8f2;
+  --map-land: #eceef1;
+  --map-nodata: #d3d8df;
   --map-outline: #475467;
 
   /* Shape */

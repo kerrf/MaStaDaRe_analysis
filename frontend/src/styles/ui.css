@@ -17,6 +17,12 @@
   --accent-soft: var(--topic-maerkte-soft);
 }
 
+[data-topic='gas'] {
+  --accent: var(--topic-gas);
+  --accent-strong: var(--topic-gas-strong);
+  --accent-soft: var(--topic-gas-soft);
+}
+
 /* ---------------------------------------------------------------- Buttons */
 .btn {
   display: inline-flex;
@@ -407,6 +413,7 @@
 
 .placeholder__art {
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -419,7 +426,8 @@
   background: var(--border);
 }
 
-.placeholder__line {
+.placeholder__line,
+.placeholder__radial {
   width: 100%;
   height: 100%;
 }

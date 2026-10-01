@@ -7,8 +7,8 @@ export const SITE = {
   tagline: 'Marktstammdatenregister Visualisierung',
   url: 'https://mastr-data.de',
 
-  // TODO: replace with a value served by the API once the update pipeline exists.
-  dataStand: '2026-05-14',
+  // Shown as "Datenstand" until the nightly update has noted one (GET /meta/datenstand, see useDatenstand).
+  dataStand: '2026-09-29',
 
   links: {
     github: 'https://github.com/kerrf',

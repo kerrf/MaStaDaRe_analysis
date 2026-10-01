@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS mrt;
 
-DROP MATERIALIZED VIEW IF EXISTS mrt.bat_stats;
+DROP MATERIALIZED VIEW IF EXISTS mrt.bat_rollup;
 
 CREATE MATERIALIZED VIEW mrt.bat_rollup AS
 WITH plz5_bat_agg AS (
@@ -8,8 +8,9 @@ WITH plz5_bat_agg AS (
     SELECT 
         "Postleitzahl" AS plz5,
         COUNT("EinheitMastrNummer") AS total_units,
-        SUM("") AS total_capacity
-    FROM raw.bat_units
+        SUM("") AS total_capacity  -- TODO: NutzbareSpeicherkapazitaet, per Speicheranlage in AnlagenStromSpeicher (not loaded yet)
+    FROM raw.storage_units
+    WHERE "Technologie" = '524'  -- Batterie: the only storage technology that counts as a battery
     GROUP BY "Postleitzahl"
 )
 -- 2. Join the 1-to-1 data and run the ROLLUP

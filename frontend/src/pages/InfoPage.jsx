@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
+import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
@@ -31,16 +32,22 @@ const SOURCES = [
     href: 'https://www.suche-postleitzahl.org/downloads',
   },
   {
-    data: 'Bundesländergrenzen',
-    source: 'simplemaps.com',
-    license: 'siehe Lizenzbedingungen des Anbieters',
-    href: 'https://simplemaps.com',
+    data: 'Grenzen, Einwohner und Fläche der Bundesländer, Landkreise und Gemeinden, Ortsnamen auf der Karte',
+    source: 'Verwaltungsgebiete 1:250 000 mit Einwohnerzahlen (VG250-EW), Stand 31.12.2024, Bundesamt für Kartographie und Geodäsie',
+    license: 'Datenlizenz Deutschland – Namensnennung – 2.0, © GeoBasis-DE / BKG (2025) (Daten verändert)',
+    href: 'https://gdz.bkg.bund.de/index.php/default/verwaltungsgebiete-1-250-000-mit-einwohnerzahlen-stand-31-12-vg250-ew-31-12.html',
   },
   {
-    data: 'Kreisgrenzen (geplant)',
-    source: 'Verwaltungsgebiete 1:250 000 (VG250), Bundesamt für Kartographie und Geodäsie',
-    license: 'Datenlizenz Deutschland – Namensnennung – 2.0',
-    href: 'https://gdz.bkg.bund.de',
+    data: 'Europa als Hintergrund der Karte (Länder, Grenzen, Seen)',
+    source: 'Natural Earth, 1:10 Mio., Grenzen aus deutscher Sicht (Version 5.1.1)',
+    license: 'Gemeinfrei (Public Domain), vereinfacht',
+    href: 'https://www.naturalearthdata.com/',
+  },
+  {
+    data: 'Meeresgebiet „Offshore“ (Küstenmeer und Ausschließliche Wirtschaftszone)',
+    source: 'Flanders Marine Institute (2023): Maritime Boundaries Geodatabase, Version 12 – Marine Regions',
+    license: 'CC BY 4.0 (Daten verändert)',
+    href: 'https://www.marineregions.org/',
   },
 ];
 
@@ -52,6 +59,11 @@ const GLOSSAR = [
   ['MaStR-Nummer', 'Eindeutige Kennung jeder registrierten Einheit im Marktstammdatenregister (z. B. SEE… für Stromerzeugungseinheiten).'],
   ['PLZ-Region', 'Zusammenfassung von Postleitzahlgebieten über die ersten zwei bzw. drei Ziffern.'],
   ['AGS', 'Amtlicher Gemeindeschlüssel, 8-stellig. Die ersten zwei Stellen stehen für das Land, die ersten fünf für den Kreis.'],
+  ['Landkreis / kreisfreie Stadt', 'Die Kreisebene zwischen Land und Gemeinde. Größere Städte wie München oder Köln sind kreisfrei und bilden selbst einen Kreis. Deutschland hat 400 Kreise.'],
+  ['Gemeinde', 'Kleinste Verwaltungseinheit mit eigener Selbstverwaltung, z. B. Altenbeken (Kreis Paderborn) oder Aerzen (Landkreis Hameln-Pyrmont). Rund 10 800 Gemeinden, dazu gemeindefreie Gebiete wie große Forste.'],
+  ['Offshore', 'Windenergieanlagen auf See liegen in keiner Gemeinde. Die Karte fasst sie in einem eigenen Gebiet zusammen: dem deutschen Teil von Nord- und Ostsee (Küstenmeer und Ausschließliche Wirtschaftszone).'],
+  ['Anlagenart (Solar)', 'Art der Solaranlage laut Register: Gebäudesolaranlage (auf oder an einem Gebäude) oder Freiflächensolaranlage.'],
+  ['Hauptausrichtung', 'Himmelsrichtung, in die die Module überwiegend zeigen – von Nord bis Nordwest, dazu Ost-West und nachgeführt.'],
 ];
 
 const FAQ = [
@@ -64,8 +76,8 @@ const FAQ = [
     'Für diese Gebiete liegen keine Daten vor – etwa weil dort keine Anlage registriert ist oder sich die Postleitzahl keinem Gebiet zuordnen lässt.',
   ],
   [
-    'Warum Postleitzahlen und nicht Gemeinden?',
-    'Die Postleitzahl des Standorts ist für nahezu alle Einheiten im Register enthalten und damit die feinste flächendeckende Ebene. Landkreise und Gemeinden sind in Vorbereitung.',
+    'Postleitzahlen oder Gemeinden?',
+    'Beides. Bundesländer, Landkreise und Gemeinden folgen den amtlichen Verwaltungsgrenzen und haben amtliche Einwohnerzahlen; Postleitzahlgebiete sind oft kleiner, decken sich aber nicht mit Verwaltungsgrenzen. Die PLZ-Auflösung gibt es bisher für Solar.',
   ],
   [
     'Darf ich Karten und Daten weiterverwenden?',
@@ -75,6 +87,7 @@ const FAQ = [
 
 export default function InfoPage() {
   useDocumentTitle('Info & Methodik');
+  const datenstand = useDatenstand();
 
   return (
     <div className="page">
@@ -124,16 +137,53 @@ export default function InfoPage() {
             </p>
             <h3>Räumliche Zuordnung</h3>
             <p>
-              Jede Einheit wird über die Postleitzahl ihres Standorts zugeordnet. Daraus entstehen Summen je 5-stelliger PLZ, je PLZ-Region
-              (3- und 2-stellig) sowie je Bundesland.
+              <strong>Bundesländer, Landkreise und Gemeinden:</strong> Jede Einheit wird über den amtlichen Gemeindeschlüssel zugeordnet, den
+              das Register für sie führt: die acht Stellen bestimmen die Gemeinde, die ersten fünf den Kreis, die ersten zwei das Land.
+              Gezählt werden Einheiten in Betrieb. Grenzen, Einwohnerzahlen und Flächen stammen aus einer Quelle, den Verwaltungsgebieten
+              1:250 000 des BKG (Stand 31.12.2024). Für die Webkarte wurden die Gemeindegrenzen vereinfacht (um bis zu rund 70 m), Kreise
+              und Länder sind daraus zusammengesetzt – ihre Grenzen liegen daher exakt aufeinander.
             </p>
+            <p>
+              Einige Einheiten tragen den Schlüssel einer Gemeinde, die seit dem Stichtag der Geodaten fusioniert wurde (rund 0,1 %). Sie
+              zählen für ihren Landkreis und ihr Land, erscheinen aber auf keiner Gemeindefläche. <strong>Windenergie auf See</strong> liegt
+              in keiner Gemeinde und bildet auf jeder Ebene ein eigenes Gebiet „Offshore“; Einwohner hat es keine, die Fläche ist die des
+              Meeresgebiets.
+            </p>
+            <p>
+              <strong>Postleitzahlen:</strong> Zusätzlich wird jede Solaranlage über die Postleitzahl ihres Standorts zugeordnet. Daraus
+              entstehen Summen je 5-stelliger PLZ und je PLZ-Region (3- und 2-stellig).
+            </p>
+            <h3>Bedienung der Karte</h3>
+            <ul>
+              <li>
+                <strong>Bundesland anklicken</strong> (oder oben im Gebietsfeld wählen): Die Karte zoomt hinein und wechselt auf die Landkreise;
+                die Rangliste zeigt dann die Landkreise bzw. Gemeinden dieses Landes.
+              </li>
+              <li>
+                <strong>Landkreis anklicken</strong> (oder im zweiten Auswahlfeld wählen): Die Karte zoomt weiter hinein und zeigt die Gemeinden
+                des Kreises. Die Kennzahlen beziehen sich dann auf den Kreis – mit seinem Anteil am Bundesland und seinem Rang unter dessen
+                Kreisen.
+              </li>
+              <li>
+                <strong>Außerhalb des gewählten Gebiets klicken</strong>: eine Ebene zurück – vom Landkreis zum Bundesland, vom Bundesland zur
+                Gesamtansicht, jeweils mit der vorherigen Auflösung. „Deutschland“ im Gebietsfeld führt direkt zur Gesamtansicht.
+              </li>
+              <li>
+                <strong>Strg/⌘ + Mausrad</strong> zoomt die Karte, normales Scrollen bewegt die Seite.
+              </li>
+              <li>
+                <strong>Solar – Anlagenart:</strong> Gebäude- und Freiflächenanlagen lassen sich getrennt auswählen. Der Filter wird gerade
+                angebunden; bis dahin zeigen Karte und Kennzahlen alle Solaranlagen.
+              </li>
+            </ul>
             <h3>Kennzahlen</h3>
             <ul>
               <li>
                 <strong>Absolut:</strong> Summe der Bruttoleistung in MW.
               </li>
               <li>
-                <strong>Je km²:</strong> Leistung in kW je Quadratkilometer Gebietsfläche – zeigt die räumliche Dichte.
+                <strong>Je km²:</strong> Leistung in kW je Quadratkilometer Gebietsfläche – zeigt die räumliche Dichte. Beim Gebiet „Offshore“
+                ist es die Meeresfläche.
               </li>
               <li>
                 <strong>Je Einwohner:</strong> Leistung in kW je Einwohner – macht dicht und dünn besiedelte Regionen vergleichbar.
@@ -150,8 +200,9 @@ export default function InfoPage() {
               Die kontinuierliche Ansicht glättet die Anlagendichte mit einem Gauß-Kern – unabhängig von Verwaltungs- oder PLZ-Grenzen.
             </p>
             <TodoNote>
-              Prüfen: Die Aggregations-SQLs filtern nicht nach <code>EinheitBetriebsstatus</code> – stillgelegte und geplante Einheiten zählen
-              derzeit mit. Außerdem rundet <code>NUMERIC(10,0)</code> die Leistung je PLZ auf ganze MW (kleine Gebiete werden 0).
+              Das PLZ-Rollup (aggregate_pv_by_plz_power.sql) filtert nicht nach <code>EinheitBetriebsstatus</code> – stillgelegte und
+              geplante Einheiten zählen dort mit, anders als bei Bundesland/Landkreis/Gemeinde. Außerdem rundet <code>NUMERIC(10,0)</code> die
+              Leistung je PLZ auf ganze MW (kleine Gebiete werden 0).
             </TodoNote>
           </section>
 
@@ -188,18 +239,17 @@ export default function InfoPage() {
               </a>
             </p>
             <TodoNote>
-              Herkunft der PLZ-Shapes und Einwohnerzahlen bestätigen (Dateistruktur deutet auf suche-postleitzahl.org/OSM hin). Für die
-              Bundesländer die simplemaps-Lizenz prüfen – oder gleich auf BKG VG250 umstellen, das liefert auch die Landkreise.
+              Herkunft der PLZ-Shapes und Einwohnerzahlen bestätigen (Dateistruktur deutet auf suche-postleitzahl.org/OSM hin).
             </TodoNote>
           </section>
 
           <section id="aktualitaet">
             <h2>Aktualität</h2>
             <p>
-              Aktueller Datenstand: <strong>{formatDate(SITE.dataStand)}</strong>. Die Bundesnetzagentur veröffentlicht den
-              Gesamtdatenexport regelmäßig neu; die Daten dieses Dashboards werden in festen Abständen aktualisiert.
+              Aktueller Datenstand: <strong>{formatDate(datenstand)}</strong>. Jede Nacht holt das Dashboard alle Änderungen
+              des Marktstammdatenregisters seit dem letzten Abgleich über dessen Webdienst und berechnet Karten und Kennzahlen
+              neu. Der Datenstand ist der Tag, bis zu dem alle Änderungen enthalten sind.
             </p>
-            <TodoNote>Aktualisierungsrhythmus festlegen, sobald die Update-Pipeline steht – und den Datenstand vom Backend ausliefern lassen.</TodoNote>
           </section>
 
           <section id="glossar">

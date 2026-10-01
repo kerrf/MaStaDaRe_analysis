@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the MaStR update every night at 1:00 German time
+
+[Timer]
+OnCalendar=*-*-* 01:00:00 Europe/Berlin
+# If the server was off at 1:00, run as soon as it is back
+Persistent=true
+
+[Install]
+WantedBy=timers.target

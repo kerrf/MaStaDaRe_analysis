@@ -1,0 +1,9 @@
+[Unit]
+Description=MaStR update: changed units from the MaStR API into the raw tables
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/mastr
+ExecStart=/usr/bin/docker compose run --rm backend python -m app.etl.update

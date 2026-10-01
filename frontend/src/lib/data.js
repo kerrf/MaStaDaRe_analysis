@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { feature } from 'topojson-client';
-import { API_BASE_URL } from '../config/site';
+import { feature, mesh } from 'topojson-client';
+import { API_BASE_URL, SITE } from '../config/site';
 import { NUMERIC_FIELDS } from '../config/dashboards';
 
 // Module-level caches: switching views back and forth never refetches.
 const topologyCache = new Map();
 const statsCache = new Map();
+const metaCache = new Map();
 
 function cached(cache, key, load) {
   if (!cache.has(key)) {
@@ -28,6 +29,25 @@ export const loadTopology = (url) =>
     return feature(topology, Object.keys(topology.objects)[0]);
   });
 
+// Every object of a topology as GeoJSON, by name (the background map: { land, borders, labels })
+const layersCache = new Map();
+const loadLayers = (url) =>
+  cached(layersCache, url, async () => {
+    const topology = await fetchJson(url);
+    return Object.fromEntries(Object.keys(topology.objects).map((name) => [name, feature(topology, topology.objects[name])]));
+  });
+
+// The edges of one area of a topology that it shares with no other area, as lines: for the sea, its border out at sea
+// without the coast. key: "<url>#<ags>".
+const edgeCache = new Map();
+const loadOpenEdge = (key) =>
+  cached(edgeCache, key, async () => {
+    const [url, ags] = key.split('#');
+    const topology = await fetchJson(url);
+    const object = topology.objects[Object.keys(topology.objects)[0]];
+    return mesh(topology, object, (a, b) => a === b && a.properties.ags === ags);
+  });
+
 const toNumber = (v) => (v == null || v === '' ? null : Number(v));
 
 export const loadStats = (url) =>
@@ -41,8 +61,9 @@ export const loadStats = (url) =>
     });
   });
 
-export const statsUrl = (statsPath, apiLevel) =>
-  statsPath && apiLevel ? `${API_BASE_URL}${statsPath}?level=${encodeURIComponent(apiLevel)}` : null;
+// query: further parameters of the technology's selection (e.g. "anlagenart=freiflaeche&leistung=netto")
+export const statsUrl = (statsPath, apiLevel, query = '') =>
+  statsPath && apiLevel ? `${API_BASE_URL}${statsPath}?level=${encodeURIComponent(apiLevel)}${query && `&${query}`}` : null;
 
 // status: 'idle' (nothing to load) | 'loading' | 'ready' | 'error'
 function useAsync(key, load) {
@@ -72,4 +93,19 @@ function useAsync(key, load) {
 }
 
 export const useTopology = (url) => useAsync(url, loadTopology);
+export const useLayers = (url) => useAsync(url, loadLayers);
+export const useOpenEdge = (url, ags) => useAsync(url && `${url}#${ags}`, loadOpenEdge);
 export const useStats = (url) => useAsync(url, loadStats);
+
+// The day up to which the data includes every change of the register, noted by the last complete nightly update
+// (backend app.etl.update). Until one is noted, or while the API is unreachable, the date in site.js.
+const DATENSTAND_URL = `${API_BASE_URL}/meta/datenstand`;
+const loadDatenstand = (url) => cached(metaCache, url, async () => (await fetchJson(url)).datenstand);
+export function useDatenstand() {
+  return useAsync(DATENSTAND_URL, loadDatenstand).data ?? SITE.dataStand;
+}
+
+// Other JSON of the API as it comes, e.g. the tables of the analyses ({ columns, rows })
+const jsonCache = new Map();
+export const loadJson = (url) => cached(jsonCache, url, () => fetchJson(url));
+export const useJson = (url) => useAsync(url, loadJson);

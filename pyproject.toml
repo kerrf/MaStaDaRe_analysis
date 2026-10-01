@@ -23,6 +23,7 @@ dependencies = [
     "scipy>=1.17.1",
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.42.0",
+    "zeep>=4.3.3",
 ]
 
 [dependency-groups]

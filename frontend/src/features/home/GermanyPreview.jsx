@@ -2,57 +2,25 @@ import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ERZEUGER, STATES_TOPOLOGY } from '../../config/dashboards';
-import { findBundeslandByMapId } from '../../config/regions';
+import { findBundeslandByAgs, withoutOffshore } from '../../config/regions';
 import { makeColorScale, rampGradient } from '../../lib/colorScale';
 import { statsUrl, useStats, useTopology } from '../../lib/data';
 import { formatPower } from '../../lib/format';
-
-const COS_LAT = Math.cos((51 * Math.PI) / 180);
-const project = ([lng, lat]) => [lng * COS_LAT * 100, -lat * 100];
-
-function toSvg(collection) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  const shapes = collection.features.map((f) => {
-    const { type, coordinates } = f.geometry;
-    const polygons = type === 'Polygon' ? [coordinates] : coordinates;
-    const d = polygons
-      .flatMap((polygon) =>
-        polygon.map(
-          (ring) =>
-            `M${ring
-              .map((point) => {
-                const [x, y] = project(point);
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-              })
-              .join('L')}Z`,
-        ),
-      )
-      .join('');
-    return { id: f.properties.id, name: f.properties.name, d };
-  });
-  return { shapes, viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}` };
-}
+import { toSvg } from '../../lib/svgMap';
 
 export default function GermanyPreview() {
   const navigate = useNavigate();
   const states = useTopology(STATES_TOPOLOGY);
-  const stats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'Bundesland'));
+  const stats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'bundesland'));
 
-  const svg = useMemo(() => (states.data ? toSvg(states.data) : null), [states.data]);
-  const byName = useMemo(
-    () => new Map((stats.status === 'ready' ? stats.data : []).map((row) => [row.Bundesland, row.total_power])),
+  const svg = useMemo(() => (states.data ? toSvg(withoutOffshore(states.data)) : null), [states.data]);
+  const byAgs = useMemo(
+    () => new Map((stats.status === 'ready' ? stats.data : []).map((row) => [row.bundesland, row.total_power])),
     [stats.status, stats.data],
   );
-  const max = Math.max(0, ...byName.values());
+  const max = Math.max(0, ...byAgs.values());
   const colorFor = makeColorScale(ERZEUGER.ramp, max);
-  const live = byName.size > 0;
+  const live = byAgs.size > 0;
 
   return (
     <figure className="preview card" data-topic="erzeuger">
@@ -65,15 +33,15 @@ export default function GermanyPreview() {
         {svg ? (
           <svg viewBox={svg.viewBox} role="img" aria-label="Karte der Bundesländer, eingefärbt nach installierter PV-Leistung">
             {svg.shapes.map((shape) => {
-              const value = byName.get(shape.name);
-              const target = findBundeslandByMapId(shape.id);
+              const value = byAgs.get(shape.ags);
+              const target = findBundeslandByAgs(shape.ags);
               return (
                 <path
-                  key={shape.id}
+                  key={shape.ags}
                   d={shape.d}
                   style={{ fill: value != null ? colorFor(value) : 'var(--map-nodata)' }}
                   className="preview__region"
-                  onClick={() => target && navigate(`/erzeuger/${target.code}?ebene=plz3`)}
+                  onClick={() => target && navigate(`/erzeuger/${target.code}?ebene=landkreis`)}
                 >
                   <title>
                     {shape.name}
