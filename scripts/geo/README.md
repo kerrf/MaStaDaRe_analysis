@@ -6,7 +6,7 @@ Three scripts build what the map draws:
 | --- | --- | --- |
 | `build_boundaries.py` | the region layers and the region tables of the database | BKG VG250-EW, Marine Regions |
 | `build_basemap.py` | Europe around Germany: land, borders, names of countries and seas | Natural Earth |
-| `build_places.py` | the place names: every Gemeinde and the Ortsteile, with population | BKG VG250-EW, BKG GN250 |
+| `build_places.py` | the place names: Gemeinden with their population | BKG VG250-EW |
 
 ```bash
 uv run python scripts/geo/build_boundaries.py      # from the repository root, about 1 minute
@@ -65,19 +65,14 @@ Accuracy: Gemeinde areas deviate from the official area (KFL) by 0.55 % (median)
 
 ## Place names (`build_places.py`)
 
-`frontend/public/places/de.json` and one file per Land (`01.json` … `16.json`), rows of
-`[name, lon, lat, population, ags, kind]`, the largest first; kind `L` Landeshauptstadt, `S` Stadt, `G` Gemeinde,
-`O` Ortsteil:
+`frontend/public/places.json` (2 216 places, 47 kB gzip), rows of `[name, lon, lat, population, ags, kind]`, the largest
+first; kind `L` Landeshauptstadt, `S` Stadt, `G` Gemeinde. VG250 layer `vg250_pk`: a point per Gemeinde at its main
+settlement, with the official population of the whole Gemeinde (`EWZ` of `vg250_gem`) and its kind (`BEZ`).
 
-- **Gemeinden** (10 754 with inhabitants): VG250 layer `vg250_pk`, a point per Gemeinde at its main settlement, with the
-  official population of the whole Gemeinde (`EWZ` of `vg250_gem`) and its kind (`BEZ`: Stadt or Gemeinde).
-- **Ortsteile** (35 120): GN250, settlements (`AX_Ortslage`) that are part of a Gemeinde (`GEMTEIL`), with a computed
-  population (`EWZ_GER`: the Gemeinde's, shared out by the area of its settlements, a measure of size rather than a
-  count). Without the main settlement of a Gemeinde, which the Gemeinde's own point already names.
-- `de.json` (1 598 places, 34 kB gzip): the Gemeinden from 10 000 inhabitants and the capitals; every map loads it. A
-  Land's file (Bayern 160 kB gzip, most far less): the rest, loaded once the map shows that Land up close.
-
-Each place carries its AGS, so the map can name only the places of the Land or Kreis in view.
+The map names them in three layers (frontend `PlaceLabels.jsx`): the cities from 500 000 inhabitants for Germany, the
+largest towns of a Land, the largest of a Kreis. The file holds what that needs: every Gemeinde from 10 000 inhabitants
+and the 6 largest of every Kreis. Each place carries its AGS, so the map can name only the places of the Land or Kreis
+in view.
 
 ## Sources and updating
 
@@ -85,7 +80,6 @@ Each place carries its AGS, so the map can name only the places of the Land or K
 | --- | --- | --- | --- |
 | Länder, Kreise, Gemeinden with population (EWZ) and area (KFL) | [BKG VG250-EW](https://gdz.bkg.bund.de/index.php/default/verwaltungsgebiete-1-250-000-mit-einwohnerzahlen-stand-31-12-vg250-ew-31-12.html), GeoPackage `vg250-ew_12-31.utm32s.gpkg.ebenen.zip` | 31.12.2024 (published 11/2025) | dl-de/by-2-0 |
 | Sea (EEZ incl. 12-mile zone) | [Marine Regions](https://www.marineregions.org/), EEZ v12, MRGID 5669 | 2023 | CC BY 4.0 |
-| Place names (Ortslagen) | [BKG GN250](https://gdz.bkg.bund.de/index.php/default/open-data/geographische-namen-1-250-000-gn250.html), CSV `gn250.utm32s.csv.zip` | 31.12.2024 (published 09/2026) | dl-de/by-2-0 |
 | Europe (countries, lakes) | [Natural Earth](https://www.naturalearthdata.com/) 1:10m, `ne_10m_admin_0_countries_deu`, `ne_10m_lakes` | 5.1.1 | public domain |
 
 Put the files where the scripts expect them (`backend/data` is gitignored):
@@ -95,8 +89,6 @@ cd backend/data/geo
 curl -o vg250-ew/vg250-ew.gpkg.zip https://daten.gdz.bkg.bund.de/produkte/vg/vg250-ew_ebenen_1231/aktuell/vg250-ew_12-31.utm32s.gpkg.ebenen.zip
 unzip vg250-ew/vg250-ew.gpkg.zip -d vg250-ew
 curl -o offshore/eez_germany.geojson "https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=MarineRegions:eez&cql_filter=mrgid=5669&outputFormat=application/json"
-curl -o gn250/gn250.csv.zip https://daten.gdz.bkg.bund.de/produkte/sonstige/gn250/aktuell/gn250.utm32s.csv.zip
-unzip gn250/gn250.csv.zip -d gn250
 curl -o naturalearth/countries.zip https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries_deu.zip
 curl -o naturalearth/lakes.zip https://naciscdn.org/naturalearth/10m/physical/ne_10m_lakes.zip
 unzip naturalearth/countries.zip -d naturalearth && unzip naturalearth/lakes.zip -d naturalearth
@@ -106,10 +98,9 @@ A new VG250-EW edition appears once a year (the population needs the census figu
 check the path in `VG250`, rebuild, reload the tables and update the Stand on the Info page.
 
 Attribution: `© GeoBasis-DE / BKG (2025), dl-de/by-2-0 (Daten verändert)` and `Flanders Marine Institute (2023): Maritime
-Boundaries Geodatabase, version 12, CC BY 4.0`. GN250 asks for `© BKG (2026) dl-de/by-2-0, Datenquellen:
-https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_gn250.pdf` wherever its data is shown, "BKG"
-linked to bkg.bund.de and "dl-de/by-2-0" to govdata.de: the line below the map (`MapView.jsx`), the map exports and the
-Info page carry it. Natural Earth needs no attribution; the Info page names it.
+Boundaries Geodatabase, version 12, CC BY 4.0`: the line below the map (`MapView.jsx`, "BKG" linked to bkg.bund.de,
+"dl-de/by-2-0" to govdata.de), the map exports and the Info page carry them. Natural Earth needs no attribution; the
+Info page names it.
 
 ## Matching the MaStR
 
