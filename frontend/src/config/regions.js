@@ -39,3 +39,8 @@ export const GERMANY_SEA_BOUNDS = [
   [47.27, 3.35],
   [55.92, 15.04],
 ];
+// The background map of Europe around Germany (scripts/geo/build_basemap.py): the map can't be moved beyond it
+export const EUROPE_BOUNDS = [
+  [34.5, -12],
+  [62.5, 42],
+];

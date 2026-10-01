@@ -67,10 +67,18 @@
   --series-kaverne: #0e8a7e;
   --series-pore: #c27c0e;
   --series-aquifer: #3b6fd4;
+  /* Time from commissioning to registration: grey early, green within the deadline, then warmer the later */
+  --delay-early: #98a2b3;
+  --delay-in-time: #3f9b63;
+  --delay-months: #e8c14f;
+  --delay-year: #e58a3a;
+  --delay-late: #c2453d;
 
-  /* Map */
+  /* Map: Germany's areas on the land and sea of Europe */
   --map-surface: #fbfbfa;
-  --map-nodata: #e4e7ec;
+  --map-sea: #dde8f2;
+  --map-land: #eceef1;
+  --map-nodata: #d3d8df;
   --map-outline: #475467;
 
   /* Shape */

@@ -1,5 +1,5 @@
 import StatTile from '../../components/ui/StatTile';
-import { findBundeslandByAgs, isKreisKey, regionName } from '../../config/regions';
+import { OFFSHORE, findBundeslandByAgs, isKreisKey, regionName } from '../../config/regions';
 import { formatCapacity, formatNumber, formatPercent, formatPower, scaleAmount } from '../../lib/format';
 
 // The units the KPIs compare, keyed like the stats rows. Bundesland rows may also contain "offshore" (wind): it counts for
@@ -55,7 +55,8 @@ function computeKpi(kpi, { rows, status, level, selected, parentName }) {
       sub: `Rang ${rank} von ${ranked.length} ${peers}`,
     };
   }
-  const top = ranked[0];
+  // The leader of Germany may also be the sea (offshore wind, an area of its own on the map), though it is no Land
+  const top = [...ranked, ...rows.filter((row) => row[level] === OFFSHORE.ags)].sort((a, b) => (b[kpi.field] ?? 0) - (a[kpi.field] ?? 0))[0];
   return { ...base, value: regionName(top.bundesland), textValue: true, sub: `${formatPercent(top[kpi.field] / total)} des Bundeswerts` };
 }
 

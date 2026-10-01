@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { feature } from 'topojson-client';
+import { feature, mesh } from 'topojson-client';
 import { API_BASE_URL, SITE } from '../config/site';
 import { NUMERIC_FIELDS } from '../config/dashboards';
 
@@ -27,6 +27,25 @@ export const loadTopology = (url) =>
   cached(topologyCache, url, async () => {
     const topology = await fetchJson(url);
     return feature(topology, Object.keys(topology.objects)[0]);
+  });
+
+// Every object of a topology as GeoJSON, by name (the background map: { land, borders, labels })
+const layersCache = new Map();
+const loadLayers = (url) =>
+  cached(layersCache, url, async () => {
+    const topology = await fetchJson(url);
+    return Object.fromEntries(Object.keys(topology.objects).map((name) => [name, feature(topology, topology.objects[name])]));
+  });
+
+// The edges of one area of a topology that it shares with no other area, as lines: for the sea, its border out at sea
+// without the coast. key: "<url>#<ags>".
+const edgeCache = new Map();
+const loadOpenEdge = (key) =>
+  cached(edgeCache, key, async () => {
+    const [url, ags] = key.split('#');
+    const topology = await fetchJson(url);
+    const object = topology.objects[Object.keys(topology.objects)[0]];
+    return mesh(topology, object, (a, b) => a === b && a.properties.ags === ags);
   });
 
 const toNumber = (v) => (v == null || v === '' ? null : Number(v));
@@ -74,6 +93,8 @@ function useAsync(key, load) {
 }
 
 export const useTopology = (url) => useAsync(url, loadTopology);
+export const useLayers = (url) => useAsync(url, loadLayers);
+export const useOpenEdge = (url, ags) => useAsync(url && `${url}#${ags}`, loadOpenEdge);
 export const useStats = (url) => useAsync(url, loadStats);
 
 // The day up to which the data includes every change of the register, noted by the last complete nightly update
@@ -86,5 +107,5 @@ export function useDatenstand() {
 
 // Other JSON of the API as it comes, e.g. the tables of the analyses ({ columns, rows })
 const jsonCache = new Map();
-const loadJson = (url) => cached(jsonCache, url, () => fetchJson(url));
+export const loadJson = (url) => cached(jsonCache, url, () => fetchJson(url));
 export const useJson = (url) => useAsync(url, loadJson);

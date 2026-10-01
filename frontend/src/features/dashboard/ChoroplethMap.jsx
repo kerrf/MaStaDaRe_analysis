@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { GeoJSON, ImageOverlay, MapContainer, Marker, Pane, Polygon, Tooltip, useMap } from 'react-leaflet';
+import { GeoJSON, ImageOverlay, MapContainer, Pane, Polygon, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import { GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
+import { STATES_TOPOLOGY } from '../../config/dashboards';
+import { EUROPE_BOUNDS, GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
+import { useLayers, useOpenEdge } from '../../lib/data';
+import PlaceLabels from './PlaceLabels';
 
 // Must match the georeference the backend used when rendering the heatmap PNG.
 const HEATMAP_BOUNDS = [
@@ -11,29 +14,44 @@ const HEATMAP_BOUNDS = [
   [55.058347, 15.041931],
 ];
 
-const TOP_CITIES = {
-  Berlin: [13.404954, 52.520008],
-  Köln: [6.953101, 50.935173],
-  Düsseldorf: [6.782048, 51.227144],
-  'Frankfurt am Main': [8.682127, 50.110924],
-  Hamburg: [9.993682, 53.551086],
-  Leipzig: [12.387772, 51.343479],
-  München: [11.576124, 48.137154],
-  Dortmund: [7.468554, 51.5134],
-  Stuttgart: [9.181332, 48.777128],
-  Nürnberg: [11.077438, 49.44982],
-  Hannover: [9.73322, 52.37052],
-};
-
-const CITY_ICON = new L.DivIcon({ className: 'city-dot', html: '<span></span>', iconSize: [8, 8], iconAnchor: [4, 4] });
-
-const NODATA_FILL = '#e4e7ec';
+// Colours as in styles/tokens.css (--map-*): the canvas can't read CSS variables
+const NODATA_FILL = '#d3d8df';
 // Areas that carry no values (plant icons on top, borders only, no data yet) look like a plain map instead of "Keine Daten".
 const NEUTRAL_STYLE = { fillColor: '#f3efe7', fillOpacity: 1, color: '#aab2be', opacity: 1 };
 const MASK_STYLE = { stroke: false, fillColor: '#f6f7f9', fillOpacity: 0.85 };
-// The sea (offshore wind) is set apart from the land by a blue border: a light halo under a strong line
-const SEA_HALO = { fill: false, color: '#9cc7ff', weight: 7, opacity: 0.55 };
-const SEA_LINE = { fill: false, color: '#1463d8', weight: 2.5, opacity: 1 };
+// Europe around Germany (scripts/geo/build_basemap.py): plain grey land on the blue of the sea, white borders
+const BASEMAP = '/basemap_europe.topojson';
+const LAND_STYLE = { stroke: false, fillColor: '#eceef1', fillOpacity: 1 };
+const BORDER_STYLE = { color: '#ffffff', weight: 1.2, opacity: 1 };
+// The German sea (offshore wind) is a zone at sea: hatched in its colour, the water showing through, without a border
+// along the coast; out at sea, a dashed line marks where it ends. The choropleth only keeps it for tooltip and click.
+const SEA_HIDDEN = { fillOpacity: 0, weight: 0 };
+const SEA_EDGE_STYLE = { fill: false, color: '#3d6fa8', weight: 1.4, opacity: 0.9, dashArray: '5 4' };
+const MIN_ZOOM = 5;
+
+// The hatching of the sea in its colour: diagonal stripes on a light tint of it, the water showing through. A pattern
+// on the canvas, like the areas, so the map exports keep it in place.
+function hatchOf(color) {
+  const size = 8;
+  const tile = document.createElement('canvas');
+  tile.width = size;
+  tile.height = size;
+  const ctx = tile.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(0, 0, size, size);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (const offset of [-size, 0, size]) {
+    ctx.moveTo(offset, size);
+    ctx.lineTo(offset + size, 0);
+  }
+  ctx.stroke();
+  return ctx.createPattern(tile, 'repeat');
+}
+
 const WORLD_RING = [
   [-85, -180],
   [-85, 180],
@@ -63,10 +81,16 @@ function ViewController({ focusFeature, homeBounds }) {
   return null;
 }
 
+// Keeps the map in its frame: after a resize, and so far out that Europe always fills it (the map ends at its edges)
 function SizeWatcher() {
   const map = useMap();
   useEffect(() => {
-    const observer = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+    const fit = () => {
+      map.invalidateSize({ animate: false });
+      map.setMinZoom(Math.max(MIN_ZOOM, Math.ceil(map.getBoundsZoom(EUROPE_BOUNDS, true) * 4) / 4));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
     observer.observe(map.getContainer());
     return () => observer.disconnect();
   }, [map]);
@@ -104,16 +128,17 @@ function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltip
   }, [tooltipFor, onRegionClick]);
 
   const styleFor = useCallback(
-    (feature) =>
-      neutral
-        ? { ...NEUTRAL_STYLE, weight: lineWeight }
-        : {
-            fillColor: feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL,
-            fillOpacity: 1,
-            color: '#ffffff',
-            weight: lineWeight,
-            opacity: 0.9,
-          },
+    (feature) => {
+      if (neutral) return { ...NEUTRAL_STYLE, weight: lineWeight };
+      return {
+        fillColor: feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL,
+        fillOpacity: 1,
+        color: '#ffffff',
+        weight: lineWeight,
+        opacity: 0.9,
+        ...(feature.properties.ags === OFFSHORE.ags && SEA_HIDDEN),
+      };
+    },
     [neutral, colorFor, valueKey, lineWeight],
   );
 
@@ -163,7 +188,26 @@ export default function ChoroplethMap({
     () => (focusFeature ? [WORLD_RING, ...ringsOf(focusFeature.geometry)] : null),
     [focusFeature],
   );
-  const sea = useMemo(() => geo?.features.find((f) => f.properties.ags === OFFSHORE.ags) ?? null, [geo]);
+  const sea = mode === 'choropleth' && !neutral ? geo?.features.find((f) => f.properties.ags === OFFSHORE.ags) ?? null : null;
+  const seaColor = sea && (sea.properties._hasData ? colorFor(sea.properties[valueKey] ?? 0) : NODATA_FILL);
+  const seaEdge = useOpenEdge(sea ? STATES_TOPOLOGY : null, OFFSHORE.ags);
+  const seaStyle = useMemo(() => seaColor && { stroke: false, fillColor: hatchOf(seaColor), fillOpacity: 1 }, [seaColor]);
+  const basemap = useLayers(BASEMAP);
+  // Names of countries and seas, and the Länder (to load the names of their smaller places when the map shows them)
+  const areas = useMemo(
+    () =>
+      basemap.data?.labels.features.map((f) => ({ ...f.properties, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] })) ??
+      null,
+    [basemap.data],
+  );
+  const lands = useMemo(
+    () =>
+      outlines?.features
+        .filter((f) => /^\d{2}$/.test(f.properties.ags))
+        .map((f) => ({ ags: f.properties.ags, bounds: L.geoJSON(f).getBounds() })) ?? null,
+    [outlines],
+  );
+  const focusAgs = focusFeature?.properties.ags ?? '';
 
   // The focus layers are drawn as SVG (the rest of the map is canvas): an SVG path only catches the pointer
   // where it is painted, so the mask takes clicks outside the focused Land or Kreis while the hole passes them
@@ -178,14 +222,23 @@ export default function ChoroplethMap({
       boundsOptions={{ padding: [28, 28] }}
       preferCanvas
       zoomSnap={0.25}
-      minZoom={5}
+      minZoom={MIN_ZOOM}
       maxZoom={12}
+      maxBounds={EUROPE_BOUNDS}
+      maxBoundsViscosity={1}
       scrollWheelZoom={false}
       attributionControl={false}
     >
       <SizeWatcher />
       <WheelHandler onPlainWheel={onPlainWheel} />
       <ViewController focusFeature={focusFeature} homeBounds={homeBounds} />
+
+      {basemap.data && (
+        <Pane name="basemap" style={{ zIndex: 250, pointerEvents: 'none' }}>
+          <GeoJSON data={basemap.data.land} interactive={false} style={LAND_STYLE} />
+          <GeoJSON data={basemap.data.borders} interactive={false} style={BORDER_STYLE} />
+        </Pane>
+      )}
 
       {mode === 'heatmap' && heatmapUrl && <ImageOverlay url={heatmapUrl} bounds={HEATMAP_BOUNDS} opacity={0.9} />}
 
@@ -208,10 +261,14 @@ export default function ChoroplethMap({
         </Pane>
       )}
 
-      {mode === 'choropleth' && sea && (
+      {sea && (
+        <Pane name="sea-fill" style={{ zIndex: 405, pointerEvents: 'none' }}>
+          <GeoJSON key={`sea-${layerKey}-${seaColor}`} data={sea} interactive={false} style={seaStyle} />
+        </Pane>
+      )}
+      {sea && seaEdge.data && (
         <Pane name="sea" style={{ zIndex: 425, pointerEvents: 'none' }}>
-          <GeoJSON key={`sea-halo-${layerKey}`} data={sea} interactive={false} style={SEA_HALO} />
-          <GeoJSON key={`sea-line-${layerKey}`} data={sea} interactive={false} style={SEA_LINE} />
+          <GeoJSON key={`sea-edge-${layerKey}`} data={seaEdge.data} interactive={false} style={SEA_EDGE_STYLE} />
         </Pane>
       )}
 
@@ -247,13 +304,9 @@ export default function ChoroplethMap({
         )}
       </Pane>
 
-      {Object.entries(TOP_CITIES).map(([name, [lng, lat]]) => (
-        <Marker key={name} position={[lat, lng]} icon={CITY_ICON} interactive={false}>
-          <Tooltip permanent direction="top" offset={[0, -5]} className="city-label">
-            {name}
-          </Tooltip>
-        </Marker>
-      ))}
+      {/* Above the areas and the mask, below the plant icons and tooltips */}
+      <Pane name="places" style={{ zIndex: 450, pointerEvents: 'none' }} />
+      <PlaceLabels scope={focusAgs} lands={lands} areas={areas} revision={layerKey} />
       {children}
     </MapContainer>
   );
