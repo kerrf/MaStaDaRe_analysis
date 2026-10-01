@@ -246,3 +246,6 @@ TODO.md
 commit_names.md
 *.ipynb
 *plz_data*
+# Deploying the local database (deploy/push_db.sh): the server settings, and the dumps on the server
+deploy/server.env
+backups/
