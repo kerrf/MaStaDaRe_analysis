@@ -6,8 +6,8 @@ the decoded value (e.g. "Gebaeudesolaranlage"). Every catalog below maps ID -> e
 returns, so rows from the bulk export and rows fetched via the API end up identical in the database.
 Comments give the official German label where the value alone isn't clear.
 
-Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|water|storage]
-Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, WATER, STORAGE)
+Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|water|storage|gas_producer|gas_storage]
+Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, WATER, STORAGE, GAS_PRODUCER, GAS_STORAGE)
 
 Bruttoleistung = installierte Leistung: Stromertrag bei optimalem Betrieb
 Nettonennleistung:  Minimum aus Bruttoleistung und Wechselrichter-Wirkleistung
@@ -421,6 +421,23 @@ EEGANLAGENTYP = {
 }
 
 
+# ============================================================ gas (verified with gas producer and storage units, 2026-09-30)
+
+GAS_TECHNOLOGIE = {  # TechnologieGasErzeugung
+    824: "FoerderungFossilenErdgases",
+    825: "BiomethanErzeugung",
+    826: "PowerToGasWasserstoff",
+    827: "PowerToGasMethan",
+    829: "LiquifidNaturalGas",  # sic, the API's spelling (Liquefied Natural Gas: LNG terminals and liquefaction plants)
+}
+
+GASSPEICHERART = {
+    658: "Kavernenspeicher",
+    659: "Porenspeicher",
+    660: "Aquiferspeicher",
+}
+
+
 # ============================================================ which column uses which catalog
 
 
@@ -434,9 +451,14 @@ class CodeSpec:
     api_names: dict[str, str] = field(default_factory=dict)  # export column -> API field, where the names differ
     not_in_api: tuple[str, ...] = ()  # export columns the API returns empty
     dates_with_time: tuple[str, ...] = ()  # dates the export writes as 2026-04-01T00:00:00, the API as 2026-04-01
+    # The export's flag column of a field that can be "nicht vorhanden", where it isn't <field>_nv (Hausnummer_nv)
+    not_available: dict[str, str] = field(default_factory=dict)
 
     def api_name(self, column: str) -> str:
         return self.api_names.get(column, column)
+
+    def not_available_flag(self, column: str) -> str:
+        return self.not_available.get(column, f"{column}_nv")
 
     def export_name(self, api_field: str) -> str:
         return self._export_names.get(api_field, api_field)
@@ -593,6 +615,37 @@ STORAGE_PLANT = CodeSpec(
     api_names={"MaStRNummer": "SpeMastrNummer"},
 )
 
+# Gas units have the general fields of the power units, except those about electricity
+GAS_GENERAL = {column: catalog for column, catalog in GENERAL.items() if column not in ("Energietraeger", "Einspeisungsart")}
+GAS_BOOLEANS = ("NichtVorhandenInMigriertenEinheiten", "StrasseNichtGefunden", "HausnummerNichtGefunden")
+
+# Gas producers (EinheitenGasErzeuger, GetEinheitGasErzeuger). The API's MastrNummer only repeats the unit's own number,
+# it is not the export's SpeicherMaStRNummer (which only the gas storage units listed there have).
+GAS_PRODUCER = CodeSpec(
+    columns={**GAS_GENERAL, "Technologie": GAS_TECHNOLOGIE},
+    booleans=GAS_BOOLEANS,
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERAL_NOT_IN_API,
+    dates_with_time=GENERAL_DATES_WITH_TIME,
+)
+
+# Gas storage units (EinheitenGasSpeicher, GetEinheitGasSpeicher), each part of a gas storage (SpeicherMaStRNummer)
+GAS_STORAGE = CodeSpec(
+    columns={**GAS_GENERAL, "Speicherart": GASSPEICHERART},
+    booleans=GAS_BOOLEANS,
+    api_names={**GENERAL_API_NAMES, "SpeicherMaStRNummer": "SpeMastrNummer"},
+    not_in_api=GENERAL_NOT_IN_API,
+    dates_with_time=GENERAL_DATES_WITH_TIME,
+    not_available={"Weic": "Weic_Na"},  # Weic = {"Wert": ..., "NichtVorhanden": ...}, like Hausnummer
+)
+
+# The gas storage (Gasspeicheranlage, AnlagenGasSpeicher, GetGasSpeicher): its name and units
+GAS_STORAGE_PLANT = CodeSpec(
+    columns={"AnlageBetriebsstatus": EINHEIT_BETRIEBSSTATUS},
+    multi=frozenset({"VerknuepfteEinheitenMaStRNummern"}),  # unit numbers, not codes: "GEE…, GEE…"
+    api_names={"MaStRNummer": "SpeMastrNummer"},
+)
+
 
 # ============================================================ decoding
 
@@ -651,7 +704,7 @@ def encode(unit: dict, spec: CodeSpec) -> dict[str, str | None]:
             continue
         if isinstance(value, dict) and "NichtVorhanden" in value:  # Hausnummer = {"Wert": "12a", "NichtVorhanden": False}
             row[column] = value["Wert"]
-            row[f"{column}_nv"] = _to_text(value["NichtVorhanden"])
+            row[spec.not_available_flag(column)] = _to_text(value["NichtVorhanden"])
         elif isinstance(value, dict):  # catalog entry, e.g. Hersteller = {"Id": 1586, "Wert": "ENERCON GmbH"}
             row[column] = str(value["Id"]) if value["Wert"] is not None else None
         elif column in spec.multi and isinstance(value, list):

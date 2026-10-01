@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from app.core.config import settings
-from app.routers import battery, meta, pumped_storage, solar, water, wind, zubau
+from app.routers import battery, gas, meta, pumped_storage, solar, water, wind, zubau
 
 
 app = FastAPI(
@@ -28,6 +28,7 @@ app.include_router(wind.router)
 app.include_router(water.router)
 app.include_router(battery.router)
 app.include_router(pumped_storage.router)
+app.include_router(gas.router)
 app.include_router(zubau.router)
 app.include_router(meta.router)
 

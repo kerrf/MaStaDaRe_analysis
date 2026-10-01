@@ -38,6 +38,8 @@ TARGETS = {
     "wind": ("raw.wind_units", "GetEinheitWind", codes.WIND),
     "water": ("raw.water_units", "GetEinheitWasser", codes.WATER),
     "storage": ("raw.storage_units", "GetEinheitStromSpeicher", codes.STORAGE),
+    "gas_producer": ("raw.gas_producer_units", "GetEinheitGasErzeuger", codes.GAS_PRODUCER),
+    "gas_storage": ("raw.gas_storage_units", "GetEinheitGasSpeicher", codes.GAS_STORAGE),
 }
 
 

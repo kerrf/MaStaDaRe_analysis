@@ -28,6 +28,11 @@ EXPORT_DIR = Path("/media/kerf/8FD4-A961/Gesamtdatenexport_20260926_26.1")
 
 # raw table -> file name in the export. Smallest first, so problems show up within seconds.
 EXPORT_FILES = {
+    # Gas: EinheitenGasErzeuger also lists the gas storage units (their general fields, with SpeicherMaStRNummer and
+    # without Technologie); EinheitenGasSpeicher adds their storage fields, AnlagenGasSpeicher groups them to storages.
+    "gas_storage_plants": "AnlagenGasSpeicher",
+    "gas_storage_units": "EinheitenGasSpeicher",
+    "gas_producer_units": "EinheitenGasErzeuger",
     "wind_units": "EinheitenWind",
     "water_units": "EinheitenWasser",
     "storage_units": "EinheitenStromSpeicher",
@@ -35,7 +40,7 @@ EXPORT_FILES = {
     "solar_units": "EinheitenSolar",
 }
 # Anlagen are identified by their own MaStR number; every other raw table holds units (EinheitMastrNummer)
-PRIMARY_KEYS = {"storage_plants": "MaStRNummer"}
+PRIMARY_KEYS = {"storage_plants": "MaStRNummer", "gas_storage_plants": "MaStRNummer"}
 
 RAW_SCHEMA = "raw"
 
@@ -60,6 +65,12 @@ NUMERIC_COLUMNS = [
     'Rotordurchmesser',
     'Wassertiefe',
     'Kuestenentfernung',
+    # gas
+    'Erzeugungsleistung',  # kWh/h
+    'MaximalNutzbaresArbeitsgasvolumen',  # m³
+    'MaximaleEinspeicherleistung',  # kWh/h
+    'MaximaleAusspeicherleistung',  # kWh/h
+    'DurchschnittlicherBrennwert',  # kWh/m³
 ]
 DATE_COLUMNS = ['Registrierungsdatum', 'Inbetriebnahmedatum']
 DATETIME_COLUMNS = ['DatumLetzteAktualisierung']

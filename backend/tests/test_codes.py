@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.codes import STORAGE, WIND, encode
+from app.codes import GAS_PRODUCER, GAS_STORAGE, STORAGE, WIND, encode
 
 
 def wind_unit(**fields) -> dict:
@@ -75,3 +75,22 @@ def test_dates_the_export_writes_with_a_time():
 
 def test_unknown_values_become_null():
     assert encode(wind_unit(EinheitBetriebsstatus="GibtEsNicht"), WIND)["EinheitBetriebsstatus"] is None
+
+
+def test_gas_storage_units_get_the_export_names():
+    row = encode({
+        "EinheitMastrNummer": "GEE995046355477",
+        "Speicherart": "Kavernenspeicher",
+        "SpeMastrNummer": "GSE917820127322",
+        "Weic": {"Wert": None, "NichtVorhanden": False},
+        "Laengengrad": Decimal("6.992085"),
+    }, GAS_STORAGE)
+    assert row["Speicherart"] == "658"
+    assert row["SpeicherMaStRNummer"] == "GSE917820127322"
+    assert (row["Weic"], row["Weic_Na"]) == (None, "0")  # the export's flag column for Weic, not Weic_nv
+
+
+def test_gas_producers_keep_their_own_number_apart():
+    row = encode({"Technologie": "LiquifidNaturalGas", "MastrNummer": "GEE929621070042"}, GAS_PRODUCER)
+    assert row["Technologie"] == "829"
+    assert "SpeicherMaStRNummer" not in row  # the API's MastrNummer only repeats the unit's number

@@ -62,14 +62,19 @@ class MastrApi:
         """The register's clock, in local time like every date it stores."""
         return self.allgemein.GetLokaleUhrzeit().LokaleUhrzeit.replace(tzinfo=None)
 
-    def changed_units(self, energietraeger: str, einheittyp: str, since: datetime) -> dict[str, datetime]:
+    def changed_units(
+        self, einheittyp: str, since: datetime, list_call: str = "GetGefilterteListeStromErzeuger", energietraeger: str | None = None
+    ) -> dict[str, datetime]:
         """EinheitMastrNummer -> date of the latest change, for every active unit of one type changed since `since`.
 
         Two lists: units with a newer DatumLetzteAktualisierung, and units whose grid operator check changed.
         The check doesn't touch the unit's own date, so the first list alone would miss it. The second list also
         names units that were deactivated or deleted since: the register refuses their details, they are skipped.
+        Power units are listed by their Energieträger (list_call GetGefilterteListeStromErzeuger). Gas units have one list
+        for producers and storage units (GetGefilterteListeGasErzeuger), which keeps the units of the type asked for.
         """
-        listed = self._list(self.anlage.GetGefilterteListeStromErzeuger, energietraeger=energietraeger, datumAb=since)
+        filters = {"energietraeger": energietraeger} if energietraeger else {}
+        listed = self._list(getattr(self.anlage, list_call), **filters, datumAb=since)
         checked = self._list(
             self.anlage.GetListeLetzteAktualisierung,
             Einheittyp=einheittyp,
@@ -78,6 +83,8 @@ class MastrApi:
         )
         units, inactive = {}, set()
         for unit in listed:
+            if not energietraeger and unit.Einheittyp != einheittyp:  # the other gas unit type
+                continue
             if unit.EinheitSystemstatus != ACTIVE:
                 inactive.add(unit.EinheitMastrNummer)
                 continue
@@ -103,7 +110,7 @@ class MastrApi:
 
     def details(self, method: str, ids: Iterable[str], id_field: str = "einheitMastrNummer") -> Iterator[dict | None]:
         """All fields of each unit (e.g. method="GetEinheitSolar"), in the order of `ids`, several calls at a time.
-        Storage plants: method="GetStromSpeicher", id_field="speMastrNummer"."""
+        Storage plants: method="GetStromSpeicher" (gas: "GetGasSpeicher"), id_field="speMastrNummer"."""
         with ThreadPoolExecutor(WORKERS) as pool:
             yield from pool.map(partial(self.detail, method, id_field=id_field), ids)
 
