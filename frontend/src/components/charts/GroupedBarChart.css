@@ -1,0 +1,102 @@
+.bar-chart {
+  position: relative;
+}
+
+.bar-chart svg {
+  display: block;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.bar-chart__grid line {
+  stroke: var(--border-subtle);
+}
+
+.bar-chart__baseline {
+  stroke: var(--border-strong);
+}
+
+.bar-chart__tick {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-muted);
+}
+
+.bar-chart__label {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-secondary);
+}
+
+.bar-chart__unit {
+  font-weight: 500;
+  fill: var(--ink-muted);
+}
+
+.bar-chart__value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-secondary);
+}
+
+/* The hovered category: a light band behind it */
+.bar-chart__band {
+  fill: transparent;
+}
+
+.is-active > .bar-chart__band {
+  fill: var(--surface-sunken);
+}
+
+.is-active .bar-chart__label {
+  fill: var(--ink-primary);
+}
+
+.bar-chart__tooltip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  min-width: 190px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.bar-chart__tooltip-title {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.bar-chart__tooltip-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 6px;
+  padding: 1px 0;
+  color: var(--ink-secondary);
+}
+
+.bar-chart__tooltip-row strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.bar-chart__tooltip-detail {
+  grid-column: 2 / -1;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-chart__swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}

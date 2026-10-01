@@ -1,67 +1,70 @@
+import { useMemo, useState } from 'react';
+import GroupedBarChart from '../../components/charts/GroupedBarChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
-import { formatAmount, formatCount, formatShare } from '../../lib/format';
+import { formatAmount, formatCount } from '../../lib/format';
 
-function Share({ share, scale, amount, kind }) {
-  return (
-    <div className="sizes__share">
-      <div className="sizes__bar">
-        <span className={`sizes__fill sizes__fill--${kind}`} style={{ width: `${(share / scale) * 100}%` }} />
-      </div>
-      <div className="sizes__value">
-        <strong>{formatShare(share)}</strong> {amount}
-      </div>
-    </div>
-  );
-}
+// Share of the power and of the units per size class: how a class's share of the power compares to its share of the
+// units shows at a glance (one scale for both)
+const SERIES = [
+  { id: 'power', label: 'Leistung', color: 'var(--accent)' },
+  { id: 'units', label: 'Anlagen', color: '#98a2b3' },
+];
 
-// Share of the power and of the units per size class of the active technology, in the scope (mrt.size_distribution).
-export default function SizeDistribution({ path, region }) {
-  const stats = useStats(`${API_BASE_URL}${path}?region=${region}`);
+// Both layouts, to choose one: bars across (a row per class) or columns (the classes along the bottom)
+const ORIENTATIONS = [
+  { id: 'horizontal', label: 'Horizontal' },
+  { id: 'vertical', label: 'Vertikal' },
+];
+
+// Units and power per size class of the active technology in the scope (mrt.size_distribution), as bars
+export default function SizeDistribution({ path, region, query }) {
+  const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
+  const [orientation, setOrientation] = useState('horizontal');
+
+  const categories = useMemo(() => {
+    if (stats.status !== 'ready') return null;
+    const rows = stats.data;
+    const units = rows.reduce((sum, row) => sum + row.total_units, 0);
+    const power = rows.reduce((sum, row) => sum + row.total_power, 0);
+    if (!units) return [];
+    return rows.map((row) => ({
+      key: row.size_class,
+      label: row.label,
+      values: { power: row.total_power / power, units: row.total_units / units },
+      details: [
+        { id: 'power', text: formatAmount(row.total_power, 'MW') },
+        { id: 'units', text: `${formatCount(row.total_units)} Anlagen` },
+      ],
+    }));
+  }, [stats.status, stats.data]);
+
   if (stats.status === 'error') {
     return <ChartPlaceholder variant="bars" title="Keine Daten" note="Die Verteilung konnte nicht geladen werden." />;
   }
-  if (stats.status !== 'ready') return <ChartPlaceholder variant="bars" title="Wird geladen …" />;
-
-  const rows = stats.data;
-  const units = rows.reduce((sum, row) => sum + row.total_units, 0);
-  const power = rows.reduce((sum, row) => sum + row.total_power, 0);
-  if (!units) return <ChartPlaceholder variant="bars" title="Keine Anlagen" note="In diesem Gebiet ist keine Anlage in Betrieb." />;
-
-  const shares = rows.map((row) => ({ ...row, power: row.total_power / power, units: row.total_units / units }));
-  // One scale for both columns: how a class's share of the power compares to its share of the units shows at a glance
-  const scale = Math.max(...shares.flatMap((row) => [row.power, row.units]));
+  if (!categories) return <ChartPlaceholder variant="bars" title="Wird geladen …" />;
+  if (!categories.length) return <ChartPlaceholder variant="bars" title="Keine Anlagen" note="In diesem Gebiet ist keine Anlage in Betrieb." />;
 
   return (
-    <table className="sizes">
-      <thead>
-        <tr>
-          <th scope="col">Leistungsklasse</th>
-          <th scope="col">
-            <span className="sizes__key sizes__fill--power" /> Leistung
-          </th>
-          <th scope="col">
-            <span className="sizes__key sizes__fill--units" /> Anlagen
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {shares.map((row) => (
-          <tr key={row.size_class}>
-            <th scope="row">
-              <span className="sizes__label">{row.label}</span>
-              {row.hint && <span className="sizes__hint">{row.hint}</span>}
-            </th>
-            <td>
-              <Share share={row.power} scale={scale} amount={formatAmount(row.total_power, 'MW')} kind="power" />
-            </td>
-            <td>
-              <Share share={row.units} scale={scale} amount={formatCount(row.total_units)} kind="units" />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="sizes-chart">
+      <div className="sizes-chart__bar">
+        <div className="sizes-chart__legend">
+          {SERIES.map((s) => (
+            <span key={s.id}>
+              <span className="sizes__key" style={{ background: s.color }} /> {s.label}
+            </span>
+          ))}
+        </div>
+        <SegmentedControl label="Darstellung" value={orientation} onChange={setOrientation} options={ORIENTATIONS} />
+      </div>
+      <GroupedBarChart
+        categories={categories}
+        series={SERIES}
+        orientation={orientation}
+        label="Anteile an Leistung und Anlagen je Leistungsklasse"
+      />
+    </div>
   );
 }
