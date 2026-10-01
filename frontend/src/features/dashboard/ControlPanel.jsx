@@ -1,8 +1,7 @@
-import { Fragment } from 'react';
 import { BookOpen, Check, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SegmentedControl from '../../components/ui/SegmentedControl';
-import { GRANULARITIES, hasData, isAvailable } from '../../config/dashboards';
+import { GRANULARITIES, footnoteId, hasData, isAvailable } from '../../config/dashboards';
 
 function Section({ title, children, aside }) {
   return (
@@ -16,41 +15,106 @@ function Section({ title, children, aside }) {
   );
 }
 
-// Multiple choice below the active technology chip. At least one option stays selected.
-function SubtypePicker({ id, subtypes, selected, onChange }) {
+// One filter of the active technology: its name on the left, its options on the right
+function FilterRow({ id, label, footnote, children }) {
+  return (
+    <div className="tech-filters__row">
+      <span id={id} className="tech-filters__label">
+        {label}
+        {footnote && (
+          <sup className="footnote-ref" aria-hidden="true">
+            {footnote}
+          </sup>
+        )}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+// Multiple choice (Solar: Anlagenart, Gas: Technologie, Speicherart). At least one option stays selected. Options with a
+// colour show it in their box: the colour of their sites on the map.
+function SubtypePicker({ labelledBy, subtypes, selected, onChange }) {
   const toggle = (optionId) =>
     onChange(subtypes.options.map((o) => o.id).filter((x) => (x === optionId ? !selected.includes(x) : selected.includes(x))));
 
   return (
-    <div id={id} className="tech-subtypes" role="group" aria-labelledby={`${id}-label`}>
-      <div id={`${id}-label`} className="tech-subtypes__label">
-        {subtypes.label}
+    <div className="tech-subtypes__options" role="group" aria-labelledby={labelledBy}>
+      {subtypes.options.map((option) => {
+        const checked = selected.includes(option.id);
+        const locked = checked && selected.length === 1;
+        return (
+          <label
+            key={option.id}
+            className={`tech-subtypes__option${checked ? ' is-checked' : ''}${locked ? ' is-locked' : ''}`}
+            style={option.color ? { '--option-color': option.color } : undefined}
+            title={locked ? 'Mindestens eine Auswahl bleibt aktiv' : undefined}
+          >
+            <input
+              type="checkbox"
+              className="tech-subtypes__input visually-hidden"
+              checked={checked}
+              disabled={locked}
+              onChange={() => toggle(option.id)}
+            />
+            <span className="tech-subtypes__box" aria-hidden="true">
+              <Check size={12} strokeWidth={3} />
+            </span>
+            {option.label}
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+// A small either/or (Solar: Netto (AC) or Brutto (DC)); its footnote is below the map
+function OptionSwitch({ labelledBy, describedBy, option, value, onChange }) {
+  return (
+    <div className="tech-switch__options" role="radiogroup" aria-labelledby={labelledBy} aria-describedby={describedBy}>
+      {option.options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="radio"
+          aria-checked={o.id === value.id}
+          className={`tech-switch__option${o.id === value.id ? ' is-active' : ''}`}
+          onClick={() => onChange(o.id)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// The active technology's own filters, a layer below the choice of technology that hangs off it: they narrow down the
+// technology (Solar: Anlagenart, Leistung), they are not another technology.
+function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {
+  const Icon = technology.icon;
+  const id = `filter-${technology.id}`;
+  return (
+    <div id={id} className="tech-filters" role="group" aria-labelledby={`${id}-title`}>
+      <div id={`${id}-title`} className="tech-filters__title">
+        <Icon size={14} aria-hidden="true" />
+        Filter für {technology.label}
       </div>
-      <div className="tech-subtypes__options">
-        {subtypes.options.map((option) => {
-          const checked = selected.includes(option.id);
-          const locked = checked && selected.length === 1;
-          return (
-            <label
-              key={option.id}
-              className={`tech-subtypes__option${checked ? ' is-checked' : ''}${locked ? ' is-locked' : ''}`}
-              title={locked ? 'Mindestens eine Auswahl bleibt aktiv' : undefined}
-            >
-              <input
-                type="checkbox"
-                className="tech-subtypes__input visually-hidden"
-                checked={checked}
-                disabled={locked}
-                onChange={() => toggle(option.id)}
-              />
-              <span className="tech-subtypes__box" aria-hidden="true">
-                <Check size={12} strokeWidth={3} />
-              </span>
-              {option.label}
-            </label>
-          );
-        })}
-      </div>
+      {technology.subtypes && (
+        <FilterRow id={`${id}-arten`} label={technology.subtypes.label}>
+          <SubtypePicker labelledBy={`${id}-arten`} subtypes={technology.subtypes} selected={subtypes} onChange={onSubtypes} />
+        </FilterRow>
+      )}
+      {technology.leistung && (
+        <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && '1'}>
+          <OptionSwitch
+            labelledBy={`${id}-leistung`}
+            describedBy={technology.leistung.note ? footnoteId(technology.leistung) : undefined}
+            option={technology.leistung}
+            value={leistung}
+            onChange={onLeistung}
+          />
+        </FilterRow>
+      )}
     </div>
   );
 }
@@ -61,12 +125,15 @@ export default function ControlPanel({
   onTechnology,
   subtypes,
   onSubtypes,
+  leistung,
+  onLeistung,
   metrics,
   metric,
   onMetric,
   granularity,
   onGranularity,
 }) {
+  const filtered = Boolean(technology.subtypes || technology.leistung);
   return (
     <aside className="card controls" aria-label="Ansicht anpassen">
       <header className="card__header">
@@ -79,37 +146,37 @@ export default function ControlPanel({
             {config.technologies.map((tech) => {
               const Icon = tech.icon;
               const active = tech.id === technology.id;
-              const expanded = active && Boolean(tech.subtypes);
-              const pickerId = `subtypes-${tech.id}`;
               return (
-                <Fragment key={tech.id}>
-                  <button
-                    type="button"
-                    className={`tech-chip${active ? ' is-active' : ''}${expanded ? ' is-expanded' : ''}`}
-                    aria-pressed={active}
-                    aria-expanded={tech.subtypes ? expanded : undefined}
-                    aria-controls={expanded ? pickerId : undefined}
-                    onClick={() => onTechnology(tech.id)}
-                  >
-                    <Icon size={16} aria-hidden="true" />
-                    <span className="tech-chip__label">{tech.label}</span>
-                    {!hasData(tech) && <span className="tech-chip__soon">bald</span>}
-                  </button>
-                  {expanded && <SubtypePicker id={pickerId} subtypes={tech.subtypes} selected={subtypes} onChange={onSubtypes} />}
-                </Fragment>
+                <button
+                  key={tech.id}
+                  type="button"
+                  className={`tech-chip${active ? ' is-active' : ''}${active && filtered ? ' has-filters' : ''}`}
+                  aria-pressed={active}
+                  aria-controls={active && filtered ? `filter-${tech.id}` : undefined}
+                  onClick={() => onTechnology(tech.id)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span className="tech-chip__label">{tech.label}</span>
+                  {!hasData(tech) && <span className="tech-chip__soon">bald</span>}
+                </button>
               );
             })}
           </div>
+          {filtered && (
+            <TechFilters technology={technology} subtypes={subtypes} onSubtypes={onSubtypes} leistung={leistung} onLeistung={onLeistung} />
+          )}
         </Section>
 
-        <Section title="Kennzahl">
-          <SegmentedControl
-            label="Kennzahl"
-            value={metric.id}
-            onChange={onMetric}
-            options={metrics.map((m) => ({ id: m.id, label: m.label, title: `${m.legend} (${m.unit})` }))}
-          />
-        </Section>
+        {metrics.length > 1 && (
+          <Section title="Kennzahl">
+            <SegmentedControl
+              label="Kennzahl"
+              value={metric.id}
+              onChange={onMetric}
+              options={metrics.map((m) => ({ id: m.id, label: m.label, title: `${m.legend} (${m.unit})` }))}
+            />
+          </Section>
+        )}
 
         {!technology.plantsPath && (
           <Section title="Räumliche Auflösung">

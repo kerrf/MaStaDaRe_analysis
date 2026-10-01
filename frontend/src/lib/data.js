@@ -42,8 +42,9 @@ export const loadStats = (url) =>
     });
   });
 
-export const statsUrl = (statsPath, apiLevel) =>
-  statsPath && apiLevel ? `${API_BASE_URL}${statsPath}?level=${encodeURIComponent(apiLevel)}` : null;
+// query: further parameters of the technology's selection (e.g. "anlagenart=freiflaeche&leistung=netto")
+export const statsUrl = (statsPath, apiLevel, query = '') =>
+  statsPath && apiLevel ? `${API_BASE_URL}${statsPath}?level=${encodeURIComponent(apiLevel)}${query && `&${query}`}` : null;
 
 // status: 'idle' (nothing to load) | 'loading' | 'ready' | 'error'
 function useAsync(key, load) {

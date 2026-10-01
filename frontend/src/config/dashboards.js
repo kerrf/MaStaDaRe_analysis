@@ -1,4 +1,22 @@
-import { BatteryCharging, Droplets, Gauge, Leaf, Mountain, Package, Sun, TrendingUp, Trophy, Wind, Zap } from 'lucide-react';
+import {
+  BatteryCharging,
+  ChartColumnIncreasing,
+  ClipboardList,
+  Construction,
+  Cylinder,
+  Droplets,
+  Flame,
+  Gauge,
+  Layers,
+  Leaf,
+  Mountain,
+  Package,
+  Sun,
+  TrendingUp,
+  Trophy,
+  Wind,
+  Zap,
+} from 'lucide-react';
 import { RAMPS } from '../lib/colorScale';
 
 // Spatial resolution of the shading. Independent of the *scope* (Deutschland / Bundesland / Landkreis),
@@ -19,6 +37,18 @@ export const STATES_TOPOLOGY = '/states_boundaries.topojson';
 
 // Data comes either as stats per area (statsPath) or as a list of sites shown as icons (plantsPath).
 export const hasData = (technology) => Boolean(technology.statsPath || technology.plantsPath);
+
+// Id of an option's footnote below the map (e.g. the Leistung of solar), which its control and the map title point to
+export const footnoteId = (option) => `fussnote-${option.param}`;
+
+// The analyses of a technology that have a table per region (RegionTable): the endpoints of their cards, with /regions
+export function regionTablesOf(technology) {
+  const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
+  return [
+    orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: `${orientation.path}/regions` },
+    technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: `${technology.sizesPath}/regions` },
+  ].filter(Boolean);
+}
 
 // The resolutions a technology has data for (`granularities`, default: all) and that make sense for it.
 const REGION_LEVELS = ['bundesland', 'landkreis', 'gemeinde'];
@@ -44,7 +74,9 @@ export const ERZEUGER = {
       heatmapPath: '/plz5_heatmap_image',
       // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution)
       sizesPath: '/solar/size-distribution',
-      // Multiple choice shown below the chip while the technology is active; no param in the URL = all selected.
+      // Multiple choice in the technology's filters while it is active; no param in the URL = all selected.
+      // Gebäude: Gebäude-, sonstige und steckerfertige Anlagen and those without an Art; Freifläche: Freiflächenanlagen.
+      // Passed to every solar request as ?anlagenart=… (the views have one row per Anlagenart, the API sums the chosen).
       subtypes: {
         param: 'anlagenart',
         label: 'Anlagenart',
@@ -52,6 +84,19 @@ export const ERZEUGER = {
           { id: 'gebaeude', label: 'Gebäude' },
           { id: 'freiflaeche', label: 'Freifläche' },
         ],
+      },
+      // Which power the solar values show, passed as ?leistung=… (the first option is the default, like in the API).
+      // The note is a footnote below the map, marked ¹ at the switch and in the map title.
+      leistung: {
+        param: 'leistung',
+        label: 'Leistung',
+        options: [
+          { id: 'netto', label: 'Netto (AC)' },
+          { id: 'brutto', label: 'Brutto (DC)' },
+        ],
+        note:
+          'Für jede Solaranlage gibt das MaStR eine Bruttoleistung und Nettonennleistung an. Dabei ist die Bruttoleistung ' +
+          'die Peakproduktion der Anlage, während die Nettonennleistung = min(Bruttoleistung, Wechselrichterwirkleistung).',
       },
       // Shown after the dashboard-wide analyses while the technology is active.
       analyses: [
@@ -62,6 +107,15 @@ export const ERZEUGER = {
           variant: 'radial',
           kind: 'orientation',
           path: '/solar/orientation', // mrt.solar_orientation
+        },
+        // Full width in the Analysen section: solar units and batteries at the same Lokation (mrt.pv_speicher)
+        {
+          id: 'pv-speicher',
+          title: 'Solaranlagen mit Batteriespeicher',
+          kind: 'pv-speicher',
+          path: '/solar/pv-speicher',
+          wide: true,
+          icon: BatteryCharging,
         },
       ],
     },
@@ -100,22 +154,41 @@ export const ERZEUGER = {
     { id: 'units', kind: 'sum', field: 'total_units', label: 'Anlagen', icon: Zap },
     { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Installierte Leistung', icon: Gauge },
     { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
-    { id: 'growth', kind: 'placeholder', label: 'Zubau (12 Monate)', icon: TrendingUp },
+    // In operation since less than 12 months (added_12m_power of the region views)
+    { id: 'growth', kind: 'sum', field: 'added_12m_power', format: 'power', label: 'Zubau (12 Monate)', icon: TrendingUp },
   ],
   analyses: [
     {
       id: 'timeline',
       title: 'Zubau im Zeitverlauf',
+      icon: ChartColumnIncreasing,
       // Germany-wide chart across the full width (mrt.zubau_zeitverlauf). Stacked in this order, the first at the bottom.
       timeline: {
         path: '/zubau/zeitverlauf',
         unit: 'MW',
         quantity: 'Leistung',
         since: 2000,
+        // A series with `netto` follows the solar Leistung: that series of the API while it is Netto (AC), the default
         series: [
-          { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
+          { id: 'solar', netto: 'solar_netto', label: 'Solar', color: 'var(--series-solar)' },
           { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)' },
           { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)' },
+        ],
+      },
+    },
+    // Germany-wide in the Analysen section: registrations per year, one technology at a time (mrt.registrierungen)
+    {
+      id: 'registrierungen',
+      title: 'Registrierungen im MaStR',
+      kind: 'registrations',
+      wide: true,
+      icon: ClipboardList,
+      registrations: {
+        path: '/zubau/registrierungen',
+        series: [
+          { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
+          { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
+          { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
         ],
       },
     },
@@ -130,9 +203,7 @@ export const ERZEUGER = {
   ],
   todos: [
     'Backend: Bundesland-Spalte in die PLZ-Rollups aufnehmen, damit die Rangliste im Bundesland-Modus auch PLZ-Regionen filtern kann (Landkreise/Gemeinden filtern schon über den Gemeindeschlüssel).',
-    'Solar-PLZ-Rollup (aggregate_pv_by_plz_power.sql) zählt alle Betriebsstatus mit, die Bundesland/Landkreis/Gemeinde-Rollups nur Einheiten in Betrieb – angleichen.',
     'Weitere Technologien: statsPath in src/config/dashboards.js setzen, sobald die Endpoints existieren.',
-    'Solar-Anlagenart (Gebäude/Freifläche): Auswahl steht als ?anlagenart=… in der URL, wird aber noch nicht an den Endpoint übergeben (ArtDerSolaranlage 853/852).',
   ],
 };
 
@@ -152,6 +223,17 @@ export const SPEICHER = {
       icon: Mountain,
       // Each plant as an icon at its location instead of shaded areas (mrt.pumpkraftwerke)
       plantsPath: '/pumped-storage/plants',
+      site: {
+        label: 'Kraftwerke',
+        key: 'spe_mastr_nummer',
+        icon: '<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>',
+        rows: [
+          { key: 'total_capacity', label: 'Speicherkapazität', unit: 'MWh' },
+          { key: 'total_power', label: 'Turbinenleistung', unit: 'MW' },
+          { key: 'pump_power', label: 'Pumpleistung', unit: 'MW' },
+          { key: 'total_units', label: 'Maschinen' },
+        ],
+      },
       metrics: [
         { id: 'total_capacity', label: 'Kapazität', legend: 'Speicherkapazität', unit: 'MWh', digits: 0 },
         { id: 'total_power', label: 'Leistung', legend: 'Turbinenleistung', unit: 'MW', digits: 0 },
@@ -191,12 +273,14 @@ export const SPEICHER = {
     { id: 'units', kind: 'sum', field: 'total_units', label: 'Speicher', icon: BatteryCharging },
     { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Leistung', icon: Zap },
     { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
-    { id: 'growth', kind: 'placeholder', label: 'Zubau (12 Monate)', icon: TrendingUp },
+    // Usable capacity in operation since less than 12 months (added_12m_capacity of mrt.battery_region_stats)
+    { id: 'growth', kind: 'sum', field: 'added_12m_capacity', format: 'capacity', label: 'Zubau (12 Monate)', icon: TrendingUp },
   ],
   analyses: [
     {
       id: 'timeline',
       title: 'Zubau im Zeitverlauf',
+      icon: ChartColumnIncreasing,
       // Battery capacity by size class, like battery-charts.de (RWTH Aachen)
       timeline: {
         path: '/zubau/zeitverlauf',
@@ -213,6 +297,20 @@ export const SPEICHER = {
           'Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht enthalten.',
       },
     },
+    {
+      id: 'registrierungen',
+      title: 'Registrierungen im MaStR',
+      kind: 'registrations',
+      wide: true,
+      icon: ClipboardList,
+      registrations: {
+        path: '/zubau/registrierungen',
+        series: [
+          { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
+          { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
+        ],
+      },
+    },
     { id: 'ratio', title: 'Speicher je PV-Leistung', description: 'Wie viel Speicherkapazität steht je kW Photovoltaik bereit?', variant: 'bars' },
   ],
   todos: [
@@ -223,9 +321,124 @@ export const SPEICHER = {
   ],
 };
 
+// Gas: producers and storages, few enough to show each at its location like the Pumpspeicher (mrt.gaserzeuger,
+// mrt.gasspeicher). Their subtypes filter the sites in the browser and colour them.
+export const GAS = {
+  id: 'gas',
+  basePath: '/gas',
+  eyebrow: 'Gasinfrastruktur',
+  title: 'Gas',
+  description:
+    'Gaserzeuger und Gasspeicher an ihren Standorten – von der Biomethananlage bis zum LNG-Terminal, vom Kavernen- bis zum Porenspeicher.',
+  ramp: RAMPS.teal,
+  defaultGranularity: 'bundesland',
+  technologies: [
+    {
+      id: 'gaserzeuger',
+      label: 'Gaserzeuger',
+      icon: Flame,
+      plantsPath: '/gas/erzeuger',
+      site: {
+        label: 'Anlagen',
+        key: 'mastr_nummer',
+        size: 16, // 330 sites
+        icon: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+        rows: [{ key: 'total_power', label: 'Erzeugungsleistung', unit: 'MW' }],
+        since: 'inbetriebnahme',
+      },
+      subtypes: {
+        param: 'technik',
+        label: 'Technologie',
+        field: 'technologie',
+        options: [
+          { id: 'biomethan', label: 'Biomethan', color: 'var(--series-biomethan)' },
+          { id: 'erdgas', label: 'Erdgasförderung', color: 'var(--series-erdgas)' },
+          { id: 'lng', label: 'LNG', color: 'var(--series-lng)' },
+          { id: 'wasserstoff', label: 'Power-to-Gas: Wasserstoff', color: 'var(--series-wasserstoff)' },
+          { id: 'methan', label: 'Power-to-Gas: Methan', color: 'var(--series-methan)' },
+        ],
+      },
+      metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Erzeugungsleistung', unit: 'MW', digits: 1 }],
+      // Einheiten in Germany; a unit's Erzeugungsleistung is the most gas it can feed in, in MW (kWh per hour)
+      kpis: [
+        { id: 'plants', kind: 'sum', field: 'plants', label: 'Anlagen in Betrieb', icon: Flame },
+        { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Erzeugungsleistung', icon: Gauge },
+        { id: 'planned', kind: 'sum', field: 'planned', label: 'In Planung', icon: Construction },
+        { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
+      ],
+      note:
+        'Speicher, deren Ausspeisung zusätzlich als „Förderung fossilen Erdgases“ registriert ist (Etzel, Epe, Staßfurt u. a.), ' +
+        'zählen zu den Gasspeichern.',
+    },
+    {
+      id: 'gasspeicher',
+      label: 'Gasspeicher',
+      icon: Cylinder,
+      plantsPath: '/gas/speicher',
+      site: {
+        label: 'Speicher',
+        key: 'mastr_nummer',
+        icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/>',
+        rows: [
+          { key: 'total_capacity', label: 'Arbeitsgas', unit: 'GWh' },
+          { key: 'volume', label: 'Arbeitsgasvolumen', unit: 'Mio. m³', digits: 0 },
+          { key: 'total_power', label: 'Ausspeicherleistung', unit: 'MW' },
+          { key: 'injection_power', label: 'Einspeicherleistung', unit: 'MW' },
+        ],
+      },
+      subtypes: {
+        param: 'speicherart',
+        label: 'Speicherart',
+        field: 'speicherart',
+        options: [
+          { id: 'kaverne', label: 'Kavernenspeicher', color: 'var(--series-kaverne)' },
+          { id: 'pore', label: 'Porenspeicher', color: 'var(--series-pore)' },
+          { id: 'aquifer', label: 'Aquiferspeicher', color: 'var(--series-aquifer)' },
+        ],
+      },
+      metrics: [
+        { id: 'total_capacity', label: 'Kapazität', legend: 'Arbeitsgas', unit: 'GWh', digits: 0 },
+        { id: 'total_power', label: 'Ausspeicherung', legend: 'Ausspeicherleistung', unit: 'MW', digits: 0 },
+      ],
+      kpis: [
+        { id: 'plants', kind: 'sum', field: 'plants', label: 'Speicher in Betrieb', icon: Cylinder },
+        { id: 'capacity', kind: 'sum', field: 'total_capacity', format: 'amount', unit: 'GWh', label: 'Arbeitsgas', icon: Layers },
+        { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Ausspeicherleistung', icon: Gauge },
+        { id: 'leader', kind: 'leader', field: 'total_capacity', label: 'Spitzenreiter', icon: Trophy },
+      ],
+      note:
+        'Das MaStR nennt es „maximal nutzbares Arbeitsgasvolumen“, gibt es aber als Energie an (kWh). Das Volumen folgt über ' +
+        'den durchschnittlichen Brennwert. Ein- und Ausspeicherleistung wie von den Betreibern gemeldet.',
+    },
+  ],
+  metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Leistung', unit: 'MW', digits: 0 }],
+  tooltipRows: [],
+  kpis: [],
+  analyses: [
+    {
+      id: 'registrierungen',
+      title: 'Registrierungen im MaStR',
+      kind: 'registrations',
+      wide: true,
+      icon: ClipboardList,
+      registrations: {
+        path: '/zubau/registrierungen',
+        series: [
+          { id: 'gaserzeuger', label: 'Gaserzeuger', color: 'var(--topic-gas)' },
+          { id: 'gasspeicher', label: 'Gasspeicher', color: 'var(--topic-gas-strong)' },
+        ],
+      },
+    },
+  ],
+};
+
 export const NUMERIC_FIELDS = [
   'total_units',
+  'added_12m_power',
+  'added_12m_capacity',
   'pump_power',
+  'injection_power',
+  'volume',
   'lat',
   'lon',
   'total_power',

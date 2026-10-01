@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Download, RefreshCw, Search } from 'lucide-react';
-import { GRANULARITIES } from '../../config/dashboards';
+import { ArrowDown, ArrowUp, Download, RefreshCw, Search, Table2 } from 'lucide-react';
+import { GRANULARITIES, regionTablesOf } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
 import { inkOn, makeColorScale } from '../../lib/colorScale';
 import { useJson, useTopology } from '../../lib/data';
 import { formatNumber, formatShare } from '../../lib/format';
+import AnalysisPanel from './AnalysisPanel';
 import { exportCsv } from './exportMap';
 
 // The levels of the table, coarse to fine: the names come with their boundaries, like on the map
@@ -22,15 +23,6 @@ const MODES = [
 ];
 const PAGE = 50; // rows at a time; the CSV has all of them
 const BY_TOTAL = { column: 'total', descending: true };
-
-// The analyses of a technology that have a table: the endpoints of their cards, with /regions
-function datasetsOf(technology) {
-  const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
-  return [
-    orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: `${orientation.path}/regions` },
-    technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: `${technology.sizesPath}/regions` },
-  ].filter(Boolean);
-}
 
 const sum = (values) => values.reduce((total, value) => total + value, 0);
 const formatPower = (mw) => formatNumber(mw, mw >= 100 ? 0 : mw >= 10 ? 1 : 2);
@@ -62,8 +54,8 @@ function SortHeader({ column, sort, onSort, className, children }) {
  * The controls look like what they choose: the analysis as tabs, the areas (rows) as a labelled dropdown, the values
  * (cells) as a labelled unit switch, search and download as tools on the right.
  */
-export default function RegionTable({ technology, scopeKey, scopeName, ramp, fileBase }) {
-  const datasets = datasetsOf(technology);
+export default function RegionTable({ technology, scopeKey, scopeName, selectionQuery, ramp, fileBase, anchor }) {
+  const datasets = regionTablesOf(technology);
   const [datasetId, setDatasetId] = useState(null);
   const [levelId, setLevelId] = useState(null);
   const [mode, setMode] = useState('anteil');
@@ -77,9 +69,9 @@ export default function RegionTable({ technology, scopeKey, scopeName, ramp, fil
   const levels = LEVELS.filter((level) => level.digits > (within?.length ?? 0));
   const level = levels.find((l) => l.id === levelId) ?? levels[0];
 
-  const table = useJson(
-    dataset ? `${API_BASE_URL}${dataset.path}?level=${level.id}${within ? `&within=${within}` : ''}` : null,
-  );
+  // selectionQuery: the technology's selection (Anlagenart, Brutto/Netto)
+  const params = [`level=${level.id}`, within && `within=${within}`, selectionQuery].filter(Boolean).join('&');
+  const table = useJson(dataset ? `${API_BASE_URL}${dataset.path}?${params}` : null);
   const shapes = useTopology(dataset ? level.topology : null);
 
   const columns = useMemo(() => table.data?.columns ?? [], [table.data]);
@@ -164,33 +156,33 @@ export default function RegionTable({ technology, scopeKey, scopeName, ramp, fil
   const panelId = `${fileBase}-table`;
 
   return (
-    <article className="card region-table">
-      <header className="card__header region-table__header">
-        {/* What the table shows: one tab per analysis */}
-        <div className="region-table__tabs" role="tablist" aria-label="Auswertung">
-          {datasets.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              role="tab"
-              aria-selected={d.id === dataset.id}
-              aria-controls={panelId}
-              className={`region-table__tab${d.id === dataset.id ? ' is-active' : ''}`}
-              onClick={() => {
-                reset(setDatasetId)(d.id);
-                setSort(BY_TOTAL); // the other analysis has other columns
-              }}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-        <span className="region-table__context">
-          {technology.label} · {scopeName} ·{' '}
-          {status === 'ready' ? `${formatNumber(rows.length)} ${level.many}` : level.many}
-        </span>
-      </header>
-      <div className="card__body" id={panelId} role="tabpanel">
+    <AnalysisPanel
+      id={anchor}
+      icon={Table2}
+      title="Gebiete im Vergleich"
+      lead={`${technology.label} · ${scopeName} · ${status === 'ready' ? `${formatNumber(rows.length)} ${level.many}` : level.many}`}
+      className="region-table"
+    >
+      {/* What the table shows: one tab per analysis */}
+      <div className="region-table__tabs" role="tablist" aria-label="Auswertung">
+        {datasets.map((d) => (
+          <button
+            key={d.id}
+            type="button"
+            role="tab"
+            aria-selected={d.id === dataset.id}
+            aria-controls={panelId}
+            className={`region-table__tab${d.id === dataset.id ? ' is-active' : ''}`}
+            onClick={() => {
+              reset(setDatasetId)(d.id);
+              setSort(BY_TOTAL); // the other analysis has other columns
+            }}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+      <div className="region-table__panel" id={panelId} role="tabpanel">
         <div className="region-table__toolbar">
           {/* The rows */}
           <label className="region-table__field">
@@ -345,6 +337,6 @@ export default function RegionTable({ technology, scopeKey, scopeName, ramp, fil
           </>
         )}
       </div>
-    </article>
+    </AnalysisPanel>
   );
 }

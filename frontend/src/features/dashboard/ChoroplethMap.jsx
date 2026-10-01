@@ -3,7 +3,7 @@ import { GeoJSON, ImageOverlay, MapContainer, Marker, Pane, Polygon, Tooltip, us
 import L from 'leaflet';
 import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import { GERMANY_BOUNDS } from '../../config/regions';
+import { GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
 
 // Must match the georeference the backend used when rendering the heatmap PNG.
 const HEATMAP_BOUNDS = [
@@ -31,6 +31,9 @@ const NODATA_FILL = '#e4e7ec';
 // Areas that carry no values (plant icons on top, borders only, no data yet) look like a plain map instead of "Keine Daten".
 const NEUTRAL_STYLE = { fillColor: '#f3efe7', fillOpacity: 1, color: '#aab2be', opacity: 1 };
 const MASK_STYLE = { stroke: false, fillColor: '#f6f7f9', fillOpacity: 0.85 };
+// The sea (offshore wind) is set apart from the land by a blue border: a light halo under a strong line
+const SEA_HALO = { fill: false, color: '#9cc7ff', weight: 7, opacity: 0.55 };
+const SEA_LINE = { fill: false, color: '#1463d8', weight: 2.5, opacity: 1 };
 const WORLD_RING = [
   [-85, -180],
   [-85, 180],
@@ -160,6 +163,7 @@ export default function ChoroplethMap({
     () => (focusFeature ? [WORLD_RING, ...ringsOf(focusFeature.geometry)] : null),
     [focusFeature],
   );
+  const sea = useMemo(() => geo?.features.find((f) => f.properties.ags === OFFSHORE.ags) ?? null, [geo]);
 
   // The focus layers are drawn as SVG (the rest of the map is canvas): an SVG path only catches the pointer
   // where it is painted, so the mask takes clicks outside the focused Land or Kreis while the hole passes them
@@ -201,6 +205,13 @@ export default function ChoroplethMap({
       {outlines && (showOutlines || mode === 'heatmap') && (
         <Pane name="outlines" style={{ zIndex: 420, pointerEvents: 'none' }}>
           <GeoJSON data={outlines} interactive={false} style={{ fill: false, color: '#344054', weight: 1, opacity: 0.55 }} />
+        </Pane>
+      )}
+
+      {mode === 'choropleth' && sea && (
+        <Pane name="sea" style={{ zIndex: 425, pointerEvents: 'none' }}>
+          <GeoJSON key={`sea-halo-${layerKey}`} data={sea} interactive={false} style={SEA_HALO} />
+          <GeoJSON key={`sea-line-${layerKey}`} data={sea} interactive={false} style={SEA_LINE} />
         </Pane>
       )}
 

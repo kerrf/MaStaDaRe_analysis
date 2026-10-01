@@ -35,13 +35,32 @@ export function formatPower(mw) {
   return { value: formatNumber(mw, 0), unit: 'MW' };
 }
 
-// Amounts in MW or MWh, from 1,000 on in GW or GWh: "733 MW", "1,05 GW", "17,6 GW".
+// The next larger unit prefix, for amounts of 1,000 and more
+const LARGER = { k: 'M', M: 'G', G: 'T' };
+
+// Amounts in their unit, from 1,000 on in the next larger one: "733 MW", "1,05 GW", "17,6 GW", "45,8 TWh" (from GWh).
+export function scaleAmount(value, unit) {
+  if (value == null || Number.isNaN(value)) return { value: '—', unit: '' };
+  let scaled = value;
+  let scaledUnit = unit;
+  while (Math.abs(scaled) >= 1000 && LARGER[scaledUnit[0]]) {
+    scaled /= 1000;
+    scaledUnit = LARGER[scaledUnit[0]] + scaledUnit.slice(1);
+  }
+  const digits = (Math.abs(scaled) < 10 ? 1 : 0) + (scaledUnit !== unit ? 1 : 0);
+  return { value: formatNumber(scaled, digits), unit: scaledUnit };
+}
+
 export function formatAmount(value, unit) {
-  if (value == null || Number.isNaN(value)) return '—';
-  const large = Math.abs(value) >= 1000;
-  const scaled = large ? value / 1000 : value;
-  const digits = (Math.abs(scaled) < 10 ? 1 : 0) + (large ? 1 : 0);
-  return `${formatNumber(scaled, digits)} ${large ? unit.replace(/^M/, 'G') : unit}`;
+  const amount = scaleAmount(value, unit);
+  return amount.unit ? `${amount.value} ${amount.unit}` : amount.value;
+}
+
+// Capacity arrives in MWh; large totals read better in GWh.
+export function formatCapacity(mwh) {
+  if (mwh == null || Number.isNaN(mwh)) return { value: '—', unit: '' };
+  if (Math.abs(mwh) >= 1000) return { value: formatNumber(mwh / 1000, 1), unit: 'GWh' };
+  return { value: formatNumber(mwh, 0), unit: 'MWh' };
 }
 
 export const formatDate = (isoDate) =>

@@ -2,6 +2,7 @@
 export const RAMPS = {
   orange: ['#fef2e1', '#fcd6a9', '#f6bb7a', '#ed9f4c', '#e28316', '#ca6e0e', '#b25a06', '#9a4700', '#823500'],
   blue: ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281', '#0d366b'],
+  teal: ['#d9f2ee', '#bce7e0', '#98d8ce', '#6fc6b9', '#46b0a2', '#239a8c', '#0e8a7e', '#0b675e', '#084f48'],
 };
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

@@ -8,6 +8,7 @@ const PRIMARY = [
   { label: 'Übersicht', to: '/', end: true },
   { label: 'Erzeuger', to: '/erzeuger' },
   { label: 'Speicher', to: '/speicher' },
+  { label: 'Gas', to: '/gas' },
 ];
 
 const MAERKTE = [

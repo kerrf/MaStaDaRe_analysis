@@ -58,8 +58,8 @@ function Values({ x, y, row, share, fill }) {
 
 // Solar power by the main orientation of the modules, in the scope (mrt.solar_orientation): the eight compass
 // directions around the circle, Ost-West and tracking systems in its centre, unknown ones below it.
-export default function OrientationRose({ path, region }) {
-  const stats = useStats(`${API_BASE_URL}${path}?region=${region}`);
+export default function OrientationRose({ path, region, query }) {
+  const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
   if (stats.status === 'error') {
     return <ChartPlaceholder variant="radial" title="Keine Daten" note="Die Ausrichtung konnte nicht geladen werden." />;
   }

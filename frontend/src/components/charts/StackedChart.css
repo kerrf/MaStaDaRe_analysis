@@ -133,3 +133,18 @@
   font-size: 13.5px;
   color: var(--ink-muted);
 }
+
+/* Lines side by side (kind 'lines'), coloured through currentColor */
+.stacked-chart__line path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.stacked-chart__line circle {
+  fill: currentColor;
+  stroke: var(--surface-card);
+  stroke-width: 1.5;
+}

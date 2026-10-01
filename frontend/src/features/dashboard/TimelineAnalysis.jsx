@@ -4,6 +4,7 @@ import StackedChart from '../../components/charts/StackedChart';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
+import AnalysisPanel from './AnalysisPanel';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -22,14 +23,15 @@ const ALL = 'alle';
 const periodKey = (year, month) => (month ? `${year}-${month}` : String(year));
 const monthIndex = (year, month) => year * 12 + month - 1;
 
-// The rows of mrt.zubau_zeitverlauf by period ("2025" for the year, "2025-7" for July) and series, and the latest month.
-function indexRows(rows) {
+// The rows of mrt.zubau_zeitverlauf by period ("2025" for the year, "2025-7" for July) and series (seriesOf: the series of
+// the row's technology), and the latest month.
+function indexRows(rows, seriesOf) {
   const byPeriod = new Map();
   let latest = -Infinity;
   for (const row of rows) {
     const key = periodKey(row.year, row.month);
     if (!byPeriod.has(key)) byPeriod.set(key, {});
-    byPeriod.get(key)[row.technology] = row;
+    byPeriod.get(key)[seriesOf.get(row.technology) ?? row.technology] = row;
     if (row.month) latest = Math.max(latest, monthIndex(row.year, row.month));
   }
   if (latest === -Infinity) return null;
@@ -72,13 +74,23 @@ function buildPeriods({ byPeriod, latest }, { view, range, style }, series, sinc
 }
 
 // "Zubau im Zeitverlauf": Germany-wide, per year or month, with the series stacked (etl/queries/aggregate_zubau.sql).
-export default function TimelineAnalysis({ analysis }) {
+// leistung: the solar Leistung chosen (null while another technology is active: the default, Netto). anchor: its id.
+export default function TimelineAnalysis({ analysis, leistung, anchor }) {
   const { title, timeline } = analysis;
   const { series, since, unit, quantity } = timeline;
+  const netto = leistung?.id !== 'brutto';
+  const hasNetto = series.some((s) => s.netto);
 
-  const url = `${API_BASE_URL}${timeline.path}?${series.map((s) => `technology=${s.id}`).join('&')}`;
+  // The technology of the API each series shows: solar as Nettonennleistung (solar_netto) or Bruttoleistung
+  const sources = series.map((s) => (netto && s.netto) || s.id);
+  const url = `${API_BASE_URL}${timeline.path}?${sources.map((id) => `technology=${id}`).join('&')}`;
   const stats = useStats(url);
-  const table = useMemo(() => (stats.data ? indexRows(stats.data) : null), [stats.data]);
+  const sourceKey = sources.join(',');
+  const table = useMemo(() => {
+    if (!stats.data) return null;
+    const seriesOf = new Map(sourceKey.split(',').map((source, i) => [source, series[i].id]));
+    return indexRows(stats.data, seriesOf);
+  }, [stats.data, sourceKey, series]);
 
   const [view, setView] = useState('jahr');
   const [range, setRange] = useState(LAST_12);
@@ -93,9 +105,10 @@ export default function TimelineAnalysis({ analysis }) {
   const years = table ? Array.from({ length: table.latest.year - since + 1 }, (_, i) => String(table.latest.year - i)) : [];
 
   const isCurve = view === 'monat' && style === 'kurve';
+  const solar = hasNetto ? ` · Solar ${netto ? 'Netto (AC)' : 'Brutto (DC)'}` : '';
   const subtitle = isCurve
-    ? `Deutschland · installierte ${quantity} am Monatsende`
-    : `Deutschland · neu in Betrieb genommene ${quantity} je ${view === 'jahr' ? 'Jahr' : 'Monat'}`;
+    ? `Deutschland · installierte ${quantity} am Monatsende${solar}`
+    : `Deutschland · neu in Betrieb genommene ${quantity} je ${view === 'jahr' ? 'Jahr' : 'Monat'}${solar}`;
 
   const toggle = (id) =>
     setHidden((prev) => {
@@ -106,87 +119,78 @@ export default function TimelineAnalysis({ analysis }) {
     });
 
   return (
-    <article className="card timeline-card">
-      <header className="card__header">
-        <div>
-          <h3 className="card__title">{title}</h3>
-          <div className="card__subtitle">{subtitle}</div>
-        </div>
-      </header>
-
-      <div className="card__body timeline-card__body">
-        {/* The view comes first, so switching it never moves it */}
-        <div className="timeline__controls">
-          <SegmentedControl label="Zeitraster" options={VIEWS} value={view} onChange={setView} />
-          {view === 'monat' && (
-            <>
-              <label className="visually-hidden" htmlFor={`${analysis.id}-range`}>
-                Zeitraum
-              </label>
-              <select id={`${analysis.id}-range`} className="timeline__select" value={range} onChange={(e) => setRange(e.target.value)}>
-                <option value={LAST_12}>Letzte 12 Monate</option>
-                <option value={ALL}>Alle Monate seit {since}</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-              <SegmentedControl label="Darstellung" options={STYLES} value={style} onChange={setStyle} />
-            </>
-          )}
-        </div>
-
-        {stats.status === 'error' ? (
-          <div className="timeline__state" role="alert">
-            <TriangleAlert size={18} aria-hidden="true" />
-            Die Zeitreihe konnte nicht geladen werden.
-            <button type="button" className="btn btn--secondary btn--sm" onClick={stats.retry}>
-              <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
-            </button>
-          </div>
-        ) : !table ? (
-          <div className="timeline__state" role="status">
-            <div className="spinner" />
-            Lade Zeitreihe …
-          </div>
-        ) : (
-          <StackedChart
-            periods={periods}
-            series={visible}
-            kind={isCurve ? 'area' : 'bars'}
-            unit={unit}
-            label={`${title}: ${subtitle}`}
-          />
+    <AnalysisPanel id={anchor} icon={analysis.icon} title={title} lead={subtitle} className="timeline-card">
+      {/* The view comes first, so switching it never moves it */}
+      <div className="timeline__controls">
+        <SegmentedControl label="Zeitraster" options={VIEWS} value={view} onChange={setView} />
+        {view === 'monat' && (
+          <>
+            <label className="visually-hidden" htmlFor={`${analysis.id}-range`}>
+              Zeitraum
+            </label>
+            <select id={`${analysis.id}-range`} className="timeline__select" value={range} onChange={(e) => setRange(e.target.value)}>
+              <option value={LAST_12}>Letzte 12 Monate</option>
+              <option value={ALL}>Alle Monate seit {since}</option>
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <SegmentedControl label="Darstellung" options={STYLES} value={style} onChange={setStyle} />
+          </>
         )}
-
-        {/* Click a series to hide or show it */}
-        <div className="timeline-legend" role="group" aria-label="Datenreihen ein- und ausblenden">
-          {series.map((s) => {
-            const off = hidden.has(s.id);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                className={`timeline-legend__item${off ? ' is-off' : ''}`}
-                aria-pressed={!off}
-                title={off ? `${s.label} einblenden` : `${s.label} ausblenden`}
-                onClick={() => toggle(s.id)}
-              >
-                <span className="timeline-legend__dot" style={{ background: off ? undefined : s.color }} />
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="timeline__note">
-          Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister.{' '}
-          {isCurve ? '' : 'Hell: laufendes Jahr bzw. laufender Monat. '}
-          Die letzten zwei bis drei Monate steigen noch, weil viele Anlagen erst Wochen nach der Inbetriebnahme
-          registriert werden.{timeline.note && ` ${timeline.note}`}
-        </p>
       </div>
-    </article>
+
+      {stats.status === 'error' ? (
+        <div className="timeline__state" role="alert">
+          <TriangleAlert size={18} aria-hidden="true" />
+          Die Zeitreihe konnte nicht geladen werden.
+          <button type="button" className="btn btn--secondary btn--sm" onClick={stats.retry}>
+            <RefreshCw size={14} aria-hidden="true" /> Erneut versuchen
+          </button>
+        </div>
+      ) : !table ? (
+        <div className="timeline__state" role="status">
+          <div className="spinner" />
+          Lade Zeitreihe …
+        </div>
+      ) : (
+        <StackedChart
+          periods={periods}
+          series={visible}
+          kind={isCurve ? 'area' : 'bars'}
+          unit={unit}
+          label={`${title}: ${subtitle}`}
+        />
+      )}
+
+      {/* Click a series to hide or show it */}
+      <div className="timeline-legend" role="group" aria-label="Datenreihen ein- und ausblenden">
+        {series.map((s) => {
+          const off = hidden.has(s.id);
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={`timeline-legend__item${off ? ' is-off' : ''}`}
+              aria-pressed={!off}
+              title={off ? `${s.label} einblenden` : `${s.label} ausblenden`}
+              onClick={() => toggle(s.id)}
+            >
+              <span className="timeline-legend__dot" style={{ background: off ? undefined : s.color }} />
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="timeline__note">
+        Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister.{' '}
+        {isCurve ? '' : 'Hell: laufendes Jahr bzw. laufender Monat. '}
+        Die letzten zwei bis drei Monate steigen noch, weil viele Anlagen erst Wochen nach der Inbetriebnahme
+        registriert werden.{timeline.note && ` ${timeline.note}`}
+      </p>
+    </AnalysisPanel>
   );
 }

@@ -17,6 +17,12 @@
   --accent-soft: var(--topic-maerkte-soft);
 }
 
+[data-topic='gas'] {
+  --accent: var(--topic-gas);
+  --accent-strong: var(--topic-gas-strong);
+  --accent-soft: var(--topic-gas-soft);
+}
+
 /* ---------------------------------------------------------------- Buttons */
 .btn {
   display: inline-flex;

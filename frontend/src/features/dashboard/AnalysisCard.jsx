@@ -18,8 +18,8 @@ const VIEWS = {
 };
 
 // One analysis card in the scope (region: "DE", a Land or a Kreis key): its chart, or a placeholder while the active
-// technology has no data for it.
-export default function AnalysisCard({ analysis, technology, region, scopeName }) {
+// technology has no data for it. query: the technology's selection (Anlagenart, Brutto/Netto), passed on to the API.
+export default function AnalysisCard({ analysis, technology, region, scopeName, query }) {
   const view = VIEWS[analysis.kind];
   const path = view?.path(analysis, technology);
   return (
@@ -35,7 +35,7 @@ export default function AnalysisCard({ analysis, technology, region, scopeName }
           </Badge>
         )}
       </header>
-      <div className="card__body">{path ? <view.Chart path={path} region={region} /> : <ChartPlaceholder variant={analysis.variant} />}</div>
+      <div className="card__body">{path ? <view.Chart path={path} region={region} query={query} /> : <ChartPlaceholder variant={analysis.variant} />}</div>
     </article>
   );
 }

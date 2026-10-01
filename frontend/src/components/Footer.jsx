@@ -12,6 +12,7 @@ const COLUMNS = [
     links: [
       { label: 'Erzeuger', to: '/erzeuger' },
       { label: 'Speicher', to: '/speicher' },
+      { label: 'Gas', to: '/gas' },
       { label: 'Märkte', to: '/maerkte/strom' },
     ],
   },

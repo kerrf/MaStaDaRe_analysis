@@ -7,6 +7,7 @@ import NotFoundPage from './pages/NotFoundPage';
 // Map pages pull in Leaflet; legal/info pages are rarely visited – none of that belongs in the landing bundle.
 const ErzeugerPage = lazy(() => import('./pages/ErzeugerPage'));
 const SpeicherPage = lazy(() => import('./pages/SpeicherPage'));
+const GasPage = lazy(() => import('./pages/GasPage'));
 const MarktPage = lazy(() => import('./pages/MarktPage'));
 const InfoPage = lazy(() => import('./pages/InfoPage'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
@@ -20,6 +21,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="erzeuger/:land?/:kreis?" element={<ErzeugerPage />} />
           <Route path="speicher/:land?/:kreis?" element={<SpeicherPage />} />
+          <Route path="gas/:land?/:kreis?" element={<GasPage />} />
           <Route path="maerkte/:markt" element={<MarktPage />} />
           <Route path="info" element={<InfoPage />} />
           <Route path="impressum" element={<ImpressumPage />} />

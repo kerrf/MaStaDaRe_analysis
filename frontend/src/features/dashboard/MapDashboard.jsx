@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Clock, Construction, Download, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Clock, Construction, Download, Maximize2, Minimize2, RefreshCw, Table2, TriangleAlert } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import TodoNote from '../../components/ui/TodoNote';
-import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable } from '../../config/dashboards';
+import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable, regionTablesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundesland, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
@@ -15,8 +15,10 @@ import ChoroplethMap from './ChoroplethMap';
 import ControlPanel from './ControlPanel';
 import KpiStrip from './KpiStrip';
 import MapLegend from './MapLegend';
+import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import RankingPanel from './RankingPanel';
 import RegionTable from './RegionTable';
+import RegistrationsAnalysis from './RegistrationsAnalysis';
 import ScopeBar from './ScopeBar';
 import SiteMarkers from './SiteMarkers';
 import TimelineAnalysis from './TimelineAnalysis';
@@ -37,8 +39,6 @@ const SCOPE_LEVELS = [
   { key: 'kreis', parent: 'landkreis', child: 'gemeinde' },
 ];
 
-// Sites (e.g. the pumped-storage plants) rank as plants within the scope, keyed by their Gemeindeschlüssel.
-const PLANTS = { id: 'kraftwerke', label: 'Kraftwerke', featureKey: 'ags' };
 const NO_PLANTS = [];
 
 // Sort Kreise by their proper name, so "Landkreis München" comes right after "München".
@@ -123,14 +123,42 @@ export default function MapDashboard({ config }) {
   const scopeKey = kreisAgs ?? region?.ags ?? 'DE';
   const parentName = kreisAgs ? region.name : 'Deutschland';
   const technology = config.technologies.find((t) => t.id === searchParams.get('technologie')) ?? config.technologies[0];
-  // Selection only for now – not yet passed to the data requests.
+  // Solar: the chosen Anlagenarten (all by default)
   const subtypes = technology.subtypes ? parseSubtypes(searchParams.get(technology.subtypes.param), technology.subtypes.options) : null;
+  // Solar: Netto (AC) or Brutto (DC) power; the first option is the default
+  const leistung = technology.leistung
+    ? technology.leistung.options.find((o) => o.id === searchParams.get(technology.leistung.param)) ?? technology.leistung.options[0]
+    : null;
+  // The technology's selection as query of its requests: only what differs from the default (all Anlagenarten, Netto)
+  const narrowed = subtypes && subtypes.length < technology.subtypes.options.length;
+  const selectionQuery = new URLSearchParams([
+    ...(narrowed ? subtypes.map((id) => [technology.subtypes.param, id]) : []),
+    ...(leistung && leistung !== technology.leistung.options[0] ? [[technology.leistung.param, leistung.id]] : []),
+  ]).toString();
+  const selectionNote = narrowed
+    ? ` · nur ${subtypes.map((id) => technology.subtypes.options.find((o) => o.id === id).label).join(', ')}`
+    : '';
   const analyses = technology.analyses ? [...config.analyses, ...technology.analyses] : config.analyses;
   // Charts over time take the full width above the cards (Zubau im Zeitverlauf, Germany-wide)
   const timelines = analyses.filter((a) => a.timeline);
-  const cards = analyses.filter((a) => !a.timeline);
-  // Some technologies show their plants as icons at their location instead of shaded areas (Pumpspeicher).
+  // Other analyses across the full width of the Analysen section (Solaranlagen mit Batteriespeicher)
+  const wides = analyses.filter((a) => a.wide);
+  const cards = analyses.filter((a) => !a.timeline && !a.wide);
+  // The Analysen section, where there is something to show in it: one link per analysis at its top, to jump there
+  const analysisLinks = [
+    ...[...timelines, ...wides].map((a) => ({ id: `analyse-${a.id}`, title: a.title, icon: a.icon })),
+    ...(regionTablesOf(technology).length ? [{ id: 'analyse-gebiete', title: 'Gebiete im Vergleich', icon: Table2 }] : []),
+  ];
+  const hasAnalyses = analysisLinks.length > 0;
+  const jumpTo = (id) => (event) => {
+    event.preventDefault();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(id)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  };
+  // Some technologies show their plants as icons at their location instead of shaded areas (Pumpspeicher, Gas). They rank
+  // as plants within the scope, keyed by their Gemeindeschlüssel.
   const isSites = Boolean(technology.plantsPath);
+  const plantsLevel = isSites ? { id: 'standorte', label: technology.site.label, featureKey: 'ags' } : null;
   const metrics = technology.metrics ?? config.metrics;
   const metric = metrics.find((m) => m.id === searchParams.get('kennzahl')) ?? metrics[0];
   const defaultGranularity = GRANULARITIES.find((g) => g.id === config.defaultGranularity);
@@ -200,19 +228,32 @@ export default function MapDashboard({ config }) {
   const withData = hasData(technology);
   const states = useTopology(STATES_TOPOLOGY);
   const shapes = useTopology(isHeatmap ? null : withData && !isSites ? granularity.topology : STATES_TOPOLOGY);
-  const mapStats = useStats(isHeatmap || isSites ? null : statsUrl(technology.statsPath, granularity.apiLevel));
-  const kpiStats = useStats(isSites ? null : statsUrl(technology.statsPath, 'bundesland'));
-  const kreisStats = useStats(kreisAgs && !isSites ? statsUrl(technology.statsPath, LANDKREIS.apiLevel) : null);
+  const mapStats = useStats(isHeatmap || isSites ? null : statsUrl(technology.statsPath, granularity.apiLevel, selectionQuery));
+  const kpiStats = useStats(isSites ? null : statsUrl(technology.statsPath, 'bundesland', selectionQuery));
+  const kreisStats = useStats(kreisAgs && !isSites ? statsUrl(technology.statsPath, LANDKREIS.apiLevel, selectionQuery) : null);
   const plants = useStats(isSites ? `${API_BASE_URL}${technology.plantsPath}` : null);
 
-  // The plants lie on the Bundesländer, which are drawn without values
+  // The plants lie on the Bundesländer, which are drawn without values. Their subtypes (Gas: Technologie, Speicherart)
+  // filter them here and colour them.
   const activeGranularity = withData && !isSites ? granularity : GRANULARITIES[0];
-  const plantRows = plants.status === 'ready' ? plants.data : NO_PLANTS;
+  const subtypeField = isSites ? technology.subtypes?.field : null;
+  const subtypeKey = subtypes?.join(',');
+  const plantRows = useMemo(() => {
+    if (plants.status !== 'ready') return NO_PLANTS;
+    const chosen = subtypeKey?.split(',');
+    return subtypeField ? plants.data.filter((p) => chosen.includes(p[subtypeField])) : plants.data;
+  }, [plants.status, plants.data, subtypeField, subtypeKey]);
+  const categoryOf = useMemo(() => {
+    if (!subtypeField) return undefined;
+    const byId = new Map(technology.subtypes.options.map((o) => [o.id, o]));
+    return (plant) => byId.get(plant[subtypeField]);
+  }, [subtypeField, technology.subtypes]);
   const sites = useMemo(() => groupByLocation(plantRows), [plantRows]);
-  const siteBounds = useMemo(() => boundsAround(plantRows), [plantRows]);
+  const siteBounds = useMemo(() => boundsAround(plants.status === 'ready' ? plants.data : NO_PLANTS), [plants.status, plants.data]);
+  const plantKey = technology.site?.key;
   const plantFeatures = useMemo(
-    () => plantRows.filter((p) => p.ags).map((p) => ({ properties: { ...p, _key: p.spe_mastr_nummer, _hasData: true } })),
-    [plantRows],
+    () => plantRows.filter((p) => p.ags).map((p) => ({ properties: { ...p, _key: p[plantKey], _hasData: true } })),
+    [plantRows, plantKey],
   );
 
   const focusFeature = useMemo(() => {
@@ -308,8 +349,10 @@ export default function MapDashboard({ config }) {
 
   // KPIs describe the scope: Deutschland or a Land among the Bundesländer, a Landkreis among the Kreise of its Land.
   // Plants are summed per Land and per Kreis first, so they read like the stats of the other technologies.
-  const bundeslandRows = isSites ? { data: perRegion(plantRows, 'bundesland'), status: plants.status } : kpiStats;
-  const landkreisRows = isSites ? { data: perRegion(plantRows, 'landkreis'), status: plants.status } : kreisStats;
+  const kpis = technology.kpis ?? config.kpis;
+  const plantFields = kpis.map((kpi) => kpi.field).filter((field) => field !== 'plants' && field !== 'planned');
+  const bundeslandRows = isSites ? { data: perRegion(plantRows, 'bundesland', plantFields), status: plants.status } : kpiStats;
+  const landkreisRows = isSites ? { data: perRegion(plantRows, 'landkreis', plantFields), status: plants.status } : kreisStats;
   const kpiScope = kreisAgs
     ? {
         level: 'landkreis',
@@ -377,10 +420,13 @@ export default function MapDashboard({ config }) {
   const frameRef = useRef(null);
   const [exporting, setExporting] = useState(null);
   const scopeLabel = scopeName;
-  const mapTitle = isSites ? 'Standorte' : isHeatmap ? 'Anlagendichte' : metric.legend;
-  const layerLabel = isSites ? PLANTS.label : granularity.label;
+  // Solar values say which power they are; the map title points to the footnote that explains it
+  const metricLegend = leistung ? `${metric.legend} · ${leistung.label}` : metric.legend;
+  const mapTitle = isSites ? 'Standorte' : isHeatmap ? 'Anlagendichte' : metricLegend;
+  const leistungNote = technology.leistung?.note;
+  const layerLabel = isSites ? `${plantsLevel.label}${selectionNote}` : `${granularity.label}${isHeatmap ? '' : selectionNote}`;
   const exportRows = mapData.data;
-  const fileBase = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}_${isSites ? PLANTS.id : granularity.id}`;
+  const fileBase = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}_${isSites ? plantsLevel.id : granularity.id}`;
   const handleExport = async (kind) => {
     setExporting(kind);
     try {
@@ -423,7 +469,7 @@ export default function MapDashboard({ config }) {
       <div className="container dashboard-body">
         <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
 
-        <KpiStrip kpis={technology.kpis ?? config.kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
+        <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
 
         <div className="dashboard-main">
           <section ref={mapCardRef} className={`card map-card${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
@@ -431,6 +477,11 @@ export default function MapDashboard({ config }) {
               <div>
                 <h2 className="card__title">
                   {technology.label}: {mapTitle}
+                  {leistungNote && !isSites && !isHeatmap && (
+                    <sup className="footnote-ref" aria-hidden="true">
+                      1
+                    </sup>
+                  )}
                 </h2>
                 <div className="card__subtitle">
                   {scopeLabel} · {layerLabel}
@@ -484,16 +535,30 @@ export default function MapDashboard({ config }) {
                 heatmapUrl={heatmapUrl}
                 onPlainWheel={onPlainWheel}
               >
-                {isSites && <SiteMarkers sites={sites} />}
+                {isSites && <SiteMarkers sites={sites} site={technology.site} categoryOf={categoryOf} />}
               </ChoroplethMap>
               {mapState === 'ready' && !isHeatmap && !bordersOnly && !isSites && (
-                <MapLegend title={metric.legend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />
+                <MapLegend title={metricLegend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />
               )}
               {isHeatmap && <div className="map-chip">Gauß-geglättete Anlagendichte</div>}
               {isSites && mapState === 'ready' && (
                 <div className="map-chip site-legend">
-                  <span className="site-legend__dot" /> in Betrieb
-                  <span className="site-legend__dot is-inactive" /> in Planung / stillgelegt
+                  {categoryOf ? (
+                    technology.subtypes.options
+                      .filter((o) => subtypes.includes(o.id))
+                      .map((o) => (
+                        <span key={o.id} className="site-legend__item">
+                          <span className="site-legend__dot" style={{ background: o.color }} /> {o.label}
+                        </span>
+                      ))
+                  ) : (
+                    <span className="site-legend__item">
+                      <span className="site-legend__dot" /> in Betrieb
+                    </span>
+                  )}
+                  <span className="site-legend__item">
+                    <span className="site-legend__dot is-inactive" /> in Planung / stillgelegt
+                  </span>
                 </div>
               )}
               {bordersOnly && mapState === 'ready' && <div className="map-chip">Nur Grenzen · Werte folgen</div>}
@@ -506,6 +571,12 @@ export default function MapDashboard({ config }) {
             <footer className="map-card__footer">
               <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(datenstand)}</span>
               <span className="map-card__footer-hint">{mapHints.join(' · ')}</span>
+              {leistungNote && (
+                <p id={footnoteId(technology.leistung)} className="map-card__footnote">
+                  <sup className="footnote-ref">1</sup> {leistungNote}
+                </p>
+              )}
+              {technology.note && <p className="map-card__footnote">{technology.note}</p>}
             </footer>
           </section>
 
@@ -515,6 +586,8 @@ export default function MapDashboard({ config }) {
             onTechnology={(id) => setParam('technologie', id, config.technologies[0].id)}
             subtypes={subtypes}
             onSubtypes={(ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','))}
+            leistung={leistung}
+            onLeistung={(id) => setParam(technology.leistung.param, id, technology.leistung.options[0].id)}
             metrics={metrics}
             metric={metric}
             onMetric={(id) => setParam('kennzahl', id, metrics[0].id)}
@@ -529,9 +602,9 @@ export default function MapDashboard({ config }) {
           <article className="card">
             <header className="card__header">
               <div>
-                <h3 className="card__title">Top 10 · {isSites ? PLANTS.label : activeGranularity.label}</h3>
+                <h3 className="card__title">Top 10 · {isSites ? plantsLevel.label : activeGranularity.label}</h3>
                 <div className="card__subtitle">
-                  {metric.legend} ({metric.unit})
+                  {metricLegend} ({metric.unit})
                 </div>
               </div>
             </header>
@@ -539,7 +612,7 @@ export default function MapDashboard({ config }) {
               <RankingPanel
                 features={isSites ? plantFeatures : merged?.features}
                 metric={metric}
-                granularity={isSites ? PLANTS : activeGranularity}
+                granularity={isSites ? plantsLevel : activeGranularity}
                 within={rankingWithin}
                 focusKey={rankingFocus}
                 status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
@@ -549,25 +622,54 @@ export default function MapDashboard({ config }) {
             </div>
           </article>
           {cards.map((a) => (
-            <AnalysisCard key={a.id} analysis={a} technology={technology} region={scopeKey} scopeName={scopeName} />
+            <AnalysisCard key={a.id} analysis={a} technology={technology} region={scopeKey} scopeName={scopeName} query={selectionQuery} />
           ))}
         </div>
 
-        <section className="dashboard-analyses" aria-labelledby="analysen-title">
-          <div className="section-head">
-            <div>
+        {hasAnalyses && (
+          <section className="dashboard-analyses" aria-labelledby="analysen-title">
+            <div className="dashboard-analyses__head">
               <h2 id="analysen-title" className="section-head__title">
                 Analysen
               </h2>
-              <p className="section-head__lead">Vertiefende Auswertungen für {scopeLabel}. Weitere Ansichten folgen.</p>
+              <nav className="analyses-nav" aria-label="Zu einer Analyse springen">
+                {analysisLinks.map(({ id, title, icon: Icon }) => (
+                  <a key={id} href={`#${id}`} className="analyses-nav__item" onClick={jumpTo(id)}>
+                    <Icon size={15} aria-hidden="true" />
+                    {title}
+                  </a>
+                ))}
+              </nav>
             </div>
-          </div>
-          {timelines.map((a) => (
-            <TimelineAnalysis key={a.id} analysis={a} />
-          ))}
-          {/* The analyses for every Land, Kreis or Gemeinde in the scope, for technologies that have them */}
-          <RegionTable technology={technology} scopeKey={scopeKey} scopeName={scopeName} ramp={config.ramp} fileBase={`mastr_${config.id}_${technology.id}`} />
-        </section>
+            {timelines.map((a) => (
+              <TimelineAnalysis key={a.id} analysis={a} leistung={leistung} anchor={`analyse-${a.id}`} />
+            ))}
+            {wides.map((a) =>
+              a.kind === 'registrations' ? (
+                <RegistrationsAnalysis key={a.id} analysis={a} anchor={`analyse-${a.id}`} />
+              ) : (
+                <PvSpeicherAnalysis
+                  key={a.id}
+                  analysis={a}
+                  subtypes={subtypes}
+                  leistung={leistung}
+                  ramp={config.ramp}
+                  anchor={`analyse-${a.id}`}
+                />
+              ),
+            )}
+            {/* The analyses for every Land, Kreis or Gemeinde in the scope, for technologies that have them */}
+            <RegionTable
+              technology={technology}
+              scopeKey={scopeKey}
+              scopeName={scopeName}
+              selectionQuery={selectionQuery}
+              ramp={config.ramp}
+              fileBase={`mastr_${config.id}_${technology.id}`}
+              anchor="analyse-gebiete"
+            />
+          </section>
+        )}
 
         {config.todos?.map((todo) => (
           <TodoNote key={todo}>{todo}</TodoNote>
@@ -576,3 +678,4 @@ export default function MapDashboard({ config }) {
     </div>
   );
 }
+

@@ -72,13 +72,16 @@ function roundedTop(x, y, width, height, radius) {
 }
 
 /**
- * Stacked bars or stacked areas over equally spaced periods, with a tooltip per period.
+ * Stacked bars or stacked areas over equally spaced periods, or lines side by side, with a tooltip per period.
  *
  * periods: [{ key, label (tooltip title), tick (axis label, or null), partial (drawn lighter), values: { [series.id]: number | null } }]
  * series:  [{ id, label, color }], stacked in this order, the first at the bottom
- * unit:    unit of the values, 'MW' or 'MWh'; from 1,000 on, the axis switches to GW or GWh
+ * kind:    'bars' | 'area' (both stacked) | 'lines' (not stacked, e.g. shares)
+ * unit:    unit of the values, 'MW' or 'MWh' (from 1,000 on, the axis switches to GW or GWh), '%', or a count such as
+ *          'Anzahl' (from 10,000 on, the axis counts in thousands)
+ * formatValue: how the tooltip writes a value; default: with unit, in GW from 1,000 MW on
  */
-export default function StackedChart({ periods, series, kind = 'bars', unit, label }) {
+export default function StackedChart({ periods, series, kind = 'bars', unit, label, formatValue = (value) => formatAmount(value, unit) }) {
   const frameRef = useRef(null);
   const width = useWidth(frameRef);
   const [activeKey, setActiveKey] = useState(null);
@@ -107,12 +110,16 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
   const barWidth = Math.min(MAX_BAR_WIDTH, slot >= 8 ? slot * 0.7 : Math.max(1, slot - 1));
   const cx = (j) => MARGIN.left + (j + 0.5) * slot;
 
-  const max = stacks.reduce((m, _, j) => Math.max(m, totalOf(j)), 0);
+  const stacked = kind !== 'lines';
+  const max = stacked
+    ? stacks.reduce((m, _, j) => Math.max(m, totalOf(j)), 0)
+    : stacks.reduce((m, segments) => Math.max(m, ...segments.map((seg) => seg.value ?? 0)), 0);
   const ticks = niceTicks(max);
   const domainTop = ticks.at(-1);
   const y = (value) => MARGIN.top + plotHeight * (1 - value / domainTop);
-  const large = domainTop >= 1000;
-  const axisUnit = large ? unit.replace(/^M/, 'G') : unit;
+  const power = /^M/.test(unit);
+  const large = power ? domainTop >= 1000 : unit !== '%' && domainTop >= 10000;
+  const axisUnit = !large ? unit : power ? unit.replace(/^M/, 'G') : 'Tsd.';
   const tickDigits = digitsOf((large ? ticks[1] / 1000 : ticks[1]) || 1);
 
   // x-axis labels: as many as fit, every 1st, 2nd, 5th … of them; year labels on round years
@@ -170,11 +177,28 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
             </text>
           </g>
 
-          {active >= 0 && !asArea && (
+          {active >= 0 && !asArea && kind !== 'lines' && (
             <rect className="stacked-chart__hover" x={MARGIN.left + active * slot} y={MARGIN.top} width={slot} height={plotHeight} />
           )}
 
-          {asArea
+          {kind === 'lines' &&
+            series.map((s, i) => {
+              // Each line through the periods it has a value for
+              const points = periods.flatMap((_, j) => (stacks[j][i].value != null ? [j] : []));
+              if (!points.length) return null;
+              const xs = points.map(cx);
+              const ys = points.map((j) => y(stacks[j][i].value));
+              return (
+                <g key={s.id} className="stacked-chart__line" style={{ color: s.color }}>
+                  <path d={`M${xs[0]},${ys[0]}${xs.length > 1 ? curve(xs, ys) : ''}`} />
+                  {n <= 40 && xs.map((x, k) => <circle key={points[k]} cx={x} cy={ys[k]} r={2.5} />)}
+                </g>
+              );
+            })}
+
+          {kind === 'lines'
+            ? null
+            : asArea
             ? series.map((s, i) => {
                 const xs = withData.map(cx);
                 const tops = withData.map((j) => y(stacks[j][i].top));
@@ -202,12 +226,14 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
                 );
               })}
 
-          {active >= 0 && asArea && (
+          {active >= 0 && (asArea || kind === 'lines') && (
             <g className="stacked-chart__cursor">
               <line x1={cx(active)} x2={cx(active)} y1={MARGIN.top} y2={MARGIN.top + plotHeight} />
-              {series.map((s, i) => (
-                <circle key={s.id} cx={cx(active)} cy={y(stacks[active][i].top)} r={4} style={{ fill: s.color }} />
-              ))}
+              {series.map((s, i) => {
+                const { value, top } = stacks[active][i];
+                if (!stacked && value == null) return null;
+                return <circle key={s.id} cx={cx(active)} cy={y(stacked ? top : value)} r={4} style={{ fill: s.color }} />;
+              })}
             </g>
           )}
 
@@ -247,11 +273,11 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
                       <span className="stacked-chart__swatch" style={{ background: s.color }} />
                       {s.label}
                     </th>
-                    <td>{formatAmount(value, unit)}</td>
+                    <td>{formatValue(value)}</td>
                   </tr>
                 ))}
             </tbody>
-            {series.length > 1 && (
+            {stacked && series.length > 1 && (
               <tfoot>
                 <tr>
                   <th>Gesamt</th>

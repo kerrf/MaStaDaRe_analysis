@@ -1,6 +1,6 @@
 import StatTile from '../../components/ui/StatTile';
 import { findBundeslandByAgs, isKreisKey, regionName } from '../../config/regions';
-import { formatNumber, formatPercent, formatPower } from '../../lib/format';
+import { formatCapacity, formatNumber, formatPercent, formatPower, scaleAmount } from '../../lib/format';
 
 // The units the KPIs compare, keyed like the stats rows. Bundesland rows may also contain "offshore" (wind): it counts for
 // the total but isn't a Land.
@@ -13,6 +13,8 @@ const sum = (rows, field) => rows.reduce((acc, row) => acc + (row[field] ?? 0), 
 
 function formatValue(kpi, value) {
   if (kpi.format === 'power') return formatPower(value);
+  if (kpi.format === 'capacity') return formatCapacity(value);
+  if (kpi.format === 'amount') return scaleAmount(value, kpi.unit); // in kpi.unit, from 1,000 on the next larger one
   return { value: formatNumber(value), unit: kpi.unit };
 }
 
