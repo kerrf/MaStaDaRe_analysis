@@ -70,6 +70,10 @@ if __name__ == "__main__":
     # Registrations in the MaStR per year and technology (every dashboard's Analysen)
     query_path = Path("app/etl/queries/aggregate_registrierungen.sql")
     run_sql_file(engine, query_path)
+
+    # How long after going into operation units were registered, per technology and year of commissioning
+    query_path = Path("app/etl/queries/aggregate_registrierungsverzug.sql")
+    run_sql_file(engine, query_path)
     
     # query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
     # run_sql_file(engine, query_path)

@@ -28,3 +28,13 @@ def solar_selection(
     leistung: Annotated[Leistung, Query(description="Nettonennleistung (AC, the default) or Bruttoleistung (DC)")] = "netto",
 ) -> SolarSelection:
     return SolarSelection(tuple(anlagenart or get_args(Anlagenart)), leistung == "netto")
+
+
+Lage = Literal["an_land", "auf_see"]
+
+
+def wind_lage(
+    lage: Annotated[list[Lage] | None, Query(description="an_land (onshore) and/or auf_see (offshore); default both")] = None,
+) -> tuple[str, ...]:
+    """The chosen Lagen of wind: the views have one row per Lage (offshore wind is the region "offshore")."""
+    return tuple(lage or get_args(Lage))

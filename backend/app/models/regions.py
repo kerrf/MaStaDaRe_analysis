@@ -34,6 +34,18 @@ class RegionStats:
         }[level]
 
 
+class Gemeinde(Base):
+    """Area and population of every Gemeinde (VG250-EW, scripts/geo/build_boundaries.py)."""
+
+    __tablename__ = "gemeinden"
+    __table_args__ = {"schema": "geo"}
+
+    ags = Column(String, primary_key=True)
+    name = Column(String)
+    einwohner = Column(Integer)
+    qkm = Column(Float)
+
+
 class SolarRegionStats(RegionStats, Base):
     """Per Anlagenart (gebaeude, freiflaeche), with Netto (AC) next to the Brutto (DC) power."""
 

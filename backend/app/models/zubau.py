@@ -39,3 +39,21 @@ class Registrierungen(Base):
     technology = Column(String, primary_key=True)
     year = Column(Integer, primary_key=True)
     units = Column(Integer)
+
+
+class Registrierungsverzug(Base):
+    """Units per year of commissioning and technology by how long after going into operation they were registered
+    (etl/queries/aggregate_registrierungsverzug.sql), since the register started (31.01.2019)."""
+
+    __tablename__ = "registrierungsverzug"
+    __table_args__ = {"schema": "mrt"}
+
+    technology = Column(String, primary_key=True)  # like Registrierungen
+    year = Column(Integer, primary_key=True)  # of commissioning
+    units = Column(Integer)
+    vorab = Column(Integer)  # registered before going into operation
+    bis_1_monat = Column(Integer)  # within the deadline of § 5 MaStRV
+    bis_3_monate = Column(Integer)
+    bis_12_monate = Column(Integer)
+    spaeter = Column(Integer)  # more than a year after
+    median_days = Column(Integer)

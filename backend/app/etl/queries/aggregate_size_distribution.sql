@@ -4,9 +4,9 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.size_distribution;
 
 -- Units and power per size class (Bruttoleistung of the unit) for solar, wind and hydropower, for Deutschland ('DE'),
 -- every Bundesland (2-digit key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every class, also
--- empty ones. Solar per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql; the API sums the
--- chosen ones), wind and hydropower as 'alle'. Power as Brutto (Bruttoleistung) and Netto (Nettonennleistung); the
--- classes go by the Bruttoleistung either way.
+-- empty ones. Solar per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql), wind per Lage
+-- ('an_land', 'auf_see'); the API sums the chosen ones. Hydropower as 'alle'. Power as Brutto (Bruttoleistung) and
+-- Netto (Nettonennleistung); the classes go by the Bruttoleistung either way.
 CREATE MATERIALIZED VIEW mrt.size_distribution AS
 WITH classes (technology, size_class, above, up_to, label, hint) AS (
     -- kW, the lower bound excluded, the upper one included ("bis 2 kWp"). Solar: Balkon-PV, small and standard rooftop
@@ -33,7 +33,7 @@ WITH classes (technology, size_class, above, up_to, label, hint) AS (
         ('water', 4, 10000, 'Infinity', 'über 10 MW', NULL)
 ),
 kinds (technology, anlagenart) AS (
-    VALUES ('solar', 'gebaeude'), ('solar', 'freiflaeche'), ('wind', 'alle'), ('water', 'alle')
+    VALUES ('solar', 'gebaeude'), ('solar', 'freiflaeche'), ('wind', 'an_land'), ('wind', 'auf_see'), ('water', 'alle')
 ),
 units AS (
     -- Installed units (InBetrieb) in Germany: without the border hydropower plants in Austria and Switzerland, with
@@ -46,7 +46,12 @@ units AS (
         "Nettonennleistung" AS power_net
     FROM raw.solar_units WHERE "EinheitBetriebsstatus" = '35' AND "Land" = '84'
     UNION ALL
-    SELECT 'wind', 'alle', "Gemeindeschluessel", "Bruttoleistung", "Nettonennleistung"
+    SELECT
+        'wind',
+        CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'auf_see' ELSE 'an_land' END,
+        "Gemeindeschluessel",
+        "Bruttoleistung",
+        "Nettonennleistung"
     FROM raw.wind_units WHERE "EinheitBetriebsstatus" = '35' AND "Land" = '84'
     UNION ALL
     SELECT 'water', 'alle', "Gemeindeschluessel", "Bruttoleistung", "Nettonennleistung"

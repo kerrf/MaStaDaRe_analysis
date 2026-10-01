@@ -7,7 +7,7 @@ from app.models.solar import Base
 
 # Digits of the Gemeindeschlüssel that key a region of each level
 DIGITS = {"bundesland": 2, "landkreis": 5, "gemeinde": 8}
-# Wind and hydropower have one row per class and region, solar one per Anlagenart (the API sums the chosen ones)
+# Hydropower has one row per class and region, solar one per Anlagenart, wind one per Lage (the API sums the chosen ones)
 ALL = ("alle",)
 
 
@@ -61,7 +61,7 @@ class SizeDistribution(Base):
     __table_args__ = {"schema": "mrt"}
 
     technology = Column(String, primary_key=True)  # solar, wind, water
-    anlagenart = Column(String, primary_key=True)  # solar: gebaeude, freiflaeche; wind and water: alle
+    anlagenart = Column(String, primary_key=True)  # solar: gebaeude, freiflaeche; wind: an_land, auf_see; water: alle
     level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
     region = Column(String, primary_key=True)
     size_class = Column(Integer, primary_key=True)  # 1 = the smallest
