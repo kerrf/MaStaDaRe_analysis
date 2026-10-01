@@ -193,21 +193,15 @@ export default function ChoroplethMap({
   const seaEdge = useOpenEdge(sea ? STATES_TOPOLOGY : null, OFFSHORE.ags);
   const seaStyle = useMemo(() => seaColor && { stroke: false, fillColor: hatchOf(seaColor), fillOpacity: 1 }, [seaColor]);
   const basemap = useLayers(BASEMAP);
-  // Names of countries and seas, and the Länder (to load the names of their smaller places when the map shows them)
+  // Names of countries and seas; the Land or Kreis in view, whose places the map names
   const areas = useMemo(
     () =>
       basemap.data?.labels.features.map((f) => ({ ...f.properties, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] })) ??
       null,
     [basemap.data],
   );
-  const lands = useMemo(
-    () =>
-      outlines?.features
-        .filter((f) => /^\d{2}$/.test(f.properties.ags))
-        .map((f) => ({ ags: f.properties.ags, bounds: L.geoJSON(f).getBounds() })) ?? null,
-    [outlines],
-  );
   const focusAgs = focusFeature?.properties.ags ?? '';
+  const focusBounds = useMemo(() => (focusFeature ? L.geoJSON(focusFeature).getBounds() : null), [focusFeature]);
 
   // The focus layers are drawn as SVG (the rest of the map is canvas): an SVG path only catches the pointer
   // where it is painted, so the mask takes clicks outside the focused Land or Kreis while the hole passes them
@@ -306,7 +300,7 @@ export default function ChoroplethMap({
 
       {/* Above the areas and the mask, below the plant icons and tooltips */}
       <Pane name="places" style={{ zIndex: 450, pointerEvents: 'none' }} />
-      <PlaceLabels scope={focusAgs} lands={lands} areas={areas} revision={layerKey} />
+      <PlaceLabels scope={focusAgs} scopeBounds={focusBounds} areas={areas} revision={layerKey} />
       {children}
     </MapContainer>
   );

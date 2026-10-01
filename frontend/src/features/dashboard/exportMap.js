@@ -3,7 +3,7 @@ import { formatDate } from '../../lib/format';
 
 const sourceLine = (datenstand) =>
   `Quelle: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · Datenstand ${formatDate(datenstand)} · ` +
-  `Karte: © GeoBasis-DE / BKG (2026) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth · ${SITE.url.replace('https://', '')}`;
+  `Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth · ${SITE.url.replace('https://', '')}`;
 
 function download(href, filename) {
   const link = document.createElement('a');

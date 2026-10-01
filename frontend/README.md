@@ -230,13 +230,18 @@ the map. The Analysen section only shows when it has something (Gas: nothing yet
 - **The German sea** (offshore wind): hatched in its colour (`hatchOf`, a canvas pattern, so exports keep it), no
   border along the coast, a dashed line where it ends out at sea (the edges it shares with no other area of the states
   topology: `useOpenEdge`). The choropleth keeps the area invisible, for tooltip, hover and click.
-- **Place names**: every Gemeinde at its main settlement and the Ortsteile (`public/places/`,
-  `scripts/geo/build_places.py`, BKG). `PlaceLabels.jsx` names as many as fit, the larger first: from a population that
-  falls with the zoom (`THRESHOLDS`: big cities for Germany, larger towns in a Land, Kleinstädte in a Kreis, villages and
-  Ortsteile further in), each at the first free spot around its dot (`lib/labelPlacement.js`, a grid index of the
-  boxes), never under the legend or the zoom buttons. In the view of a Land or Kreis only its own places (by AGS prefix).
-  `places/de.json` (Gemeinden from 10 000 inhabitants and the capitals) comes with every map; a Land's file with its
-  smaller places once the map shows it up close. Countries and seas are named around Germany (basemap `labels`).
+- **Place names** (`PlaceLabels.jsx`, `public/places.json` from `scripts/geo/build_places.py`, BKG): Gemeinden at their
+  main settlement, in three fixed layers, one per view – not more and more the further one zooms in:
+  - Germany: the cities from 500 000 inhabitants (and the names of the countries and seas around),
+  - a Land: its 8 largest towns that fit side by side when the map shows the whole Land (Landeshauptstadt counted
+    half again as much); Berlin, Hamburg and Bremen name just their cities,
+  - a Kreis: its 4 largest towns, chosen the same way.
+
+  The names of a Land or Kreis are chosen at the zoom that fits it (`getBoundsZoom`), so zooming in or out moves them
+  but adds none. Each name sits at the first free spot around its dot (`lib/labelPlacement.js`, a grid index of the
+  boxes), never under the legend, the zoom buttons or the name of the area.
+- **The area in view** is named in the top left corner (`map-scope` in `MapView.jsx`): "Bundesland" above a Land, its
+  Land above a Kreis.
 
 ### Zubau im Zeitverlauf (`timeline` on an analysis)
 

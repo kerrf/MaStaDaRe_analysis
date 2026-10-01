@@ -5,55 +5,32 @@ import { loadJson } from '../../lib/data';
 import { escapeHtml } from '../../lib/format';
 import { placeLabels } from '../../lib/labelPlacement';
 
-// Place names of the map (scripts/geo/build_places.py): rows of [name, lon, lat, population, ags, kind], kind L
-// Landeshauptstadt, S Stadt, G Gemeinde, O Ortsteil. de.json holds the larger Gemeinden; the rest of a Land comes
-// with its own file once the map shows it up close.
-const BASE = '/places/de.json';
-const landFile = (ags) => `/places/${ags}.json`;
-const LAND_ZOOM = 8.5;
+// Place names of the map (scripts/geo/build_places.py): Gemeinden as rows of [name, lon, lat, population, ags, kind],
+// kind L Landeshauptstadt, S Stadt, G Gemeinde
+const PLACES = '/places.json';
 
-// From which population on a place is named, by zoom: the big cities in the view of Germany, the larger towns in that of
-// a Land, Kleinstädte in a Kreis, villages and Ortsteile further in (in between, log-linear). Landeshauptstädte count
-// half again as much, Ortsteile less than a Gemeinde of their size, and only from ORTSTEIL_ZOOM on.
-const THRESHOLDS = [
-  [6, 500000],
-  [8.75, 50000],
-  [10, 5000],
-  [11, 1500],
-  [12, 400],
-];
-function minPopulation(zoom) {
-  const upper = THRESHOLDS.findIndex(([z]) => z >= zoom);
-  if (upper <= 0) return THRESHOLDS[upper < 0 ? THRESHOLDS.length - 1 : 0][1];
-  const [[z0, p0], [z1, p1]] = [THRESHOLDS[upper - 1], THRESHOLDS[upper]];
-  return p0 * (p1 / p0) ** ((zoom - z0) / (z1 - z0));
-}
-const weight = (kind) => (kind === 'L' ? 1.5 : kind === 'O' ? 0.6 : 1);
-const ORTSTEIL_ZOOM = 9;
-// Fewer than this many names in view: smaller places follow, as long as there is room (a rural Kreis, a small Land)
-const minLabels = (zoom) => (zoom >= 9.5 ? 16 : 8);
-const MAX_LABELS = 60;
-const SMALLER_CANDIDATES = 300;
+// Three layers of names, one per view: the big cities of Germany, the larger towns of a Land, the main towns of a Kreis.
+// The names of a Land or Kreis are chosen once, at the zoom that shows it whole: the largest that fit there without
+// touching, at most `most`. Zooming in or out moves them, it adds none.
+const GERMANY_MIN_POPULATION = 500000;
+const LAYERS = { 0: { id: 'deutschland' }, 2: { id: 'land', most: 8 }, 5: { id: 'kreis', most: 4 } };
+// Landeshauptstädte count half again as much (Stuttgart before Mannheim), whatever their size
+const weight = (kind) => (kind === 'L' ? 1.5 : 1);
+const FIT_PADDING = L.point(56, 56); // the padding the map fits a Land or Kreis with (28 px on each side)
+const SPACING = { mx: 14, my: 7, gap: 4 };
 
-// Type sizes, from the largest cities down to the Ortsteile; r: radius of the dot
+// Type sizes, from the largest cities down; r: radius of the dot. Every name dark: the layers keep the map calm.
 const TIERS = [
   { weight: 700, size: 12.5, r: 3.5 },
   { weight: 650, size: 12, r: 3 },
   { weight: 600, size: 11.5, r: 2.5 },
-  { weight: 550, size: 11, r: 2 },
-  { weight: 500, size: 10.5, r: 1.75, italic: true },
 ];
-function tierOf(kind, population) {
-  if (kind === 'L' || population >= 500000) return 0;
-  if (population >= 100000) return 1;
-  if (kind === 'S' || population >= 20000) return 2;
-  return kind === 'O' ? 4 : 3;
-}
+const tierOf = (kind, population) => (kind === 'L' || population >= 500000 ? 0 : population >= 100000 ? 1 : 2);
 const POSITIONS = ['right', 'left', 'top', 'bottom'];
 // Names of countries and seas around Germany (basemap labels): in capitals, letter-spaced, without a dot
 const AREA_STYLE = { country: { weight: 600, size: 10.5, spacing: 1.2, upper: true }, sea: { weight: 500, size: 12, italic: true, spacing: 0.6 } };
 // Things on top of the map that names must not run under
-const OVERLAYS = '.leaflet-control, .map-legend, .map-chip';
+const OVERLAYS = '.leaflet-control, .map-legend, .map-chip, .map-scope';
 
 // Text widths, measured once per font and name
 const canvas = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
@@ -66,56 +43,60 @@ function textWidth(text, font, spacing = 0) {
   }
   return widths.get(key);
 }
+const fontOf = (style, family) => `${style.italic ? 'italic ' : ''}${style.weight} ${style.size}px ${family}`;
 
 function iconFor(html, className) {
   return L.divIcon({ className, html, iconSize: [0, 0] });
 }
 
 /**
- * The names of the places on the map, as many as fit at the zoom, the larger first (lib/labelPlacement.js).
- * scope: the key the places must start with: '' for Germany, a Land (2 digits) or Kreis (5) – in the view of a Land or
- *        Kreis, the map names only its places
- * lands: [{ ags, bounds }] of the Länder, to load the smaller places of those in view
- * areas: names of countries and seas ({ name, kind, rank, lon, lat }), shown outside the view of a Land or Kreis
- * revision: changes when something on top of the map may have changed (legend, chips), to place the names anew
+ * The names of the places on the map, in the layer of the view (Germany, a Land, a Kreis), placed so that none touch
+ * (lib/labelPlacement.js) and none run under the legend or the controls.
+ * scope:       the view: '' for Germany, the key of a Land (2 digits) or Kreis (5); in the view of a Land or Kreis, only
+ *              its places are named
+ * scopeBounds: the bounds of that Land or Kreis, to choose its names at the zoom that shows it whole
+ * areas:       names of countries and seas ({ name, kind, rank, lon, lat }), shown in the view of Germany
+ * revision:    changes when something on top of the map may have changed (legend, chips), to place the names anew
  */
-export default function PlaceLabels({ scope = '', lands, areas, revision }) {
+export default function PlaceLabels({ scope = '', scopeBounds, areas, revision }) {
   const map = useMap();
-  const [files, setFiles] = useState(() => new Map()); // url -> rows
-  const loading = useRef(new Set());
+  const [rows, setRows] = useState(null);
   const layer = useRef(null);
   const markers = useRef(new Map()); // id -> { marker, position }
-
-  const load = useCallback((url) => {
-    if (loading.current.has(url)) return;
-    loading.current.add(url);
-    loadJson(url).then(
-      (rows) => setFiles((prev) => new Map(prev).set(url, rows)),
-      () => loading.current.delete(url),
-    );
-  }, []);
-  useEffect(() => load(BASE), [load]);
-
-  // All places loaded so far, the most important first
-  const places = useMemo(() => {
-    const all = [...files.values()].flat();
-    return all
-      .map(([name, lon, lat, population, ags, kind]) => ({
-        id: `${ags}|${name}|${lon}|${lat}`,
-        name,
-        lon,
-        lat,
-        population,
-        ags,
-        kind,
-        priority: population * weight(kind),
-        tier: tierOf(kind, population),
-      }))
-      .sort((a, b) => b.priority - a.priority);
-  }, [files]);
+  const chosen = useRef({ key: null, places: [] }); // the names of the current Land or Kreis
 
   useEffect(() => {
-    const group = L.layerGroup([], { pane: 'places' }).addTo(map);
+    let cancelled = false;
+    loadJson(PLACES).then(
+      (data) => !cancelled && setRows(data),
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Every place, the most important first, with its type size
+  const places = useMemo(
+    () =>
+      (rows ?? [])
+        .map(([name, lon, lat, population, ags, kind]) => ({
+          id: ags,
+          name,
+          lon,
+          lat,
+          population,
+          ags,
+          kind,
+          priority: population * weight(kind),
+          tier: tierOf(kind, population),
+        }))
+        .sort((a, b) => b.priority - a.priority),
+    [rows],
+  );
+
+  useEffect(() => {
+    const group = L.layerGroup().addTo(map);
     layer.current = group;
     const shown = markers.current;
     return () => {
@@ -124,19 +105,35 @@ export default function PlaceLabels({ scope = '', lands, areas, revision }) {
     };
   }, [map]);
 
+  // The names of the layer of the view: Germany's big cities, or those a Land or Kreis shows at the zoom that fits it
+  const layerPlaces = useCallback(
+    (family) => {
+      const { most } = LAYERS[scope.length] ?? LAYERS[0];
+      if (!most) return places.filter((p) => p.population >= GERMANY_MIN_POPULATION);
+      if (!scopeBounds) return [];
+      const zoom = map.getBoundsZoom(scopeBounds, false, FIT_PADDING);
+      const key = `${scope}|${zoom}|${places.length}`;
+      if (chosen.current.key !== key) {
+        const candidates = places
+          .filter((p) => p.ags.startsWith(scope))
+          .map((place) => {
+            const tier = TIERS[place.tier];
+            const { x, y } = map.project([place.lat, place.lon], zoom);
+            return { id: place.id, place, x, y, w: textWidth(place.name, fontOf(tier, family)), h: tier.size + 2, r: tier.r, positions: POSITIONS };
+          });
+        const placed = placeLabels(candidates, { width: Infinity, height: Infinity }, { ...SPACING, edge: -Infinity }, (c, count) => count < most);
+        const ids = new Set(placed.map((p) => p.id));
+        chosen.current = { key, places: places.filter((p) => ids.has(p.id)) };
+      }
+      return chosen.current.places;
+    },
+    [map, places, scope, scopeBounds],
+  );
+
   const update = useCallback(() => {
     const group = layer.current;
-    if (!group) return;
+    if (!group || !places.length) return;
     const zoom = map.getZoom();
-    const view = map.getBounds();
-
-    // The smaller places of the Länder in view, once the map is close enough (or shows a single Kreis)
-    if (lands && (zoom >= LAND_ZOOM || scope.length === 5)) {
-      for (const land of lands) {
-        if ((!scope || land.ags === scope.slice(0, 2)) && land.bounds.intersects(view)) load(landFile(land.ags));
-      }
-    }
-
     const container = map.getContainer();
     const family = getComputedStyle(container).fontFamily;
     const origin = container.getBoundingClientRect();
@@ -145,37 +142,25 @@ export default function PlaceLabels({ scope = '', lands, areas, revision }) {
       .filter((rect) => rect.width && rect.height)
       .map((rect) => [rect.left - origin.left, rect.top - origin.top, rect.right - origin.left, rect.bottom - origin.top]);
     const size = map.getSize();
-    const padded = view.pad(0.02);
+    const view = map.getBounds().pad(0.02);
 
     const candidates = [];
     if (!scope && areas) {
       for (const area of areas) {
-        if ((area.kind === 'country' && (zoom < area.rank - 1 || zoom > 9)) || !padded.contains([area.lat, area.lon])) continue;
+        if ((area.kind === 'country' && (zoom < area.rank - 1 || zoom > 9)) || !view.contains([area.lat, area.lon])) continue;
         const style = AREA_STYLE[area.kind];
         const text = style.upper ? area.name.toUpperCase() : area.name;
-        const font = `${style.italic ? 'italic ' : ''}${style.weight} ${style.size}px ${family}`;
         const { x, y } = map.latLngToContainerPoint([area.lat, area.lon]);
-        candidates.push({ id: `area|${area.name}`, area, text, x, y, w: textWidth(text, font, style.spacing), h: style.size + 2, r: 0, positions: ['center'] });
+        candidates.push({ id: `area|${area.name}`, area, text, x, y, w: textWidth(text, fontOf(style, family), style.spacing), h: style.size + 2, r: 0, positions: ['center'] });
       }
     }
-    // Every place in view above the threshold, then the largest of the smaller ones, for views with too few names
-    const threshold = minPopulation(zoom);
-    let smaller = 0;
-    for (const place of places) {
-      if (!place.ags.startsWith(scope) || (place.kind === 'O' && zoom < ORTSTEIL_ZOOM) || !padded.contains([place.lat, place.lon])) continue;
-      if (place.priority < threshold && (smaller += 1) > SMALLER_CANDIDATES) break;
+    for (const place of layerPlaces(family)) {
+      if (!view.contains([place.lat, place.lon])) continue;
       const tier = TIERS[place.tier];
-      const font = `${tier.italic ? 'italic ' : ''}${tier.weight} ${tier.size}px ${family}`;
       const { x, y } = map.latLngToContainerPoint([place.lat, place.lon]);
-      candidates.push({ id: place.id, place, x, y, w: textWidth(place.name, font), h: tier.size + 2, r: tier.r, positions: POSITIONS });
+      candidates.push({ id: place.id, place, x, y, w: textWidth(place.name, fontOf(tier, family)), h: tier.size + 2, r: tier.r, positions: POSITIONS });
     }
-
-    const placed = placeLabels(
-      candidates,
-      { width: size.x, height: size.y, obstacles },
-      { mx: 14, my: 7, gap: 4 },
-      (c, count) => count < MAX_LABELS && (!c.place || c.place.priority >= threshold || count < minLabels(zoom)),
-    );
+    const placed = placeLabels(candidates, { width: size.x, height: size.y, obstacles }, SPACING);
 
     // Keep the markers of names that stay, so they don't flicker; new ones fade in (CSS)
     const byId = new Map(candidates.map((c) => [c.id, c]));
@@ -204,7 +189,7 @@ export default function PlaceLabels({ scope = '', lands, areas, revision }) {
         markers.current.set(id, { marker, position });
       }
     }
-  }, [map, places, scope, lands, areas, load]);
+  }, [map, places, scope, areas, layerPlaces]);
 
   useEffect(() => {
     update();

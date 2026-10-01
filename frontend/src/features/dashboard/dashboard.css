@@ -423,7 +423,7 @@
   transform: translateX(-50%);
 }
 
-/* From the largest cities (t0) to the Ortsteile (t4); sizes as in PlaceLabels.jsx (TIERS), which measures them */
+/* From the largest cities (t0) to the towns (t2); sizes as in PlaceLabels.jsx (TIERS), which measures them */
 .place--t0 {
   --r: 3.5px;
   font-size: 12.5px;
@@ -442,29 +442,46 @@
   font-weight: 600;
 }
 
-.place--t3 {
-  --r: 2px;
-  font-size: 11px;
-  font-weight: 550;
+/* The Land or Kreis in view, named in the top left corner, beside the zoom buttons */
+.map-scope {
+  position: absolute;
+  top: 12px;
+  left: 56px;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: calc(100% - 70px);
+  padding: 7px 12px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  animation: map-scope-in var(--dur) var(--ease);
 }
 
-.place--t3 .place__name {
-  color: var(--ink-secondary);
+@keyframes map-scope-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
-.place--t4 {
-  --r: 1.75px;
+.map-scope__context {
   font-size: 10.5px;
-  font-weight: 500;
-  font-style: italic;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 
-.place--t4 .place__name {
-  color: var(--ink-secondary);
-}
-
-.place--t4 .place__dot {
-  background: #667085;
+.map-scope__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
 }
 
 /* Countries and seas around Germany: no dot, the name centred on its point */

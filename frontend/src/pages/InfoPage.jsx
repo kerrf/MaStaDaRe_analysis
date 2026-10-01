@@ -32,16 +32,10 @@ const SOURCES = [
     href: 'https://www.suche-postleitzahl.org/downloads',
   },
   {
-    data: 'Grenzen, Einwohner und Fläche der Bundesländer, Landkreise und Gemeinden, Lage der Gemeinden auf der Karte',
+    data: 'Grenzen, Einwohner und Fläche der Bundesländer, Landkreise und Gemeinden, Ortsnamen auf der Karte',
     source: 'Verwaltungsgebiete 1:250 000 mit Einwohnerzahlen (VG250-EW), Stand 31.12.2024, Bundesamt für Kartographie und Geodäsie',
     license: 'Datenlizenz Deutschland – Namensnennung – 2.0, © GeoBasis-DE / BKG (2025) (Daten verändert)',
     href: 'https://gdz.bkg.bund.de/index.php/default/verwaltungsgebiete-1-250-000-mit-einwohnerzahlen-stand-31-12-vg250-ew-31-12.html',
-  },
-  {
-    data: 'Ortsnamen auf der Karte (Ortsteile mit gerechneter Einwohnerzahl)',
-    source: 'Geographische Namen 1:250 000 (GN250), Stand 31.12.2024, Bundesamt für Kartographie und Geodäsie',
-    license: 'Datenlizenz Deutschland – Namensnennung – 2.0, © BKG (2026) (Daten verändert)',
-    href: 'https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_gn250.pdf',
   },
   {
     data: 'Europa als Hintergrund der Karte (Länder, Grenzen, Seen)',

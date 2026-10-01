@@ -441,6 +441,13 @@ export default function MapView({ config, state }) {
               </div>
             )}
             {bordersOnly && mapState === 'ready' && <div className="map-chip">Nur Grenzen · Werte folgen</div>}
+            {/* The Land or Kreis in view, named on the map: "Bundesland" above a Land, its Land above a Kreis */}
+            {region && (
+              <div key={state.scopeKey} className="map-scope">
+                <span className="map-scope__context">{kreisAgs ? region.name : 'Bundesland'}</span>
+                <span className="map-scope__name">{scopeName}</span>
+              </div>
+            )}
             <MapOverlay state={mapState} technology={technology} onRetry={retry} />
             <div className={`map-hint${wheelHint ? ' is-visible' : ''}`} aria-hidden="true">
               Strg + Scrollen zum Zoomen
@@ -450,21 +457,17 @@ export default function MapView({ config, state }) {
           <footer className="map-card__footer">
             <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(datenstand)}</span>
             <span className="map-card__footer-hint">{mapHints.join(' · ')}</span>
-            {/* Boundaries, Gemeinden and place names (VG250, GN250): the BKG asks for this line, linked, wherever its data is shown */}
+            {/* Boundaries and place names (VG250-EW), the sea, Europe: their sources, the BKG's linked */}
             <span className="map-card__credit">
-              Karte: ©{' '}
+              Karte: © GeoBasis-DE /{' '}
               <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">
                 BKG
               </a>{' '}
-              (2026){' '}
+              (2025){' '}
               <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener noreferrer">
                 dl-de/by-2-0
               </a>
-              , Daten verändert ·{' '}
-              <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_gn250.pdf" target="_blank" rel="noopener noreferrer">
-                Datenquellen
-              </a>{' '}
-              · Marine Regions · Natural Earth
+              , Daten verändert · Marine Regions · Natural Earth
             </span>
             {leistungNote && (
               <p id={footnoteId(technology.leistung)} className="map-card__footnote">
