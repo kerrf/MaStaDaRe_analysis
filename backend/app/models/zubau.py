@@ -4,7 +4,10 @@ from sqlalchemy import Column, Float, Integer, String
 
 from app.models.solar import Base
 
-Technology = Literal["solar", "wind_an_land", "wind_auf_see", "heimspeicher", "gewerbespeicher", "grossspeicher"]
+# solar: Bruttoleistung (DC), solar_netto: Nettonennleistung (AC)
+Technology = Literal[
+    "solar", "solar_netto", "wind_an_land", "wind_auf_see", "heimspeicher", "gewerbespeicher", "grossspeicher"
+]
 
 
 class Zubau(Base):
@@ -23,3 +26,16 @@ class Zubau(Base):
     added_units = Column(Integer)
     added = Column(Float)  # Zubau: went into operation within the period
     installed = Column(Float)  # Bestand at the end of the period
+
+
+class Registrierungen(Base):
+    """Units registered in the Marktstammdatenregister per year of registration and technology, from the first
+    registration on (etl/queries/aggregate_registrierungen.sql)."""
+
+    __tablename__ = "registrierungen"
+    __table_args__ = {"schema": "mrt"}
+
+    # The dashboards' technology ids: solar, wind, wasserkraft, batterie, pumpspeicher, gaserzeuger, gasspeicher
+    technology = Column(String, primary_key=True)
+    year = Column(Integer, primary_key=True)
+    units = Column(Integer)

@@ -4,6 +4,7 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.zubau_zeitverlauf;
 
 -- Zubau (additions by commissioning date) and Bestand (installed at the end of the period) in Germany, per month and
 -- per year since 2000: solar and wind in MW, battery storage in MWh of usable capacity, split into size classes.
+-- Solar twice: as Bruttoleistung (DC, 'solar') and Nettonennleistung (AC, 'solar_netto', the dashboard's default).
 CREATE MATERIALIZED VIEW mrt.zubau_zeitverlauf AS
 WITH battery_plants AS (
     -- The capacity (kWh) is registered per storage plant (AnlagenStromSpeicher), the power (kW) per unit.
@@ -27,6 +28,16 @@ units AS (
         CASE WHEN "EinheitBetriebsstatus" = '38'
             THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END AS removed_on,
         "Bruttoleistung" AS amount  -- kW
+    FROM raw.solar_units
+    WHERE "Inbetriebnahmedatum" IS NOT NULL
+
+    UNION ALL
+    SELECT
+        'solar_netto',
+        "Inbetriebnahmedatum",
+        CASE WHEN "EinheitBetriebsstatus" = '38'
+            THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
+        "Nettonennleistung"
     FROM raw.solar_units
     WHERE "Inbetriebnahmedatum" IS NOT NULL
 

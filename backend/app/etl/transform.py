@@ -58,6 +58,18 @@ if __name__ == "__main__":
 
     query_path = Path("app/etl/queries/aggregate_solar_orientation.sql")
     run_sql_file(engine, query_path)
+
+    # Solar units and batteries at the same Lokation (Germany-wide), needs raw.storage_plants for the capacity
+    query_path = Path("app/etl/queries/aggregate_pv_speicher.sql")
+    run_sql_file(engine, query_path)
+
+    # Gas producers and gas storages at their location (raw.gas_producer_units, gas_storage_units, gas_storage_plants)
+    query_path = Path("app/etl/queries/aggregate_gas.sql")
+    run_sql_file(engine, query_path)
+
+    # Registrations in the MaStR per year and technology (every dashboard's Analysen)
+    query_path = Path("app/etl/queries/aggregate_registrierungen.sql")
+    run_sql_file(engine, query_path)
     
     # query_path = Path("app/etl/queries/aggregate_by_plz_power.sql")
     # run_sql_file(engine, query_path)
