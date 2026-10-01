@@ -77,3 +77,42 @@ class RegionTable(BaseModel):
 
     columns: list[RegionColumn]
     rows: list[RegionRow]
+
+
+class PvSpeicherRow(BaseModel):
+    """Solar units of one Anlagenart, size class and year, and the batteries at their Lokation (mrt.pv_speicher)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    anlagenart: str
+    size_class: int
+    size_label: str
+    year: int
+    pv_units: int
+    pv_power: float  # MW
+    pv_power_net: float
+    with_battery_units: int
+    with_battery_power: float
+    with_battery_power_net: float
+    battery_power: float  # MW
+    battery_capacity: float  # MWh
+    retrofit_units: int
+    flagged_units: int
+    flagged_with_battery_units: int
+
+
+class SpeicherPvRow(BaseModel):
+    """Batteries of one size class, with or without solar at their Lokation (mrt.speicher_pv)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    size_class: str
+    with_pv: bool
+    units: int
+    power: float  # MW
+    capacity: float  # MWh
+
+
+class PvSpeicherData(BaseModel):
+    pv: list[PvSpeicherRow]
+    speicher: list[SpeicherPvRow]

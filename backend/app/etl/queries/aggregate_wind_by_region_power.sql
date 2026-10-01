@@ -9,7 +9,8 @@ WITH gemeinde_wind_agg AS (
     SELECT
         CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'offshore' ELSE "Gemeindeschluessel" END AS ags,
         COUNT("EinheitMastrNummer") AS total_units,
-        SUM("Bruttoleistung") AS total_power
+        SUM("Bruttoleistung") AS total_power,
+        SUM("Bruttoleistung") FILTER (WHERE "Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power  -- in operation since less than 12 months
     FROM raw.wind_units
     WHERE "EinheitBetriebsstatus" = '35'  -- InBetrieb: installed, without planned or decommissioned units
       AND ("WindAnLandOderAufSee" = '889' OR "Gemeindeschluessel" IS NOT NULL)
@@ -23,6 +24,7 @@ joined AS (
         COALESCE(g.ags, w.ags) AS ags,
         w.total_units,
         w.total_power,
+        w.added_12m_power,
         g.qkm,
         g.einwohner
     FROM (
@@ -40,6 +42,7 @@ regions AS (
         ags AS gemeinde,
         total_units,
         total_power,
+        added_12m_power,
         qkm,
         einwohner
     FROM joined
@@ -52,7 +55,8 @@ SELECT
     COALESCE(SUM(total_units), 0) AS total_units,
     CAST(COALESCE(SUM(total_power), 0) / 1000 AS NUMERIC(12,2)) AS total_power,
     CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power,
-    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power
+    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power,
+    CAST(COALESCE(SUM(added_12m_power), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_power  -- Zubau of the last 12 months, MW
 FROM regions
 GROUP BY ROLLUP (
     bundesland,

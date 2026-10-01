@@ -22,6 +22,7 @@ class RegionStats:
     total_power = Column(Float)
     relative_area_power = Column(Float)
     relative_population_power = Column(Float)
+    added_12m_power = Column(Float)  # Zubau: in operation since less than 12 months, MW
 
     @classmethod
     def at_level(cls, level: RegionLevel) -> tuple:
@@ -34,8 +35,16 @@ class RegionStats:
 
 
 class SolarRegionStats(RegionStats, Base):
+    """Per Anlagenart (gebaeude, freiflaeche), with Netto (AC) next to the Brutto (DC) power."""
+
     __tablename__ = "solar_region_stats"
     __table_args__ = {"schema": "mrt"}
+
+    anlagenart = Column(String, primary_key=True)
+    total_power_net = Column(Float)
+    relative_area_power_net = Column(Float)
+    relative_population_power_net = Column(Float)
+    added_12m_power_net = Column(Float)
 
 
 class WindRegionStats(RegionStats, Base):
@@ -51,3 +60,5 @@ class WaterRegionStats(RegionStats, Base):
 class BatteryRegionStats(RegionStats, Base):
     __tablename__ = "battery_region_stats"
     __table_args__ = {"schema": "mrt"}
+
+    added_12m_capacity = Column(Float)  # usable capacity that went into operation in the last 12 months, MWh

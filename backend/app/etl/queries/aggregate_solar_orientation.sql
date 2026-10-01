@@ -5,6 +5,8 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_orientation;
 -- Solar units and power by the main orientation of their modules (Hauptausrichtung), for Deutschland ('DE'), every
 -- Bundesland (2-digit key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every orientation, also
 -- empty ones. sort: the compass clockwise from north, then Ost-West, tracked and unknown.
+-- Per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql; the API sums the chosen ones), with
+-- Brutto (Bruttoleistung) and Netto (Nettonennleistung) power.
 CREATE MATERIALIZED VIEW mrt.solar_orientation AS
 WITH orientations (code, orientation, label, sort) AS (
     VALUES
@@ -23,7 +25,12 @@ WITH orientations (code, orientation, label, sort) AS (
 ),
 units AS (
     -- Installed units (InBetrieb) in Germany, like the region rollups
-    SELECT COALESCE(o.orientation, 'unbekannt') AS orientation, u."Gemeindeschluessel" AS ags, u."Bruttoleistung" AS power
+    SELECT
+        COALESCE(o.orientation, 'unbekannt') AS orientation,
+        CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        u."Gemeindeschluessel" AS ags,
+        u."Bruttoleistung" AS power,
+        u."Nettonennleistung" AS power_net
     FROM raw.solar_units u
     LEFT JOIN orientations o ON o.code = u."Hauptausrichtung"
     WHERE u."EinheitBetriebsstatus" = '35'
@@ -33,6 +40,7 @@ counts AS (
     -- Per orientation for Deutschland, every Land, Kreis and Gemeinde in one pass
     SELECT
         orientation,
+        anlagenart,
         CASE
             WHEN GROUPING(ags) = 0 THEN ags
             WHEN GROUPING(LEFT(ags, 5)) = 0 THEN LEFT(ags, 5)
@@ -40,9 +48,15 @@ counts AS (
             ELSE 'DE'
         END AS region,
         count(*) AS total_units,
-        sum(power) AS total_power
+        sum(power) AS total_power,
+        sum(power_net) AS total_power_net
     FROM units
-    GROUP BY GROUPING SETS ((orientation), (orientation, LEFT(ags, 2)), (orientation, LEFT(ags, 5)), (orientation, ags))
+    GROUP BY GROUPING SETS (
+        (orientation, anlagenart),
+        (orientation, anlagenart, LEFT(ags, 2)),
+        (orientation, anlagenart, LEFT(ags, 5)),
+        (orientation, anlagenart, ags)
+    )
 ),
 regions AS (
     -- Deutschland and the Länder, Kreise and Gemeinden of the boundaries
@@ -55,15 +69,18 @@ SELECT
     o.orientation,
     o.label,
     o.sort,
+    a.anlagenart,
     r.level,
     -- The keys are digits: byte order ("C") is their order, and much faster to sort than a language's
     r.region COLLATE "C" AS region,
     COALESCE(n.total_units, 0) AS total_units,
-    CAST(COALESCE(n.total_power, 0) / 1000 AS NUMERIC(12,3)) AS total_power  -- MW
+    CAST(COALESCE(n.total_power, 0) / 1000 AS NUMERIC(12,3)) AS total_power,  -- MW
+    CAST(COALESCE(n.total_power_net, 0) / 1000 AS NUMERIC(12,3)) AS total_power_net
 FROM orientations o
+CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche')) AS a (anlagenart)
 CROSS JOIN regions r
-LEFT JOIN counts n ON n.orientation = o.orientation AND n.region = r.region
-ORDER BY r.level, 5, o.sort;
+LEFT JOIN counts n ON n.orientation = o.orientation AND n.anlagenart = a.anlagenart AND n.region = r.region
+ORDER BY level, region, sort, anlagenart;
 
 -- One region per request, or all regions of a level (in a Land or Kreis): read in the order of the table, no sorting
-CREATE UNIQUE INDEX ON mrt.solar_orientation (level, region, sort);
+CREATE UNIQUE INDEX ON mrt.solar_orientation (level, region, sort, anlagenart);
