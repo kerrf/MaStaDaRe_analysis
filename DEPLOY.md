@@ -101,6 +101,9 @@ docker compose up -d --build backend caddy
 docker compose logs -f backend   # Ctrl+C once you see "Application startup complete"
 ```
 
+This first time the server builds the image itself. From then on the pipeline
+deploys (§10): it builds the image on GitHub and the server only pulls it.
+
 ## 7. Cloudflare (Cloudflare dashboard)
 
 For the `mastr-data.de` zone → SSL/TLS → Overview: set encryption mode to
@@ -132,20 +135,129 @@ Redeploy the frontend (or just push — see below) for it to take effect.
 `frontend/.env.production` is gitignored, so this dashboard setting is the
 only place this value actually lives for the deployed site.
 
-## 10. GitHub Actions secrets — auto-deploy on every push to `main` (GitHub)
+## 10. The pipeline: checks and deploys on every push to `main` (GitHub)
 
-Repo → Settings → Secrets and variables → Actions → New repository secret:
+`.github/workflows/pipeline.yml`. Every push to `main` runs it (Actions tab on
+GitHub, about 5 minutes); nothing reaches the website unless every check is
+green, and the backend always goes live before the frontend that needs it.
+
+```
+push to main
+  ├─ Backend checks    ruff (lint + format) → pytest
+  ├─ Frontend checks   eslint → vite build
+  └─ Backend image     docker build → stored on ghcr.io
+         │ all green
+         ▼
+  Deploy backend       server pulls the image → restart → /health → smoke test
+         │ healthy       (else: back to the previous version, run turns red)
+         ▼
+  Deploy frontend      Vercel production → the website answers
+```
+
+| Job | Step | What it does |
+|---|---|---|
+| Backend checks | `uv sync --locked` | installs exactly the versions in `uv.lock`; fails if `uv.lock` doesn't match `pyproject.toml` |
+| | `ruff check` | finds bugs without running the code: undefined names, unused variables, likely mistakes (rules in `pyproject.toml`) |
+| | `ruff format --check` | the code is formatted as `ruff format` would (120 columns) |
+| | `pytest` | the tests in `backend/tests` |
+| Frontend checks | `npm ci`, `npm run lint`, `npm run build` | the same for the frontend: exact versions from `package-lock.json`, ESLint, Vite build |
+| Backend image | build, store | builds the `Dockerfile` once and stores it on ghcr.io (GitHub's registry), named by the commit: what was checked is exactly what runs. Layers that didn't change come from a cache, so a code change rebuilds in about a minute |
+| Deploy backend | `deploy/deploy_backend.sh` | on the server: notes the running version as the way back, sets the repo files (compose.yml, Caddyfile) to the commit, swaps in the new image and waits until `/health` answers (it checks the database too). Not healthy within 2 minutes: back to the previous version. Caddy holds requests during the swap, so visitors see no errors |
+| | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare. A route also fails when the server's database lacks a view the new code reads. Fails: `deploy/rollback_backend.sh` |
+| Deploy frontend | `vercel deploy --prod` | Vercel builds and publishes the frontend, as it used to on every push; its own deploys of `main` are off (`frontend/vercel.json`), so the website changes only here. Then checks that www.mastr-data.de answers |
+
+Pull requests (Dependabot's) run only the three checks. `Run workflow` on
+the Actions tab runs it for `main` again, e.g. after pushing the database.
+
+### Once: secrets (GitHub → repo → Settings → Secrets and variables → Actions)
 
 | Secret | Value |
 |---|---|
 | `NETCUP_HOST` | `152.53.185.75` |
-| `NETCUP_SSH_USER` | the SSH user you used above |
-| `NETCUP_SSH_KEY` | a **private** key (generate a dedicated deploy key, don't reuse your personal one) whose public half is in that user's `~/.ssh/authorized_keys` on the server |
+| `NETCUP_SSH_USER` | the ssh user on the server (`root`) |
+| `NETCUP_SSH_KEY` | a **private** key only for the pipeline, see below |
+| `NETCUP_KNOWN_HOSTS` | the server's host key, see below: ssh then refuses any other machine posing as the server |
 | `NETCUP_DEPLOY_PATH` | `/opt/mastr` |
+| `VERCEL_TOKEN` | vercel.com → Account Settings → Tokens → Create (scope: the project's team; it expires, renew it then) |
+| `VERCEL_ORG_ID` | the team's ID: Team Settings → General → Team ID (personal account: Account Settings → General → Vercel ID) |
+| `VERCEL_PROJECT_ID` | Project → Settings → General → Project ID |
 
-Once these are set, every push to `main` that passes CI runs
-`git pull && docker compose up -d --build backend caddy` on the server
-automatically (see `.github/workflows/main.yaml`, `deploy` job).
+The deploy key, on your machine (no passphrase: the pipeline can't type one):
+
+```bash
+ssh-keygen -t ed25519 -N "" -C "github-actions" -f ~/.ssh/mastr_deploy
+```
+
+```bash
+ssh-copy-id -i ~/.ssh/mastr_deploy.pub root@152.53.185.75
+```
+
+```bash
+cat ~/.ssh/mastr_deploy
+```
+
+The last one prints the private key: all of it, from `-----BEGIN` to
+`-----END ... KEY-----`, is the value of `NETCUP_SSH_KEY`. Then delete it
+locally (`rm ~/.ssh/mastr_deploy`); the server only needs the public half.
+
+The host key: the line your own ssh trusts since your first login:
+
+```bash
+ssh-keygen -F 152.53.185.75 | grep -v '^#'
+```
+
+Its output is the value of `NETCUP_KNOWN_HOSTS`.
+
+Also once: Settings → Advanced Security → **Dependabot security updates** on
+(security fixes as pull requests right away, see Dependabot below).
+
+The images on ghcr.io stay private: the server pulls with the run's own token,
+which expires when the run ends. After the first deploy, the old locally built
+image can go: `docker image rm mastr-backend` on the server (the deploy keeps
+it as `mastr-api:previous` until the next one).
+
+### When it turns red
+
+GitHub sends an email; the run's page shows which step failed and why.
+
+- **Checks:** fix it locally, push again. Most of it the pre-commit hook
+  catches before (below); `uv run ruff check --fix` and `uv run ruff format`
+  fix most lint and format findings.
+- **Deploy backend:** the previous version keeps running (or runs again). The
+  usual cause: the new code reads a view the server's database doesn't have
+  yet. Push the database first (`./deploy/push_db.sh`, §12), then `Run
+  workflow`. With database changes always in this order: database, then code.
+- **Deploy frontend:** the backend is already new (and compatible with the old
+  frontend, as long as routes are only added); fix and push, or `Re-run
+  failed jobs`.
+
+### Going back by hand
+
+- Backend, one deploy back: on the server `/opt/mastr/deploy/rollback_backend.sh`.
+- Further back: Actions → the run of an older commit → `Re-run all jobs`; it
+  deploys that commit again (its image is still on ghcr.io).
+- Frontend: Vercel → Deployments → the previous one → Instant Rollback.
+
+### Dependabot (`.github/dependabot.yml`)
+
+Mondays at 6:00 it opens pull requests for newer versions: one for the Python
+packages, one for npm, one for the GitHub Actions (minor and patch updates
+together; a major update alone, it may need code changes). It waits until a
+release is 7 days old. The pipeline checks each pull request; merge it when
+it's green, and it deploys like any push.
+
+### Checks before committing (`.pre-commit-config.yaml`)
+
+Once per clone:
+
+```bash
+uv run pre-commit install
+```
+
+From then on, `git commit` runs ruff (the same version as the pipeline, from
+`uv.lock`) on the changed Python files, fixes and formats them, and stops the
+commit if it changed something: look at it, `git add`, commit again. It also
+stops files over 25 MB and private keys from being committed.
 
 ## 11. Nightly update from the MaStR API
 
@@ -263,14 +375,9 @@ on Hobby they don't use up the 50,000 events a month.
 **API (this server):** Caddy writes an access log, a JSON line per request with
 the visitor's IP (from Cloudflare's `CF-Connecting-IP`, trusted only from
 Cloudflare's addresses), country, path, status, time, browser. A new file every
-day, kept 7 days, in `logs/caddy/` (gitignored). The deploy job (§10) sets it up
-on the next push to `main`: `git pull` brings the Caddyfile and compose.yml,
-`docker compose up -d caddy` pulls the pinned `caddy:2.11-alpine` and recreates
-Caddy with the log folder. By hand, the same:
-
-```bash
-cd /opt/mastr && git pull && docker compose up -d caddy
-```
+day, kept 7 days, in `logs/caddy/` (gitignored). The pipeline (§10) brings it
+with a deploy: the Caddyfile and compose.yml of the commit, the pinned
+`caddy:2.11-alpine`, and Caddy restarted when its Caddyfile changed.
 
 Then, on your machine, whenever you like:
 
@@ -290,8 +397,6 @@ section 3) and don't keep the logs or reports longer than needed.
   `mrt.solar_units_bundesland_agg`, which don't exist yet — the SQL to
   build them exists (`backend/app/etl/queries/aggregate_pv_by_*.sql`) but
   nothing runs it yet. This is the "whole update pipeline" to build later.
-- `/solar/` (unfiltered list endpoint) has a pre-existing bug — not called
-  by the current frontend, so left alone.
 - `MapPage.jsx` / `MapPage2.jsx` (`/map`, `/map2` routes) call backend
   endpoints that don't exist — they look superseded by `MapPage3` (`/map3`)
   and weren't touched.
