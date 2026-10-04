@@ -97,8 +97,8 @@ function SizeWatcher() {
   return null;
 }
 
-// Page scroll stays page scroll; Ctrl/⌘ + wheel zooms the map.
-function WheelHandler({ onPlainWheel }) {
+// Page scroll stays page scroll; Ctrl/⌘ + wheel zooms the map. Also the map of the Landkreis/Gemeinde page.
+export function WheelHandler({ onPlainWheel }) {
   const map = useMap();
   useEffect(() => {
     map.scrollWheelZoom.disable();

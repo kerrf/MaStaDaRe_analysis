@@ -44,6 +44,18 @@ const SOURCES = [
     href: 'https://www.naturalearthdata.com/',
   },
   {
+    data: 'Hintergrundkarte der Seite Landkreis/Gemeinde (Grau, Farbig)',
+    source: 'basemap.de Web Raster, Bundesamt für Kartographie und Geodäsie',
+    license: 'Datenlizenz Deutschland – Namensnennung – 2.0, © basemap.de / BKG',
+    href: 'https://basemap.de',
+  },
+  {
+    data: 'Satellitenbild der Seite Landkreis/Gemeinde',
+    source: 'Sentinel-2 cloudless 2024, EOX IT Services GmbH (enthält modifizierte Copernicus-Sentinel-Daten 2024)',
+    license: 'CC BY-NC-SA 4.0',
+    href: 'https://s2maps.eu',
+  },
+  {
     data: 'Meeresgebiet „Offshore“ (Küstenmeer und Ausschließliche Wirtschaftszone)',
     source: 'Flanders Marine Institute (2023): Maritime Boundaries Geodatabase, Version 12 – Marine Regions',
     license: 'CC BY 4.0 (Daten verändert)',

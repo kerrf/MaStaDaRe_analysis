@@ -8,6 +8,10 @@ const nf = (options) => {
 export const formatNumber = (value, digits = 0) =>
   value == null || Number.isNaN(value) ? '—' : nf({ maximumFractionDigits: digits }).format(value);
 
+// With exactly that many decimals, for columns of a table: "20,0" under "72,8"
+export const formatFixed = (value, digits) =>
+  value == null || Number.isNaN(value) ? '—' : nf({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+
 // Legend ticks: German compact notation only abbreviates from "Mio." upward, so pick precision by magnitude.
 export function formatTick(value) {
   if (value == null || Number.isNaN(value)) return '—';

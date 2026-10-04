@@ -16,7 +16,8 @@ import './dashboard.css';
 
 // The map pulls in Leaflet: only for the map page
 const MapView = lazy(() => import('./MapView'));
-const PAGES = { karte: MapView, zubau: ZubauView, anlagen: AnlagenView, regionen: RegionenView };
+const KommuneView = lazy(() => import('./KommuneView'));
+const PAGES = { karte: MapView, kommune: KommuneView, zubau: ZubauView, anlagen: AnlagenView, regionen: RegionenView };
 
 function PageLoader() {
   return (
@@ -27,8 +28,8 @@ function PageLoader() {
 }
 
 /**
- * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Zubau & Registrierungen, Anlagen,
- * Regionen. The header names the dashboard and the scope; tabs below it lead to the other pages, keeping the scope and
+ * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Landkreis/Gemeinde, Zubau &
+ * Registrierungen, Anlagen, Regionen. The header names the dashboard and the scope; tabs below it lead to the other pages, keeping the scope and
  * the choices (technology, filters) where the page has them.
  */
 export default function Dashboard({ config, view }) {

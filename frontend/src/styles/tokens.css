@@ -51,6 +51,8 @@
 
   /* Chart series (Zubau im Zeitverlauf) */
   --series-solar: #f2b200;
+  /* Solar on open land, next to the rooftops' --series-solar */
+  --series-freiflaeche: #b25a06;
   --series-wind-land: #5ea66b;
   --series-wind-sea: #2a6496;
   --series-wasserkraft: #2b8cbe;

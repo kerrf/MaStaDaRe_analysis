@@ -65,8 +65,15 @@ export default function DatenschutzPage() {
 
           <h2>5. Schriftarten und Karten</h2>
           <p>
-            Schriftarten werden lokal von dieser Webseite geladen; es besteht keine Verbindung zu Servern von Google. Die Karten werden
-            ohne externe Kartendienste (Kacheln) dargestellt.
+            Schriftarten werden lokal von dieser Webseite geladen; es besteht keine Verbindung zu Servern von Google. Die Karten der
+            Dashboards werden ohne externe Kartendienste dargestellt.
+          </p>
+          <p>
+            Nur die Seite <strong>Landkreis/Gemeinde</strong> zeigt eine Hintergrundkarte aus Kartenkacheln: die Karten Grau und Farbig
+            vom <strong>Bundesamt für Kartographie und Geodäsie</strong> (basemap.de, Deutschland), das Satellitenbild von der{' '}
+            <strong>EOX IT Services GmbH</strong> (Österreich). Beim Laden der Kacheln erhält der jeweilige Anbieter technisch bedingt
+            die IP-Adresse, Datum und Uhrzeit sowie Browserinformationen; Kacheln des Satellitenbilds werden erst geladen, wenn es
+            gewählt wird (Art. 6 Abs. 1 lit. f DSGVO, Interesse an einer aussagekräftigen Karte).
           </p>
 
           <h2>6. Ihre Rechte</h2>
