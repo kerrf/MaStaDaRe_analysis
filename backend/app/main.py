@@ -3,9 +3,11 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from sqlalchemy import text
 
 from app.core.config import settings
+from app.db.database import engine
 from app.routers import battery, gas, meta, pumped_storage, regions, solar, water, wind, zubau
 
 app = FastAPI(
@@ -70,7 +72,14 @@ def get_plz5_heatmap_image():
 
 
 @app.get("/health")
-async def health_check():
+def health_check():
+    """Whether the API runs and reaches its database: the deploy waits for it (compose.yml) before it counts a new
+    version as live."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse({"status": "database unreachable"}, status_code=503)
     return {"status": "ok"}
 
 

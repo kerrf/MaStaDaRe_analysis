@@ -1,10 +1,14 @@
 FROM python:3.12-slim
 
+# Links the image on ghcr.io to the repository (shown there, and it takes the repository's access rights)
+LABEL org.opencontainers.image.source=https://github.com/kerrf/MaStaDaRe_analysis
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Pinned, so the same commit always builds the same image
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
 
 WORKDIR /srv
 

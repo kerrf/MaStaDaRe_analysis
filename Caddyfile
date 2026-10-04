@@ -20,5 +20,9 @@ api.mastr-data.de {
 		}
 		format json
 	}
-	reverse_proxy backend:8000
+	# While a deploy swaps the backend container (a few seconds), requests wait for it instead of failing with a 502
+	reverse_proxy backend:8000 {
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }

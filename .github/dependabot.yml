@@ -1,0 +1,41 @@
+# Dependabot: every Monday it looks for newer versions of what the project uses and opens a pull request per group.
+# It proposes a release only once it is 7 days old: hijacked releases of a package are usually found and pulled by then.
+# The pipeline checks each pull request; when it's green, merging it deploys like any push to main.
+# Minor and patch updates come together in one pull request per area; a major update (e.g. Vite 5 → 8) comes alone,
+# since it may need code changes. Security fixes come right away, not on Mondays (Settings → Advanced Security →
+# Dependabot security updates).
+version: 2
+
+updates:
+  - package-ecosystem: uv # backend: pyproject.toml + uv.lock
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    cooldown: { default-days: 7 }
+    groups:
+      backend:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm # frontend: package.json + package-lock.json
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    cooldown: { default-days: 7 }
+    groups:
+      frontend:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions # the actions in .github/workflows
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    cooldown: { default-days: 7 }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker # the base image in the Dockerfile
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Berlin }
+    cooldown: { default-days: 7 }
+    ignore:
+      # A new Python version is a decision of its own (pyproject.toml, uv.lock and the image together), not an update
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]

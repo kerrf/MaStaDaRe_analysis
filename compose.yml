@@ -18,6 +18,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
+    # On the server: the image the pipeline built for the deployed commit (deploy/deploy_backend.sh tags it).
+    # `docker compose build backend` builds the same from the code here instead.
+    image: mastr-api:live
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,6 +33,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Healthy = answers /health, which also checks the database. A deploy waits for it before it counts as live.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      start_interval: 2s
+      retries: 3
 
   caddy:
     # Pinned: the access log's daily rotation (roll_interval, Caddyfile) needs Caddy 2.11; Caddy 2.10 refuses the config.

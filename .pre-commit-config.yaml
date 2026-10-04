@@ -1,0 +1,32 @@
+# Checks on `git commit`, before anything reaches GitHub. Ruff is the one from uv.lock, the same as in the pipeline, so a
+# commit that passes here passes there too. If a check changes a file (ruff fixes and formats), the commit stops: look at
+# the change, `git add` it and commit again.
+#
+# Set up once per clone:   uv run pre-commit install
+# All files, by hand:      uv run pre-commit run --all-files
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (fixes what it can)
+        entry: uv run --frozen ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # A data file committed by mistake (the map layers in frontend/public are up to 20 MB, so the limit is above that)
+      - id: check-added-large-files
+        args: [--maxkb=25000]
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml

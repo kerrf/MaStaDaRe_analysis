@@ -1,0 +1,215 @@
+# The pipeline of mastr-data.de (DEPLOY.md, section 10, explains it step by step).
+#
+#   push / pull request
+#     ├─ Backend checks    ruff (lint + format) → pytest
+#     ├─ Frontend checks   eslint → vite build
+#     └─ Backend image     docker build (on main: stored on ghcr.io)
+#            │ all green, and only on main
+#            ▼
+#     Deploy backend       server pulls the image → restart → /health → smoke test (fails: back to the previous version)
+#            ▼
+#     Deploy frontend      Vercel production → the website answers
+#
+# Pull requests (e.g. Dependabot's) only run the checks. Actions are pinned to a commit (a tag can be moved by whoever
+# controls the action); the comment names the version, Dependabot updates both.
+name: Pipeline
+
+on:
+  push:
+    branches: [main]
+    # Text only: nothing to check or deploy
+    paths-ignore: ["**.md", "notebooks/**", "**.ipynb"]
+  pull_request:
+    branches: [main]
+  # The "Run workflow" button (Actions → Pipeline): deploys main again, e.g. after pushing the database
+  workflow_dispatch:
+
+# One run per branch at a time. On main every run finishes (a deploy must not stop halfway); on a pull request a newer
+# push cancels the older run.
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# What the run's GitHub token may do: read the code. Jobs that need more say so.
+permissions:
+  contents: read
+
+env:
+  # Where the backend images are stored (ghcr.io names are lowercase)
+  IMAGE: ghcr.io/kerrf/mastadare_analysis/backend
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23" # as in the Dockerfile
+          python-version: "3.12" # as in the Dockerfile
+          enable-cache: true
+
+      - name: Install (exactly uv.lock; fails if it doesn't match pyproject.toml)
+        run: uv sync --locked
+
+      - name: Lint (ruff check, rules in pyproject.toml)
+        run: uv run ruff check --output-format github
+
+      - name: Format (ruff format --check; fix locally with `uv run ruff format`)
+        run: uv run ruff format --check
+
+      - name: Tests (pytest)
+        run: uv run pytest
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install (exactly package-lock.json)
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Build (vite build)
+        run: npm run build
+
+  image:
+    name: Backend image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write # store the image on ghcr.io
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pull requests only build it (does the Dockerfile still work?); on main it's stored, named by the commit.
+      # The cache keeps unchanged layers (the Python packages), so a code change rebuilds in about a minute.
+      - name: Build (and store)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-backend:
+    name: Deploy backend
+    needs: [backend, frontend, image]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://api.mastr-data.de/health
+    permissions:
+      contents: read
+      packages: read # the server pulls the image with this run's token
+    env:
+      DEPLOY_PATH: ${{ secrets.NETCUP_DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The server's host key comes from a secret: ssh refuses any other machine posing as the server
+      - name: Set up ssh to the server
+        env:
+          SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.NETCUP_KNOWN_HOSTS }}
+          HOST: ${{ secrets.NETCUP_HOST }}
+          SSH_USER: ${{ secrets.NETCUP_SSH_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  BatchMode yes\n  StrictHostKeyChecking yes\n' \
+            "$HOST" "$SSH_USER" > ~/.ssh/config
+
+      # For this run only: the token expires when the job ends, the server keeps no lasting access to ghcr.io
+      - name: Let the server pull the image
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$TOKEN" | ssh server docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Deploy (deploy/deploy_backend.sh on the server)
+        run: ssh server "cd '$DEPLOY_PATH' && SHA='$GITHUB_SHA' IMAGE='$IMAGE' bash -s" < deploy/deploy_backend.sh
+
+      # Every route the website uses, through Cloudflare as visitors reach it. Also catches a database that lacks a view
+      # the new code reads (then push the database and run the pipeline again).
+      - name: Smoke test (deploy/smoke_test.sh)
+        id: smoke
+        run: ./deploy/smoke_test.sh
+
+      - name: Smoke test failed, back to the previous version
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: ssh -n server "cd '$DEPLOY_PATH' && bash deploy/rollback_backend.sh"
+
+      - name: Log the server out of ghcr.io
+        if: always()
+        run: ssh -n server docker logout ghcr.io || true
+
+  deploy-frontend:
+    name: Deploy frontend
+    needs: deploy-backend
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://www.mastr-data.de
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      # Vercel builds it as before (its settings and environment variables, Root Directory frontend); the command waits
+      # until the new version is live. Vercel's own deploys of main are off (frontend/vercel.json), so the website only
+      # changes here, after the backend.
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@62.2.0 deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Check the website
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 5 --output /dev/null https://www.mastr-data.de/
