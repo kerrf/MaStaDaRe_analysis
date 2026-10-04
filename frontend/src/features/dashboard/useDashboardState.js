@@ -3,8 +3,9 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { GRANULARITIES } from '../../config/dashboards';
 import { findBundesland, isKreisKey } from '../../config/regions';
 import { VIEWS, viewPath } from '../../config/views';
+import { API_BASE_URL } from '../../config/site';
 import { trackEvent } from '../../lib/usage';
-import { useTopology } from '../../lib/data';
+import { useJson, useTopology } from '../../lib/data';
 
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
 
@@ -76,10 +77,27 @@ export default function useDashboardState(config, view) {
     () => (kreisAgs && kreise.data ? kreise.data.features.find((f) => f.properties.ags === kreisAgs) ?? null : null),
     [kreisAgs, kreise.data],
   );
-  const scopeName = kreisAgs ? kreisFeature?.properties.name ?? `Kreis ${kreisAgs}` : region?.name ?? 'Deutschland';
-  // The scope as the analyses' API knows it: "DE", or the key of the Land or Kreis
-  const scopeKey = kreisAgs ?? region?.ags ?? 'DE';
-  const parentName = kreisAgs ? region.name : 'Deutschland';
+  const kreisName = kreisAgs ? kreisFeature?.properties.name ?? `Kreis ${kreisAgs}` : null;
+
+  // A Gemeinde of that Kreis (?gemeinde=<8 digits>), on the pages that show one (VIEWS[view].gemeinde). The Gemeinden of
+  // the Kreis to choose from, with their names, come from the API.
+  const withGemeinde = Boolean(VIEWS[view].gemeinde);
+  const gemeindeParam = searchParams.get('gemeinde') ?? '';
+  const gemeinden = useJson(withGemeinde && kreisAgs ? `${API_BASE_URL}/regions/areas?level=gemeinde&within=${kreisAgs}` : null);
+  const gemeindeOptions = useMemo(
+    () =>
+      gemeinden.data
+        ?.map((row) => ({ ags: row.region, name: row.name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'de')) ?? null,
+    [gemeinden.data],
+  );
+  const gemeindeAgs = withGemeinde && kreisAgs && /^\d{8}$/.test(gemeindeParam) && gemeindeParam.startsWith(kreisAgs) ? gemeindeParam : null;
+  const gemeindeName = gemeindeAgs ? gemeindeOptions?.find((o) => o.ags === gemeindeAgs)?.name ?? `Gemeinde ${gemeindeAgs}` : null;
+
+  const scopeName = gemeindeName ?? kreisName ?? region?.name ?? 'Deutschland';
+  // The scope as the analyses' API knows it: "DE", or the key of the Land, Kreis or Gemeinde
+  const scopeKey = gemeindeAgs ?? kreisAgs ?? region?.ags ?? 'DE';
+  const parentName = gemeindeAgs ? kreisName : kreisAgs ? region.name : 'Deutschland';
 
   const technology = config.technologies.find((t) => t.id === searchParams.get('technologie')) ?? config.technologies[0];
   const selection = selectionOf(technology, searchParams);
@@ -105,11 +123,12 @@ export default function useDashboardState(config, view) {
     [setSearchParams, location.state],
   );
 
-  // Moves to Deutschland (no arguments), a Land or a Landkreis of a Land. The history entry remembers the resolution
+  // Moves to Deutschland (no arguments), a Land, a Landkreis of a Land, or a Gemeinde of that Kreis (on the pages that
+  // show one). The history entry remembers the resolution
   // switch made when entering each level ({ land, kreis }: { from, to }), so leaving the level – by the map, the scope
   // bar or several levels at once – restores the resolution the user came from, unless they changed it meanwhile.
   const selectScope = useCallback(
-    (landCode = null, kreisCode = null) => {
+    (landCode = null, kreisCode = null, gemeindeCode = null) => {
       const params = new URLSearchParams(searchParams);
       const ebene = () => params.get('ebene') ?? config.defaultGranularity;
       const drill = {};
@@ -134,6 +153,9 @@ export default function useDashboardState(config, view) {
         }
       }
 
+      // A Gemeinde belongs to the Kreis it was chosen in
+      params.delete('gemeinde');
+      if (gemeindeCode && kreisCode && gemeindeCode.startsWith(kreisCode)) params.set('gemeinde', gemeindeCode);
       const query = params.toString();
       navigate(`${viewPath(config.basePath, view, landCode, kreisCode)}${query ? `?${query}` : ''}`, {
         state: Object.keys(drill).length ? { drill } : null,
@@ -143,6 +165,14 @@ export default function useDashboardState(config, view) {
   );
   // One level up: from a Landkreis to its Land, from a Land to Deutschland.
   const exitScope = useCallback(() => (kreisAgs ? selectScope(region.code) : selectScope()), [kreisAgs, region, selectScope]);
+  // A Gemeinde of the Kreis, or none (the Kreis as a whole)
+  const selectGemeinde = useCallback(
+    (ags) => {
+      if (ags) trackEvent('Gemeinde', { dashboard: config.id });
+      setParam('gemeinde', ags || null, null);
+    },
+    [setParam, config.id],
+  );
 
   // The address of another page of the dashboard, in the same scope where it has one, with the same choices
   const hrefOf = useCallback(
@@ -180,6 +210,10 @@ export default function useDashboardState(config, view) {
     kreise,
     kreisOptions,
     kreisFeature,
+    kreisName,
+    gemeindeAgs,
+    gemeindeOptions,
+    selectGemeinde,
     scopeName,
     scopeKey,
     parentName,

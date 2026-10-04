@@ -6,7 +6,8 @@ import { ChartColumnIncreasing, Map as MapIcon, MapPinned, Ruler } from 'lucide-
 export const VIEWS = {
   karte: { id: 'karte', label: 'Karte', icon: MapIcon, path: '', scoped: true },
   zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: false },
-  anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true },
+  // gemeinde: the page can show a single Gemeinde of the Kreis too (?gemeinde=…)
+  anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true, gemeinde: true },
   regionen: { id: 'regionen', label: 'Regionen', icon: MapPinned, path: 'regionen', scoped: true },
 };
 export const VIEW_PATHS = new Set(Object.values(VIEWS).map((view) => view.path).filter(Boolean));

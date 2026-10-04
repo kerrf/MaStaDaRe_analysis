@@ -1,8 +1,9 @@
 import { ChevronRight, MapPin } from 'lucide-react';
 import { BUNDESLAENDER } from '../../config/regions';
 
-// Deutschland › Bundesland › Landkreis. kreisOptions: the Landkreise of the selected Land ({ ags, name }), null while loading.
-export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope }) {
+// Deutschland › Bundesland › Landkreis (› Gemeinde, where the page has one: onSelectGemeinde). kreisOptions and
+// gemeindeOptions: the Landkreise of the selected Land, the Gemeinden of the Kreis ({ ags, name }), null while loading.
+export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope, gemeinde, gemeindeOptions, onSelectGemeinde }) {
   return (
     <nav className="scope-bar" aria-label="Gebietsauswahl">
       <span className="scope-bar__label">
@@ -63,6 +64,33 @@ export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope })
             ))}
           </select>
         </li>
+        {onSelectGemeinde && (
+          <>
+            <li className="scope-bar__sep" aria-hidden="true">
+              <ChevronRight size={14} />
+            </li>
+            <li>
+              <label className="visually-hidden" htmlFor="scope-gemeinde">
+                Gemeinde
+              </label>
+              <select
+                id="scope-gemeinde"
+                className={`scope-bar__select${gemeinde ? ' is-set' : ''}`}
+                value={gemeinde ?? ''}
+                disabled={!kreis || !gemeindeOptions}
+                title={kreis ? undefined : 'Zuerst einen Landkreis wählen'}
+                onChange={(e) => onSelectGemeinde(e.target.value || null)}
+              >
+                <option value="">{kreis ? 'Ganzer Landkreis' : 'Gemeinde wählen'}</option>
+                {gemeindeOptions?.map((g) => (
+                  <option key={g.ags} value={g.ags}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </li>
+          </>
+        )}
       </ol>
     </nav>
   );

@@ -51,6 +51,16 @@ export function regionTablesOf(technology) {
   ].filter(Boolean);
 }
 
+// The analyses of a technology that show one area (Deutschland, a Land, Kreis or Gemeinde): the orientation of the
+// modules (solar) and the size classes, with the endpoint of each (?region=…)
+export function scopeAnalysesOf(technology) {
+  const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
+  return [
+    orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: orientation.path, what: 'Leistung nach Hauptausrichtung der Module' },
+    technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: technology.sizesPath, what: `${technology.label}, Anteile je Leistungsklasse` },
+  ].filter(Boolean);
+}
+
 // The resolutions a technology has data for (`granularities`, default: all) and that make sense for it.
 const REGION_LEVELS = ['bundesland', 'landkreis', 'gemeinde'];
 export const isAvailable = (granularity, technology) =>

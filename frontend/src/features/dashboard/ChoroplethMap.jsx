@@ -180,6 +180,7 @@ export default function ChoroplethMap({
   onExitFocus,
   exitHint,
   onRegionClick,
+  highlight,
   heatmapUrl,
   onPlainWheel,
   children,
@@ -295,6 +296,16 @@ export default function ChoroplethMap({
               style={{ fill: false, color: focusColor, weight: 2.5, opacity: 1 }}
             />
           </>
+        )}
+        {/* An area picked on the map (its analyses below it): outlined, on top of its neighbours */}
+        {highlight && (
+          <GeoJSON
+            key={`pick-${highlight.properties._key}`}
+            data={highlight}
+            renderer={focusRenderer}
+            interactive={false}
+            style={{ fill: false, color: '#101828', weight: 2.5, opacity: 1 }}
+          />
         )}
       </Pane>
 

@@ -12,7 +12,7 @@ const isCard = (a) => a.kind === 'sizes' || a.kind === 'orientation';
 // The page "Anlagen" of a dashboard: what the plants are like – size classes and orientation of the active technology in
 // the scope, and the batteries at solar units (Germany-wide)
 export default function AnlagenView({ config, state }) {
-  const { technology, region, kreisAgs, kreisOptions, selectScope } = state;
+  const { technology, region, kreisAgs, kreisOptions, selectScope, gemeindeAgs, gemeindeOptions, selectGemeinde } = state;
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
   const panels = analyses.filter((a) => a.kind === 'pv-speicher');
@@ -25,7 +25,17 @@ export default function AnlagenView({ config, state }) {
 
   return (
     <>
-      {cards.length > 0 && <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />}
+      {cards.length > 0 && (
+        <ScopeBar
+          region={region}
+          kreis={kreisAgs}
+          kreisOptions={kreisOptions}
+          onSelectScope={selectScope}
+          gemeinde={gemeindeAgs}
+          gemeindeOptions={gemeindeOptions}
+          onSelectGemeinde={selectGemeinde}
+        />
+      )}
       {technologies.length > 0 && <SelectionBar technologies={technologies} state={state} />}
       <AnalysesNav
         links={[...(cards.length ? [{ id: 'analyse-anlagen', title: cards.map((a) => a.title).join(' · '), icon: technology.icon }] : []), ...panels.map((a) => ({ id: `analyse-${a.id}`, title: a.title, icon: a.icon }))]}

@@ -1176,83 +1176,15 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 /* Next to the Top 10 of the map: the other pages of the dashboard */
-.more-pages__list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 8px;
-  list-style: none;
-}
 
-.more-pages__link {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  color: inherit;
-  transition: background var(--dur-fast) var(--ease);
-}
 
-.more-pages__link:hover {
-  background: var(--surface-hover);
-  color: inherit;
-}
 
-.more-pages__icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
 
-.more-pages__text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
 
-.more-pages__label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--ink-primary);
-}
 
-.more-pages__scope {
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-sunken);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
 
-.more-pages__description {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--ink-muted);
-}
 
-.more-pages__arrow {
-  flex: none;
-  color: var(--ink-muted);
-  transition: transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
 
-.more-pages__link:hover .more-pages__arrow {
-  transform: translateX(3px);
-  color: var(--accent-strong);
-}
 
 /* The choice of technology on the pages without the map's controls (Anlagen, Regionen) */
 .selection-bar {
@@ -2283,3 +2215,50 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   border-radius: 50%;
   vertical-align: 0;
 }
+
+/* ------------------------------------------- Analysis of the map's area */
+/* Next to the Top 10: Ausrichtung or Anlagengröße of the area in view, or of the one picked on the map */
+.scope-analysis .card__header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.scope-analysis__pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 20px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.scope-analysis__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.scope-analysis__clear:hover {
+  border-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+/* The choice between the analyses keeps its words whole */
+.scope-analysis .segmented__option {
+  flex: 0 0 auto;
+}
+

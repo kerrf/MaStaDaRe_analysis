@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Construction, Download, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
-import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable } from '../../config/dashboards';
+import { Construction, Download, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
+import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
-import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
 import { trackEvent } from '../../lib/usage';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
@@ -14,6 +12,7 @@ import ControlPanel from './ControlPanel';
 import KpiStrip from './KpiStrip';
 import MapLegend from './MapLegend';
 import RankingPanel from './RankingPanel';
+import ScopeAnalysisCard from './ScopeAnalysisCard';
 import ScopeBar from './ScopeBar';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
@@ -65,45 +64,6 @@ function MapOverlay({ state, technology, onRetry }) {
     );
   }
   return null;
-}
-
-// The other pages of the dashboard, next to the Top 10: what they show, in the scope of the map where they have one
-function MorePages({ config, state }) {
-  const menu = DASHBOARD_MENUS.find((m) => m.id === config.id);
-  const pages = viewsOf(config.id).filter((id) => id !== 'karte');
-  if (!pages.length) return null;
-  return (
-    <article className="card more-pages">
-      <header className="card__header">
-        <div>
-          <h3 className="card__title">Weitere Analysen</h3>
-          <div className="card__subtitle">{state.region ? `Zu ${state.scopeName} und im Vergleich` : 'Zu Deutschland und seinen Regionen'}</div>
-        </div>
-      </header>
-      <ul className="more-pages__list">
-        {pages.map((id) => {
-          const { icon: Icon, label, scoped } = VIEWS[id];
-          return (
-            <li key={id}>
-              <Link to={state.hrefOf(id)} className="more-pages__link">
-                <span className="more-pages__icon" aria-hidden="true">
-                  <Icon size={18} />
-                </span>
-                <span className="more-pages__text">
-                  <span className="more-pages__label">
-                    {label}
-                    {!scoped && state.region && <span className="more-pages__scope">Deutschland</span>}
-                  </span>
-                  <span className="more-pages__description">{menu.views[id]}</span>
-                </span>
-                <ArrowRight size={16} aria-hidden="true" className="more-pages__arrow" />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </article>
-  );
 }
 
 // The map page of a dashboard: KPIs of the scope, the map with its controls, and the Top 10 of its areas
@@ -228,19 +188,42 @@ export default function MapView({ config, state }) {
     },
     [canDrill, activeGranularity.id, region, kreisAgs],
   );
+  // An area that doesn't lead deeper (a Gemeinde of the Kreis, a Kreis while Germany shows Kreise) is picked instead:
+  // the card next to the Top 10 shows it. Only areas the analyses know (Länder, Kreise, Gemeinden), and only while the
+  // technology has such an analysis. A new scope, layer or technology lets it go.
+  const hasScopeAnalyses = withData && !isSites && scopeAnalysesOf(technology).length > 0;
+  const canPick = hasScopeAnalyses && Boolean(AGS_LENGTH[activeGranularity.id]);
+  const [picked, setPicked] = useState(null);
+  const pickContext = `${state.scopeKey}|${activeGranularity.id}|${technology.id}`;
+  const [pickedIn, setPickedIn] = useState(pickContext);
+  if (pickedIn !== pickContext) {
+    setPickedIn(pickContext);
+    setPicked(null);
+  }
   const onRegionClick = useCallback(
     (f) => {
       const target = drillTarget(f);
       if (target) selectScope(target.land, target.kreis);
+      else if (canPick && f.properties.ags?.length === AGS_LENGTH[activeGranularity.id]) {
+        setPicked({ key: f.properties.ags, name: labelFor(f) });
+      }
     },
-    [drillTarget, selectScope],
+    [drillTarget, selectScope, canPick, activeGranularity.id, labelFor],
+  );
+  const pickedFeature = useMemo(
+    () => (picked && merged ? merged.features.find((f) => f.properties._key === picked.key) ?? null : null),
+    [picked, merged],
   );
 
   const mapCardRef = useRef(null);
+  const analysisCardRef = useRef(null);
   const onRankingRowClick = (f) => {
-    onRegionClick(f);
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    mapCardRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    const target = drillTarget(f);
+    onRegionClick(f);
+    // Deeper: the map shows it; picked: the card next to the list does
+    if (target) mapCardRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    else analysisCardRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
   };
 
   // The ranking compares areas within the deepest scope that contains them (Kreise within their Land, Gemeinden within
@@ -275,6 +258,7 @@ export default function MapView({ config, state }) {
   if (canDrill && !kreisAgs && activeGranularity.id === (region ? 'landkreis' : 'bundesland')) {
     mapHints.push(region ? 'Klick auf einen Landkreis zum Hineinzoomen' : 'Klick auf ein Land zum Hineinzoomen');
   }
+  if (canPick && !canDrill) mapHints.push(`Klick auf ein Gebiet: seine ${scopeAnalysesOf(technology)[0].label} unter der Karte`);
   if (region) mapHints.push(`Klick außerhalb von ${scopeName}: zurück zu ${parentName}`);
 
   const tooltipFor = useCallback(
@@ -292,10 +276,14 @@ export default function MapView({ config, state }) {
               .join('')
           : '<tr><td class="map-tooltip__empty" colspan="3">Keine Daten</td></tr>';
       const target = drillTarget(f);
-      const hint = target ? `<div class="map-tooltip__hint">Klicken für ${target.kreis ? 'Landkreis' : 'Bundesland'}-Ansicht</div>` : '';
+      const hint = target
+        ? `<div class="map-tooltip__hint">Klicken für ${target.kreis ? 'Landkreis' : 'Bundesland'}-Ansicht</div>`
+        : canPick && p.ags?.length === AGS_LENGTH[activeGranularity.id]
+          ? `<div class="map-tooltip__hint">Klicken für ${scopeAnalysesOf(technology)[0].label}</div>`
+          : '';
       return `<div class="map-tooltip__title">${escapeHtml(labelFor(f))}</div>${rows && `<table>${rows}</table>`}${hint}`;
     },
-    [isSites, config.tooltipRows, metric.id, labelFor, drillTarget],
+    [isSites, config.tooltipRows, metric.id, labelFor, drillTarget, canPick, activeGranularity.id, technology],
   );
 
   // ----------------------------------------------------- fullscreen, hints
@@ -413,6 +401,7 @@ export default function MapView({ config, state }) {
               onExitFocus={exitScope}
               exitHint={`Klicken für ${parentName}-Ansicht`}
               onRegionClick={onRegionClick}
+              highlight={pickedFeature}
               heatmapUrl={heatmapUrl}
               onPlainWheel={onPlainWheel}
             >
@@ -502,8 +491,9 @@ export default function MapView({ config, state }) {
         />
       </div>
 
-      {/* Right below the map, for its scope: the Top 10 of its areas, and where the analyses are */}
-      <div className="analyses-grid analyses-grid--pairs">
+      {/* Right below the map, for its scope: the Top 10 of its areas, and the orientation or size classes of the scope or
+          of the area picked on the map */}
+      <div className={`analyses-grid ${hasScopeAnalyses ? 'analyses-grid--pairs' : 'analyses-grid--single'}`}>
         <article className="card">
           <header className="card__header">
             <div>
@@ -522,11 +512,22 @@ export default function MapView({ config, state }) {
               focusKey={rankingFocus}
               status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
               labelFor={isSites ? (f) => f.properties.name : labelFor}
-              onRowClick={canDrill && !isSites ? onRankingRowClick : undefined}
+              onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
             />
           </div>
         </article>
-        <MorePages config={config} state={state} />
+        {hasScopeAnalyses && (
+          <div ref={analysisCardRef}>
+            <ScopeAnalysisCard
+              technology={technology}
+              scopeKey={state.scopeKey}
+              scopeName={scopeName}
+              picked={picked}
+              onClearPick={() => setPicked(null)}
+              query={selectionQuery}
+            />
+          </div>
+        )}
       </div>
     </>
   );
