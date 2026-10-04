@@ -1,6 +1,3 @@
-import topojson as tp
-import json
-
 import geopandas as gpd
 import topojson as tp
 

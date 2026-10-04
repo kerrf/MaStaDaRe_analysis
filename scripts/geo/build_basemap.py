@@ -126,7 +126,9 @@ def country_labels(countries, frame):
             if largest.area < 0.05:
                 continue
             point = shapely.point_on_surface(largest)
-        labels.append(({"name": country["NAME_DE"], "kind": "country", "rank": float(country["MIN_LABEL"])}, (point.x, point.y)))
+        labels.append(
+            ({"name": country["NAME_DE"], "kind": "country", "rank": float(country["MIN_LABEL"])}, (point.x, point.y))
+        )
     labels += [({"name": name, "kind": "sea", "rank": 3.0}, (x, y)) for name, x, y in SEAS]
     return labels
 

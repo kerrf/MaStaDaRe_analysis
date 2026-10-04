@@ -1,17 +1,12 @@
 # TODO: Make everything async https://gemini.google.com/app/6b5a8b024dc31bf0
 from sqlalchemy import (
     Column,
-    Integer,
-    String,
-    DateTime,
     Date,
     Float,
-    Boolean,
-    ForeignKey,
-    JSON,
+    String,
 )
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+
+from app.db.database import Base
 
 
 class SolarUnit(Base):

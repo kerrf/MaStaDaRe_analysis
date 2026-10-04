@@ -48,8 +48,8 @@ class MastrApi:
         self.anlage = self.client.bind("Marktstammdatenregister", "Anlage")
         self.allgemein = self.client.bind("Marktstammdatenregister", "Allgemein")
         self.auth = {
-            "apiKey": os.environ["webservice_key"],
-            "marktakteurMastrNummer": os.getenv("mastr_nummer", "SOM922653610750"),
+            "apiKey": os.environ["webservice_key"],  # noqa: SIM112 (name as in the .env files)
+            "marktakteurMastrNummer": os.getenv("mastr_nummer", "SOM922653610750"),  # noqa: SIM112
         }
         self._enum_fields: dict[str, frozenset[str]] = {}  # detail call -> its enum fields
 
@@ -63,7 +63,11 @@ class MastrApi:
         return self.allgemein.GetLokaleUhrzeit().LokaleUhrzeit.replace(tzinfo=None)
 
     def changed_units(
-        self, einheittyp: str, since: datetime, list_call: str = "GetGefilterteListeStromErzeuger", energietraeger: str | None = None
+        self,
+        einheittyp: str,
+        since: datetime,
+        list_call: str = "GetGefilterteListeStromErzeuger",
+        energietraeger: str | None = None,
     ) -> dict[str, datetime]:
         """EinheitMastrNummer -> date of the latest change, for every active unit of one type changed since `since`.
 
@@ -94,7 +98,10 @@ class MastrApi:
                 inactive.add(unit.EinheitMastrNummer)
                 continue
             processes = unit.Netzbetreiberpruefungsprozesse or []
-            check = max((process.DatumLetzteAktualisierung for process in processes), default=unit.EinheitDatumLetzteAktualisierung)
+            check = max(
+                (process.DatumLetzteAktualisierung for process in processes),
+                default=unit.EinheitDatumLetzteAktualisierung,
+            )
             units[unit.EinheitMastrNummer] = max(units.get(unit.EinheitMastrNummer, check), check)
         if inactive:
             log.info(f"{einheittyp}: {len(inactive):,} units were deactivated or deleted in the register, skipped")

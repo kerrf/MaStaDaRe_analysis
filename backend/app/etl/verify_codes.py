@@ -166,17 +166,24 @@ def report(target: str, suggest: bool) -> int:
 
     problems = 0
     suggestions = defaultdict(dict)
-    print(f"\n{target}: {len(ids)} representative units, {sum(a is None for a in answers.values())} not found in the API\n")
+    print(
+        f"\n{target}: {len(ids)} representative units, {sum(a is None for a in answers.values())} not found in the API\n"
+    )
     for column, catalog in spec.columns.items():
-        codes_in_db = sorted({to_code(c) for c, _ in samples[column]} if column not in spec.multi
-                             else {int(c) for c, _ in samples[column]})
+        codes_in_db = sorted(
+            {to_code(c) for c, _ in samples[column]}
+            if column not in spec.multi
+            else {int(c) for c, _ in samples[column]}
+        )
         print(f"{column}")
         for code in codes_in_db:
             expected = catalog.get(code)
             counts = trusted[column][code]
             if not counts:  # every sampled unit changed after the export: weak evidence at best
                 later = dict(untrusted[column][code])
-                verdict = "ok, but only via units changed since the export" if set(later) == {expected} else "UNVERIFIED"
+                verdict = (
+                    "ok, but only via units changed since the export" if set(later) == {expected} else "UNVERIFIED"
+                )
                 print(f"  {code:>5} -> {expected!r:45} {verdict} (now: {later})")
                 continue
             value, n = counts.most_common(1)[0]

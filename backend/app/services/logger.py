@@ -4,16 +4,13 @@
 Auxiliary functions, constants, and constant instances (i.e. root logger)
 
 """
+
 import logging
-from logging.handlers import RotatingFileHandler
 import sys
+from logging.handlers import RotatingFileHandler
 
 
-def setup_logging(
-        level_cli: int = logging.INFO,
-        level_applog: int = logging.INFO,
-        log_file: str = "app.log"
-) -> None:
+def setup_logging(level_cli: int = logging.INFO, level_applog: int = logging.INFO, log_file: str = "app.log") -> None:
 
     # 1. Create a logger
     root = logging.getLogger()
@@ -32,12 +29,7 @@ def setup_logging(
     console_handler.setFormatter(formatter)
 
     # 5. Create a file handler - rotates when big
-    file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=1_000_000,
-        backupCount=3,
-        encoding="utf-8"
-    )
+    file_handler = RotatingFileHandler(log_file, maxBytes=1_000_000, backupCount=3, encoding="utf-8")
     file_handler.setFormatter(formatter)
 
     # 6. Add handlers

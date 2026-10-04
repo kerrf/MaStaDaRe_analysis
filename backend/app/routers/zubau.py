@@ -15,7 +15,7 @@ router = APIRouter(prefix="/zubau", tags=["Zubau"])
 async def get_zeitverlauf(
     technology: Annotated[list[Technology] | None, Query()] = None,
     yearly: Annotated[bool, Query(description="Only the rows per year, without the months")] = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Zubau and Bestand per month and year in Germany, for the given series (default: all)."""
     query = db.query(Zubau)

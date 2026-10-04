@@ -19,10 +19,7 @@ router = APIRouter(prefix="/water", tags=["Hydropower Data"])
 
 
 @router.get("/dashboard-stats", response_model=None)
-async def get_dashboard_stats(
-    level: RegionLevel,
-    db: Session = Depends(get_db)
-):
+async def get_dashboard_stats(level: RegionLevel, db: Session = Depends(get_db)):
     """Hydropower per Bundesland, Landkreis or Gemeinde."""
     return db.query(WaterRegionStats).filter(*WaterRegionStats.at_level(level)).all()
 

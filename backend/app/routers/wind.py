@@ -54,7 +54,10 @@ def get_size_distribution(
 
 @router.get("/size-distribution/regions", response_model=RegionTable)
 def get_size_distribution_regions(
-    response: Response, db: Annotated[Session, Depends(get_db)], scope: Annotated[Regions, Depends(regions)], lage: Lagen
+    response: Response,
+    db: Annotated[Session, Depends(get_db)],
+    scope: Annotated[Regions, Depends(regions)],
+    lage: Lagen,
 ):
     """Turbines and power per size class for every Land, Kreis or Gemeinde (optionally within one)."""
     response.headers["Cache-Control"] = CACHE_CONTROL

@@ -4,11 +4,10 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.regions import RegionLevel, SolarRegionStats
-from app.models.solar import SolarUnit, SolarRollupStats
-from app.schemas.solar import SolarResponse, SolarFilter
 from app.db.database import get_db
 from app.models.analyses import PvSpeicher, SizeDistribution, SolarOrientation, SpeicherPv
+from app.models.regions import RegionLevel, SolarRegionStats
+from app.models.solar import SolarRollupStats, SolarUnit
 from app.schemas.analyses import (
     CACHE_CONTROL,
     OrientationShare,
@@ -20,6 +19,7 @@ from app.schemas.analyses import (
     regions,
 )
 from app.schemas.selection import SolarSelection, solar_selection
+from app.schemas.solar import SolarFilter, SolarResponse
 
 Selection = Annotated[SolarSelection, Depends(solar_selection)]
 
@@ -30,21 +30,20 @@ router = APIRouter(prefix="/solar", tags=["Solar Data"])
 
 ALLOWED_GROUP_COLUMNS = {"Postleitzahl", "Inbetriebnahmedatum", "ArtDerSolaranlage"}
 
+
 @router.get("/", response_model=list[SolarResponse])
-async def get_solar_data(
-    filters: SolarFilter = Depends(),
-    db     : Session     = Depends(get_db)
-):
+async def get_solar_data(filters: SolarFilter = Depends(), db: Session = Depends(get_db)):
     # base query SELECT * FROM stg.solar_units
-    db.query(SolarUnit)
-    
+    query = db.query(SolarUnit)
+
     if filters.min_power is not None:
         query = query.filter(SolarUnit.Bruttoleistung >= filters.min_power)
-        
+
     if filters.plz_list is not None:
-        query = query.filter(SolarUnit.Postleitzahl in filters.plz_list)
-        
+        query = query.filter(SolarUnit.Postleitzahl.in_(filters.plz_list))
+
     return query.limit(filters.limit).all()
+
 
 def summed(db: Session, model, keys: tuple, filters: tuple, selection: SolarSelection, measures: tuple) -> list[dict]:
     """The rows of a solar view for the chosen Anlagenarten, summed per region, in Brutto or Netto: under the usual
@@ -68,7 +67,7 @@ def summed(db: Session, model, keys: tuple, filters: tuple, selection: SolarSele
 def get_dashboard_stats(
     level: Literal["bundesland", "landkreis", "gemeinde", "plz2", "plz3", "plz5"],
     selection: Selection,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Solar per Bundesland, Landkreis or Gemeinde, or per postcode, for the chosen Anlagenarten, Brutto or Netto."""
     measures = ("total_power", "relative_area_power", "relative_population_power")
@@ -94,7 +93,9 @@ def get_size_distribution(
 
 
 @router.get("/orientation", response_model=list[OrientationShare])
-def get_orientation(response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
+def get_orientation(
+    response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"
+):
     """Units and power per main orientation of the modules (8 directions, ost_west, nachgefuehrt, unbekannt)."""
     response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientation.of(db, region, selection.anlagenarten, selection.netto)

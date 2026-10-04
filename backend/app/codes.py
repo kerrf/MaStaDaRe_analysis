@@ -470,7 +470,9 @@ class CodeSpec:
     @cached_property
     def _codes(self) -> dict[str, dict[str, int]]:
         """export column -> {API value: code}. If a value has several codes (old and new), the newest (highest) wins."""
-        return {column: {value: code for code, value in sorted(catalog.items())} for column, catalog in self.columns.items()}
+        return {
+            column: {value: code for code, value in sorted(catalog.items())} for column, catalog in self.columns.items()
+        }
 
 
 GENERAL = {
@@ -616,7 +618,9 @@ STORAGE_PLANT = CodeSpec(
 )
 
 # Gas units have the general fields of the power units, except those about electricity
-GAS_GENERAL = {column: catalog for column, catalog in GENERAL.items() if column not in ("Energietraeger", "Einspeisungsart")}
+GAS_GENERAL = {
+    column: catalog for column, catalog in GENERAL.items() if column not in ("Energietraeger", "Einspeisungsart")
+}
 GAS_BOOLEANS = ("NichtVorhandenInMigriertenEinheiten", "StrasseNichtGefunden", "HausnummerNichtGefunden")
 
 # Gas producers (EinheitenGasErzeuger, GetEinheitGasErzeuger). The API's MastrNummer only repeats the unit's own number,
@@ -702,7 +706,8 @@ def encode(unit: dict, spec: CodeSpec) -> dict[str, str | None]:
         column = spec.export_name(api_field)
         if column in spec.not_in_api:
             continue
-        if isinstance(value, dict) and "NichtVorhanden" in value:  # Hausnummer = {"Wert": "12a", "NichtVorhanden": False}
+        # Hausnummer = {"Wert": "12a", "NichtVorhanden": False}
+        if isinstance(value, dict) and "NichtVorhanden" in value:
             row[column] = value["Wert"]
             row[spec.not_available_flag(column)] = _to_text(value["NichtVorhanden"])
         elif isinstance(value, dict):  # catalog entry, e.g. Hersteller = {"Id": 1586, "Wert": "ENERCON GmbH"}

@@ -28,7 +28,9 @@ def get_areas(level: RegionLevel, response: Response, db: Annotated[Session, Dep
     response.headers["Cache-Control"] = CACHE_CONTROL
     key = func.left(Gemeinde.ags, DIGITS[level])
     return (
-        db.query(key.label("region"), func.sum(Gemeinde.qkm).label("qkm"), func.sum(Gemeinde.einwohner).label("einwohner"))
+        db.query(
+            key.label("region"), func.sum(Gemeinde.qkm).label("qkm"), func.sum(Gemeinde.einwohner).label("einwohner")
+        )
         .group_by(key)
         .order_by(key)
         .all()

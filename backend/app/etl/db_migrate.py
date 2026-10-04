@@ -45,51 +45,44 @@ PRIMARY_KEYS = {"storage_plants": "MaStRNummer", "gas_storage_plants": "MaStRNum
 RAW_SCHEMA = "raw"
 
 NUMERIC_COLUMNS = [
-    'Bruttoleistung',
-    'Nettonennleistung',
-    'ZugeordneteWirkleistungWechselrichter',
-    'AnzahlModule',
-    'HauptausrichtungNeigungswinkel',
-    'NebenausrichtungNeigungswinkel',
-    'GroesseDerInAnspruchGenommenenFlaecheInHektar',
-    'Laengengrad',
-    'Breitengrad',
-    'LichteHoehe',
+    "Bruttoleistung",
+    "Nettonennleistung",
+    "ZugeordneteWirkleistungWechselrichter",
+    "AnzahlModule",
+    "HauptausrichtungNeigungswinkel",
+    "NebenausrichtungNeigungswinkel",
+    "GroesseDerInAnspruchGenommenenFlaecheInHektar",
+    "Laengengrad",
+    "Breitengrad",
+    "LichteHoehe",
     # storage
-    'ZugeordnenteWirkleistungWechselrichter',  # sic, that's how the export spells it for storage units
-    'PumpbetriebLeistungsaufnahme',
-    'NutzbareSpeicherkapazitaet',
+    "ZugeordnenteWirkleistungWechselrichter",  # sic, that's how the export spells it for storage units
+    "PumpbetriebLeistungsaufnahme",
+    "NutzbareSpeicherkapazitaet",
     # wind
-    'GroesseDerInAnspruchGenommenenFlaeche',
-    'Nabenhoehe',
-    'Rotordurchmesser',
-    'Wassertiefe',
-    'Kuestenentfernung',
+    "GroesseDerInAnspruchGenommenenFlaeche",
+    "Nabenhoehe",
+    "Rotordurchmesser",
+    "Wassertiefe",
+    "Kuestenentfernung",
     # gas
-    'Erzeugungsleistung',  # kWh/h
-    'MaximalNutzbaresArbeitsgasvolumen',  # m³
-    'MaximaleEinspeicherleistung',  # kWh/h
-    'MaximaleAusspeicherleistung',  # kWh/h
-    'DurchschnittlicherBrennwert',  # kWh/m³
+    "Erzeugungsleistung",  # kWh/h
+    "MaximalNutzbaresArbeitsgasvolumen",  # m³
+    "MaximaleEinspeicherleistung",  # kWh/h
+    "MaximaleAusspeicherleistung",  # kWh/h
+    "DurchschnittlicherBrennwert",  # kWh/m³
 ]
-DATE_COLUMNS = ['Registrierungsdatum', 'Inbetriebnahmedatum']
-DATETIME_COLUMNS = ['DatumLetzteAktualisierung']
+DATE_COLUMNS = ["Registrierungsdatum", "Inbetriebnahmedatum"]
+DATETIME_COLUMNS = ["DatumLetzteAktualisierung"]
 
 
 # TODO: rename, col plz text
 def migrate_plz_file(directory_path: Path, table_name: str, engine: Engine) -> None:
 
     # shouldn't read plz as int or float, dtype
-    df = pd.read_csv(directory_path, dtype={'plz': str})
+    df = pd.read_csv(directory_path, dtype={"plz": str})
 
-    df.to_sql(
-        name      = table_name,
-        con       = engine,
-        if_exists = "replace",
-        schema    = 'mrt',
-        index     = False,
-        chunksize = 10000
-    )
+    df.to_sql(name=table_name, con=engine, if_exists="replace", schema="mrt", index=False, chunksize=10000)
 
     logger.info(f"Table {table_name} successfully created")
 
@@ -204,14 +197,16 @@ def drop_stale_columns(conn: Connection, table_name: str, columns: set[str]) -> 
     if not columns:
         return
     table = raw_table(table_name)
-    used_by_views = set(conn.execute(
-        text("""
+    used_by_views = set(
+        conn.execute(
+            text("""
             SELECT attname FROM pg_attribute
             JOIN pg_depend ON refobjid = attrelid AND refobjsubid = attnum
             WHERE attrelid = CAST(:table AS regclass) AND attname = ANY(:columns)
         """),
-        {"table": table, "columns": sorted(columns)},
-    ).scalars())
+            {"table": table, "columns": sorted(columns)},
+        ).scalars()
+    )
 
     for column in sorted(columns - used_by_views):
         logger.info(f"Dropping column '{column}', the export no longer has it")
@@ -223,36 +218,51 @@ def drop_stale_columns(conn: Connection, table_name: str, columns: set[str]) -> 
 def drop_constraints_and_indexes(conn: Connection, table: str) -> None:
     """Counterpart of add_constraints_and_indexes, before a bulk load."""
     params = {"table": table}
-    primary_keys = conn.execute(
-        text("SELECT conname FROM pg_constraint WHERE conrelid = CAST(:table AS regclass) AND contype = 'p'"), params
-    ).scalars().all()
+    primary_keys = (
+        conn.execute(
+            text("SELECT conname FROM pg_constraint WHERE conrelid = CAST(:table AS regclass) AND contype = 'p'"),
+            params,
+        )
+        .scalars()
+        .all()
+    )
     for name in primary_keys:
         conn.execute(text(f'ALTER TABLE {table} DROP CONSTRAINT "{name}"'))
 
-    indexes = conn.execute(
-        text("SELECT CAST(CAST(indexrelid AS regclass) AS text) FROM pg_index WHERE indrelid = CAST(:table AS regclass)"),
-        params,
-    ).scalars().all()
+    indexes = (
+        conn.execute(
+            text(
+                "SELECT CAST(CAST(indexrelid AS regclass) AS text) FROM pg_index WHERE indrelid = CAST(:table AS regclass)"
+            ),
+            params,
+        )
+        .scalars()
+        .all()
+    )
     for name in indexes:
         conn.execute(text(f"DROP INDEX {name}"))
 
 
 def add_constraints_and_indexes(schema_name: str, table_name: str, engine: Engine) -> None:
-    """ Add primary key, index, indexing postal codes"""
+    """Add primary key, index, indexing postal codes"""
     logger.info("Configuring Primary Key and Indexes...")
     key = PRIMARY_KEYS.get(table_name, "EinheitMastrNummer")
 
     with engine.begin() as conn:
-        conn.execute(text(f"""
+        conn.execute(
+            text(f"""
             ALTER TABLE {schema_name}."{table_name}"
             ADD PRIMARY KEY ("{key}");
-        """))
+        """)
+        )
 
         if "Postleitzahl" in table_columns(conn, table_name):  # units have a location, Anlagen don't
-            conn.execute(text(f"""
+            conn.execute(
+                text(f"""
                 CREATE INDEX IF NOT EXISTS idx_{table_name}_plz
                 ON {schema_name}."{table_name}" ("Postleitzahl");
-            """))
+            """)
+            )
 
     logger.info("Primary Key and Indexing applied successfully.")
 
@@ -280,7 +290,7 @@ def connect_to_db(max_retries: int = 5, delay: int = 2) -> Engine:
 
 def migrate_shapefiles(engine: Engine, shp_path: Path, i: int) -> None:
 
-    gdf = gpd.read_file(shp_path, dtype={'plz' : str})
+    gdf = gpd.read_file(shp_path, dtype={"plz": str})
     gdf = gdf.to_crs(epsg=4326)
 
     with engine.begin() as conn:
@@ -290,14 +300,7 @@ def migrate_shapefiles(engine: Engine, shp_path: Path, i: int) -> None:
         # 2. Install PostGIS specifically into public
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis SCHEMA public;"))
 
-    gdf.to_postgis(
-        name=f"plz_shapes_{i}",
-        schema="geo",
-        con=engine,
-        if_exists="replace",
-        index=True,
-        index_label="id"
-    )
+    gdf.to_postgis(name=f"plz_shapes_{i}", schema="geo", con=engine, if_exists="replace", index=True, index_label="id")
 
     logger.info("Shapefile successfully loaded into PostGIS!")
 

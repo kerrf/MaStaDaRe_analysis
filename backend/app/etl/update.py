@@ -102,7 +102,11 @@ class PlantType:
 STORAGE_UNITS = UnitType("storage_units", "Speicher", "Stromspeichereinheit", "GetEinheitStromSpeicher", STORAGE)
 # The gas producer table also lists the gas storage units (with their SpeicherMaStRNummer), which are copies
 GAS_PRODUCERS = UnitType(
-    "gas_producer_units", None, "Gaserzeugungseinheit", "GetEinheitGasErzeuger", GAS_PRODUCER,
+    "gas_producer_units",
+    None,
+    "Gaserzeugungseinheit",
+    "GetEinheitGasErzeuger",
+    GAS_PRODUCER,
     own_rows='"SpeicherMaStRNummer" IS NULL',
 )
 GAS_STORAGE_UNITS = UnitType("gas_storage_units", None, "Gasspeichereinheit", "GetEinheitGasSpeicher", GAS_STORAGE)
@@ -117,13 +121,23 @@ UNIT_TYPES = (  # in this order; solar first, it has by far the most changes
 # unit table -> the plants of its units
 PLANT_TYPES = {
     STORAGE_UNITS.table: PlantType("storage_plants", "SpeMastrNummer", "GetStromSpeicher", STORAGE_PLANT),
-    GAS_STORAGE_UNITS.table: PlantType("gas_storage_plants", "SpeicherMaStRNummer", "GetGasSpeicher", GAS_STORAGE_PLANT),
+    GAS_STORAGE_UNITS.table: PlantType(
+        "gas_storage_plants", "SpeicherMaStRNummer", "GetGasSpeicher", GAS_STORAGE_PLANT
+    ),
 }
 UNIT_KEY, PLANT_KEY = "EinheitMastrNummer", "MaStRNummer"
 # What the export leaves out of the gas storage units it lists among the gas producers
 GAS_STORAGE_ADDRESS = (
-    "Strasse", "StrasseNichtGefunden", "Hausnummer", "Hausnummer_nv", "HausnummerNichtGefunden", "Adresszusatz",
-    "Gemarkung", "FlurFlurstuecknummern", "Laengengrad", "Breitengrad",
+    "Strasse",
+    "StrasseNichtGefunden",
+    "Hausnummer",
+    "Hausnummer_nv",
+    "HausnummerNichtGefunden",
+    "Adresszusatz",
+    "Gemarkung",
+    "FlurFlurstuecknummern",
+    "Laengengrad",
+    "Breitengrad",
 )
 DASHBOARD_SCHEMA = "mrt"  # the materialized views the API serves
 
@@ -143,10 +157,14 @@ def plan(unit_type: UnitType, api: MastrApi, engine: Engine) -> Todo:
     until = api.server_time()  # what changes from now on is the next run's job
     listed = api.changed_units(unit_type.einheittyp, since, unit_type.list_call, unit_type.energietraeger)
     with engine.connect() as conn:
-        stored = dict(conn.execute(
-            text(f'SELECT "{UNIT_KEY}", "DatumLetzteAktualisierung" FROM {raw_table(table)} WHERE "{UNIT_KEY}" = ANY(:ids)'),
-            {"ids": list(listed)},
-        ).all())
+        stored = dict(
+            conn.execute(
+                text(
+                    f'SELECT "{UNIT_KEY}", "DatumLetzteAktualisierung" FROM {raw_table(table)} WHERE "{UNIT_KEY}" = ANY(:ids)'
+                ),
+                {"ids": list(listed)},
+            ).all()
+        )
     todo = triage(listed, stored, complete, until)
     logger.info(
         f"{table}: {len(listed):,} units changed since {since:%Y-%m-%d} (complete up to {complete:%Y-%m-%d %H:%M}): "
@@ -165,14 +183,16 @@ def fetch_and_load(
     if len(units) + len(sample) > budget:
         sample = []  # the sanity check goes first
         if len(units) > budget:  # e.g. after the server was down for weeks: catch up over several nights
-            logger.warning(f"{table}: only {budget:,} API calls left today, fetching {budget:,} of {len(units):,} units. The next run continues with the rest.")
+            logger.warning(
+                f"{table}: only {budget:,} API calls left today, fetching {budget:,} of {len(units):,} units. The next run continues with the rest."
+            )
             units = units[:budget]
     with engine.connect() as conn:
         columns = table_columns(conn, table)
 
     ids, in_sample = [*units, *sample], set(sample)
     for start in range(0, len(ids), SLICE):
-        part = ids[start:start + SLICE]
+        part = ids[start : start + SLICE]
         chunk = to_chunk(fetch(api, unit_type, part, todo.until), columns)
         if chunk:
             with engine.begin() as conn:
@@ -183,8 +203,12 @@ def fetch_and_load(
 
 
 def update_plants(
-    unit_type: UnitType, plants: PlantType, api: MastrApi, engine: Engine,
-    units: list[str] | None = None, sample: list[str] | None = None,
+    unit_type: UnitType,
+    plants: PlantType,
+    api: MastrApi,
+    engine: Engine,
+    units: list[str] | None = None,
+    sample: list[str] | None = None,
 ) -> None:
     """Upsert plants: without `units` those still missing for a unit (the new units' plants among them), else the plants
     of `units`. `sample`: units whose plants are re-fetched for the sanity check."""
@@ -192,14 +216,23 @@ def update_plants(
     which = f'plant."{PLANT_KEY}" IS NULL' if units is None else f'unit."{UNIT_KEY}" = ANY(:units)'
     with engine.connect() as conn:
         columns = table_columns(conn, table)
-        ids = conn.execute(text(f"""
+        ids = (
+            conn.execute(
+                text(f"""
             SELECT DISTINCT unit."{unit_column}"
             FROM {raw_table(unit_type.table)} AS unit
             LEFT JOIN {raw_table(table)} AS plant ON plant."{PLANT_KEY}" = unit."{unit_column}"
             WHERE unit."{unit_column}" IS NOT NULL AND ({which})
             ORDER BY 1
-        """), {"units": [*(units or []), *sample]}).scalars().all()
-    logger.info(f"{table}: {len(ids):,} plants {'still missing for a unit' if units is None else 'of the changed units'}")
+        """),
+                {"units": [*(units or []), *sample]},
+            )
+            .scalars()
+            .all()
+        )
+    logger.info(
+        f"{table}: {len(ids):,} plants {'still missing for a unit' if units is None else 'of the changed units'}"
+    )
 
     budget = calls_left(api)
     if len(ids) > budget:  # the missing ones come again next night
@@ -223,11 +256,13 @@ def copy_gas_storage_units(engine: Engine) -> None:
         names = ", ".join(f'"{column}"' for column in columns)
         values = ", ".join([*(f'"{column}"' for column in shared), '"NameGasspeicher"'])
         new_values = ", ".join(f'EXCLUDED."{column}"' for column in columns)
-        written = conn.execute(text(f"""
+        written = conn.execute(
+            text(f"""
             INSERT INTO {raw_table(producers)} AS stored ({names}) SELECT {values} FROM {raw_table(storages)}
             ON CONFLICT ("{UNIT_KEY}") DO UPDATE SET ({names}) = ({new_values})
             WHERE ({", ".join(f'stored."{column}"' for column in columns)}) IS DISTINCT FROM ({new_values})
-        """)).rowcount
+        """)
+        ).rowcount
     logger.info(f"{producers}: {written:,} gas storage units copied over from {storages}")
 
 
@@ -237,7 +272,9 @@ def exists(engine: Engine, table_name: str) -> bool:
 
 
 def newest_change(conn: Connection, table_name: str, own_rows: str = "TRUE") -> datetime:
-    newest = conn.execute(text(f'SELECT max("DatumLetzteAktualisierung") FROM {raw_table(table_name)} WHERE {own_rows}')).scalar()
+    newest = conn.execute(
+        text(f'SELECT max("DatumLetzteAktualisierung") FROM {raw_table(table_name)} WHERE {own_rows}')
+    ).scalar()
     if newest is None:
         raise RuntimeError(f"{raw_table(table_name)} is empty, build it from the bulk export first (db_migrate)")
     return newest
@@ -258,17 +295,22 @@ def read_synced_until(conn: Connection, unit_type: UnitType) -> datetime:
 def save_synced_until(engine: Engine, table_name: str, synced_until: datetime) -> None:
     with engine.begin() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS meta"))
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS meta.sync_state (
                 table_name text PRIMARY KEY,
                 synced_until timestamp NOT NULL,  -- register time: every change before it is in the table
                 saved_at timestamptz NOT NULL DEFAULT now()
             )
-        """))
-        conn.execute(text("""
+        """)
+        )
+        conn.execute(
+            text("""
             INSERT INTO meta.sync_state (table_name, synced_until) VALUES (:table, :until)
             ON CONFLICT (table_name) DO UPDATE SET synced_until = EXCLUDED.synced_until, saved_at = now()
-        """), {"table": table_name, "until": synced_until})
+        """),
+            {"table": table_name, "until": synced_until},
+        )
 
 
 def calls_left(api: MastrApi) -> int:
@@ -347,7 +389,9 @@ def load(conn: Connection, table_name: str, chunk: Chunk, spec: CodeSpec, key: s
     upsert(conn, table_name, chunk.columns, key)
 
 
-def check(conn: Connection, table_name: str, columns: tuple[str, ...], multi: frozenset[str], key: str, sanity: bool) -> None:
+def check(
+    conn: Connection, table_name: str, columns: tuple[str, ...], multi: frozenset[str], key: str, sanity: bool
+) -> None:
     """Sort the fetched units into new / changed / unchanged and check that the unchanged ones are identical.
 
     Unchanged (same dates as in the table) means the API must return exactly what the table holds.
@@ -360,11 +404,13 @@ def check(conn: Connection, table_name: str, columns: tuple[str, ...], multi: fr
     for column in columns:
         differs = f"{unchanged} AND {comparable('staged', column, multi)} IS DISTINCT FROM {comparable('stored', column, multi)}"
         per_column.append(f'count(*) FILTER (WHERE {differs}), min("{key}") FILTER (WHERE {differs})')
-    total, new, same, *differences = conn.execute(text(f"""
+    total, new, same, *differences = conn.execute(
+        text(f"""
         SELECT count(*), count(*) FILTER (WHERE stored."{key}" IS NULL), count(*) FILTER (WHERE {unchanged}),
                {", ".join(per_column)}
         FROM staging AS staged LEFT JOIN {raw_table(table_name)} AS stored USING ("{key}")
-    """)).one()
+    """)
+    ).one()
     logger.info(f"{table_name}: {new:,} new, {total - new - same:,} changed, {same:,} unchanged rows")
 
     mismatches = [
@@ -391,11 +437,13 @@ def upsert(conn: Connection, table_name: str, columns: tuple[str, ...], key: str
     """Insert new rows, overwrite changed ones. Identical rows are left alone (no needless writes)."""
     names = ", ".join(f'"{column}"' for column in columns)
     new_values = ", ".join(f'EXCLUDED."{column}"' for column in columns)
-    written = conn.execute(text(f"""
+    written = conn.execute(
+        text(f"""
         INSERT INTO {raw_table(table_name)} AS stored ({names}) SELECT {names} FROM staging
         ON CONFLICT ("{key}") DO UPDATE SET ({names}) = ({new_values})
         WHERE ({", ".join(f'stored."{column}"' for column in columns)}) IS DISTINCT FROM ({new_values})
-    """)).rowcount
+    """)
+    ).rowcount
     logger.info(f"{table_name}: {written:,} rows inserted or updated")
 
 
@@ -403,9 +451,14 @@ def refresh_views(engine: Engine) -> list[str]:
     """Recompute the dashboard's materialized views from the updated tables. They read the raw and geo tables only,
     so the order doesn't matter. (transform.py creates them, again after a change of their SQL.) Returns the failed ones."""
     with engine.connect() as conn:
-        views = conn.execute(
-            text("SELECT matviewname FROM pg_matviews WHERE schemaname = :schema ORDER BY 1"), {"schema": DASHBOARD_SCHEMA}
-        ).scalars().all()
+        views = (
+            conn.execute(
+                text("SELECT matviewname FROM pg_matviews WHERE schemaname = :schema ORDER BY 1"),
+                {"schema": DASHBOARD_SCHEMA},
+            )
+            .scalars()
+            .all()
+        )
     failed = []
     for view in views:
         name = f'{DASHBOARD_SCHEMA}."{view}"'
@@ -425,19 +478,23 @@ def record_datenstand(engine: Engine, datenstand: date) -> None:
     """Note the day up to which the data includes every change of the register, one row per complete run."""
     with engine.begin() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS meta"))
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS meta.update_runs (
                 finished_at timestamptz PRIMARY KEY DEFAULT now(),
                 datenstand date NOT NULL
             )
-        """))
+        """)
+        )
         conn.execute(text("INSERT INTO meta.update_runs (datenstand) VALUES (:datenstand)"), {"datenstand": datenstand})
     logger.info(f"Datenstand {datenstand:%d.%m.%Y} recorded")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bring the raw tables up to date with the MaStR API.")
-    parser.add_argument("--dry-run", action="store_true", help="only list and sort the changes: no detail calls, no writes")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="only list and sort the changes: no detail calls, no writes"
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -453,9 +510,12 @@ if __name__ == "__main__":
     for unit_type in UNIT_TYPES:
         # The gas tables came later: until they are loaded from the bulk export (DEPLOY.md), the update leaves them out
         if unit_type in (GAS_PRODUCERS, GAS_STORAGE_UNITS) and not all(
-            exists(engine, table) for table in (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table].table)
+            exists(engine, table)
+            for table in (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table].table)
         ):
-            logger.warning(f"{unit_type.table}: the gas tables are not in the database yet, skipped (load them with db_migrate)")
+            logger.warning(
+                f"{unit_type.table}: the gas tables are not in the database yet, skipped (load them with db_migrate)"
+            )
             continue
         try:
             todos.append((unit_type, plan(unit_type, api, engine)))
@@ -465,7 +525,9 @@ if __name__ == "__main__":
 
     if args.dry_run:
         needed = sum(len(todo.new) + len(todo.changed) for _, todo in todos)
-        logger.info(f"Dry run: {needed:,} units to fetch (plus plants), {calls_left(api):,} API calls left today. Nothing written.")
+        logger.info(
+            f"Dry run: {needed:,} units to fetch (plus plants), {calls_left(api):,} API calls left today. Nothing written."
+        )
         sys.exit(1 if failed else 0)
 
     # 2. The new units of every type first, then the changes of units the table has, each with the plants they need
@@ -475,7 +537,9 @@ if __name__ == "__main__":
             if table in failed:
                 continue
             units = todo.new if batch == "new" else todo.changed
-            sample = random.sample(todo.up_to_date, min(SANITY_SAMPLE, len(todo.up_to_date))) if batch == "changed" else []
+            sample = (
+                random.sample(todo.up_to_date, min(SANITY_SAMPLE, len(todo.up_to_date))) if batch == "changed" else []
+            )
             try:
                 fetch_and_load(unit_type, todo, units, api, engine, sample)
             except Exception:
@@ -487,7 +551,9 @@ if __name__ == "__main__":
                     if batch == "new":
                         update_plants(unit_type, plants, api, engine)
                     else:
-                        update_plants(unit_type, plants, api, engine, [unit for unit in units if unit in todo.done], sample)
+                        update_plants(
+                            unit_type, plants, api, engine, [unit for unit in units if unit in todo.done], sample
+                        )
                 except Exception:
                     logger.exception(f"{plants.table}: update failed")
                     failed.append(plants.table)

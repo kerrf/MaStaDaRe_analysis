@@ -18,13 +18,16 @@ def wind_unit(**fields) -> dict:
 
 
 def test_values_become_export_codes_and_text():
-    row = encode(wind_unit(
-        Registrierungsdatum=date(2019, 2, 27),
-        Bruttoleistung=Decimal("2000.000"),
-        FernsteuerbarkeitNb=True,
-        Buergerenergie=False,
-        Hersteller={"Id": 1586, "Wert": "ENERCON GmbH"},
-    ), WIND)
+    row = encode(
+        wind_unit(
+            Registrierungsdatum=date(2019, 2, 27),
+            Bruttoleistung=Decimal("2000.000"),
+            FernsteuerbarkeitNb=True,
+            Buergerenergie=False,
+            Hersteller={"Id": 1586, "Wert": "ENERCON GmbH"},
+        ),
+        WIND,
+    )
     assert row["DatumLetzteAktualisierung"] == "2026-06-18T11:33:19.174853"
     assert row["EinheitBetriebsstatus"] == "35"
     assert row["Registrierungsdatum"] == "2019-02-27"
@@ -41,7 +44,10 @@ def test_fields_get_the_export_names():
 
 
 def test_value_with_not_available_flag_becomes_two_columns():
-    row = encode(wind_unit(Hausnummer={"Wert": "12a", "NichtVorhanden": False}, Weic={"Wert": None, "NichtVorhanden": True}), WIND)
+    row = encode(
+        wind_unit(Hausnummer={"Wert": "12a", "NichtVorhanden": False}, Weic={"Wert": None, "NichtVorhanden": True}),
+        WIND,
+    )
     assert (row["Hausnummer"], row["Hausnummer_nv"]) == ("12a", "0")
     assert (row["Weic"], row["Weic_nv"]) == (None, "1")
 
@@ -68,7 +74,9 @@ def test_columns_the_api_returns_empty_are_left_out():
 
 
 def test_dates_the_export_writes_with_a_time():
-    row = encode({"DatumKapazitaetsreserve": date(2026, 11, 2), "InbetriebnahmedatumAmAktuellenOrt": date(2024, 6, 1)}, STORAGE)
+    row = encode(
+        {"DatumKapazitaetsreserve": date(2026, 11, 2), "InbetriebnahmedatumAmAktuellenOrt": date(2024, 6, 1)}, STORAGE
+    )
     assert row["DatumKapazitaetsreserve"] == "2026-11-02T00:00:00"
     assert row["InbetriebnahmedatumAmAktuellenStandort"] == "2024-06-01T00:00:00"
 
@@ -78,13 +86,16 @@ def test_unknown_values_become_null():
 
 
 def test_gas_storage_units_get_the_export_names():
-    row = encode({
-        "EinheitMastrNummer": "GEE995046355477",
-        "Speicherart": "Kavernenspeicher",
-        "SpeMastrNummer": "GSE917820127322",
-        "Weic": {"Wert": None, "NichtVorhanden": False},
-        "Laengengrad": Decimal("6.992085"),
-    }, GAS_STORAGE)
+    row = encode(
+        {
+            "EinheitMastrNummer": "GEE995046355477",
+            "Speicherart": "Kavernenspeicher",
+            "SpeMastrNummer": "GSE917820127322",
+            "Weic": {"Wert": None, "NichtVorhanden": False},
+            "Laengengrad": Decimal("6.992085"),
+        },
+        GAS_STORAGE,
+    )
     assert row["Speicherart"] == "658"
     assert row["SpeicherMaStRNummer"] == "GSE917820127322"
     assert (row["Weic"], row["Weic_Na"]) == (None, "0")  # the export's flag column for Weic, not Weic_nv

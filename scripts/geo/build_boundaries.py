@@ -54,7 +54,11 @@ def main():
     areas = pd.concat([gemeinden[["ags", "geometry"]], offshore], ignore_index=True).to_crs(4326)
     areas = simplify_shared(areas, TOLERANCE)
 
-    names = {**names_of("vg250_lan", plain_name), **names_of("vg250_krs", kreis_name), **names_of("vg250_gem", plain_name)}
+    names = {
+        **names_of("vg250_lan", plain_name),
+        **names_of("vg250_krs", kreis_name),
+        **names_of("vg250_gem", plain_name),
+    }
     names[OFFSHORE] = OFFSHORE_NAME
     for file_name, digits in LEVELS.items():
         write_topojson(merge_to(areas, digits, names), MAP_DIR / file_name)
@@ -140,7 +144,9 @@ def simplify_shared(areas, tolerance):
     lost = [i for i, g in enumerate(result) if g is None or g.is_empty]
     for i in lost:
         result[i] = shapely.simplify(geoms[i], tolerance / 4, preserve_topology=True)
-    print(f"{len(faces)} faces, {len(orphans)} outside any area, {len(faces) - len(owner)} left empty, {len(lost)} kept unsimplified")
+    print(
+        f"{len(faces)} faces, {len(orphans)} outside any area, {len(faces) - len(owner)} left empty, {len(lost)} kept unsimplified"
+    )
     return areas.set_geometry(result)
 
 

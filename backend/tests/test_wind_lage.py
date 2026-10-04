@@ -3,10 +3,26 @@
 from app.routers.wind import by_lage
 from app.schemas.selection import wind_lage
 
-LAND = {"bundesland": "03", "landkreis": None, "gemeinde": None, "total_units": 6000, "total_power": 14000.0,
-        "relative_area_power": 290.0, "relative_population_power": 1.7, "added_12m_power": 1500.0}
-SEA = {"bundesland": "offshore", "landkreis": None, "gemeinde": None, "total_units": 1800, "total_power": 11400.0,
-       "relative_area_power": 400.0, "relative_population_power": None, "added_12m_power": 2200.0}
+LAND = {
+    "bundesland": "03",
+    "landkreis": None,
+    "gemeinde": None,
+    "total_units": 6000,
+    "total_power": 14000.0,
+    "relative_area_power": 290.0,
+    "relative_population_power": 1.7,
+    "added_12m_power": 1500.0,
+}
+SEA = {
+    "bundesland": "offshore",
+    "landkreis": None,
+    "gemeinde": None,
+    "total_units": 1800,
+    "total_power": 11400.0,
+    "relative_area_power": 400.0,
+    "relative_population_power": None,
+    "added_12m_power": 2200.0,
+}
 
 
 def test_no_choice_is_both():

@@ -31,3 +31,23 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.8",
 ]
+
+[tool.ruff]
+line-length = 120
+# Notebooks are scratch work, not checked
+extend-exclude = ["notebooks", "*.ipynb"]
+
+[tool.ruff.lint]
+# Pinned on purpose: ruff's own default set grows with its versions, which would turn the pipeline red after an update
+# E4/E7/E9 + F: errors and real bugs (undefined names, unused imports); B: likely bugs; UP: modern syntax;
+# I: import order; SIM, C4: simpler code
+select = ["E4", "E7", "E9", "F", "B", "UP", "I", "SIM", "C4"]
+# B905 (zip without strict=): strict=True would change how the ETL behaves on uneven lists
+ignore = ["B905"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's way of declaring parameters, not a bug
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend"]

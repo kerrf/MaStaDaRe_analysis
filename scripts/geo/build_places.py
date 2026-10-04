@@ -64,9 +64,9 @@ def read_gemeinden() -> pd.DataFrame:
 def write(places: pd.DataFrame, path: Path) -> None:
     rows = [
         [name, round(lon, 4), round(lat, 4), int(population), ags, kind]
-        for name, lon, lat, population, ags, kind in places[["name", "lon", "lat", "population", "ags", "kind"]].itertuples(
-            index=False
-        )
+        for name, lon, lat, population, ags, kind in places[
+            ["name", "lon", "lat", "population", "ags", "kind"]
+        ].itertuples(index=False)
     ]
     with open(path, "w") as f:
         json.dump(rows, f, separators=(",", ":"), ensure_ascii=False)

@@ -16,12 +16,8 @@ LATEST_RUN = """
 
 
 class Datenstand(BaseModel):
-    datenstand: date | None = Field(
-        description="The data includes every change of the register up to this day"
-    )
-    last_update: datetime | None = Field(
-        description="When the nightly update that brought it finished"
-    )
+    datenstand: date | None = Field(description="The data includes every change of the register up to this day")
+    last_update: datetime | None = Field(description="When the nightly update that brought it finished")
 
 
 @router.get("/datenstand", response_model=Datenstand)
