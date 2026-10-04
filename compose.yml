@@ -32,7 +32,9 @@ services:
         condition: service_healthy
 
   caddy:
-    image: caddy:2-alpine
+    # Pinned: the access log's daily rotation (roll_interval, Caddyfile) needs Caddy 2.11; Caddy 2.10 refuses the config.
+    # A new tag is pulled by `docker compose up` itself, so the deploy job brings it along.
+    image: caddy:2.11-alpine
     container_name: mastr_caddy
     restart: always
     ports:
@@ -42,6 +44,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+      # The access log (Caddyfile), readable on the host for deploy/api_report.sh
+      - ./logs/caddy:/var/log/caddy
     depends_on:
       - backend
 

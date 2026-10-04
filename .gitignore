@@ -252,3 +252,6 @@ backups/
 
 # Vite dependency cache
 frontend/.vite/
+
+# Server access logs (Caddy, compose.yml): IP addresses, never in git
+/logs/

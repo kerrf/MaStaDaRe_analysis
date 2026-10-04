@@ -243,6 +243,47 @@ the server: about 1.3 × the database plus the dump, next to the live database.
 Afterwards the nightly update fetches every change since the state of the
 pushed database, the Datenstand follows with its next complete run.
 
+## 13. Who visits the site: analytics and access logs
+
+**Website (Vercel dashboard, project → Analytics / Speed Insights):** Web
+Analytics is enabled once (Analytics → Enable; done for mastr-data.de: the site
+serves `/_vercel/insights/script.js`), Speed Insights needs no switch: every
+deployment brings its routes. The frontend sends a page view per page with its route (`/erzeuger/[land]/[kreis]`
+adds up all Kreise) and the loading times of real visitors. Visitors, pages,
+referrers, countries, browsers, systems and devices are there; IP addresses are
+not (Vercel only keeps a daily hash). The IP addresses of the last 24 hours that
+reached the site are under project → **Firewall → Traffic** (by IP, user agent,
+country, path, network).
+
+Custom events (map and table exports, technology, filters, map settings) need
+the Pro plan. Then set the environment variable `VITE_ANALYTICS_EVENTS=true` in
+the Vercel project (Production) and redeploy; without it they are not sent, so
+on Hobby they don't use up the 50,000 events a month.
+
+**API (this server):** Caddy writes an access log, a JSON line per request with
+the visitor's IP (from Cloudflare's `CF-Connecting-IP`, trusted only from
+Cloudflare's addresses), country, path, status, time, browser. A new file every
+day, kept 7 days, in `logs/caddy/` (gitignored). The deploy job (§10) sets it up
+on the next push to `main`: `git pull` brings the Caddyfile and compose.yml,
+`docker compose up -d caddy` pulls the pinned `caddy:2.11-alpine` and recreates
+Caddy with the log folder. By hand, the same:
+
+```bash
+cd /opt/mastr && git pull && docker compose up -d caddy
+```
+
+Then, on your machine, whenever you like:
+
+```bash
+./deploy/api_report.sh
+```
+
+It fetches the logs, builds a GoAccess report (visitors and requests per day and
+hour, IP addresses, browsers, systems, endpoints, status codes, slow requests,
+crawlers) in a temporary folder of your session and opens it in the browser.
+The IP addresses are personal data: say so in the Datenschutzerklärung (done,
+section 3) and don't keep the logs or reports longer than needed.
+
 ## Known gaps (not fixed by this deploy, by design)
 
 - `/solar/dashboard-stats` depends on `mrt.solar_rollup_stats` /
