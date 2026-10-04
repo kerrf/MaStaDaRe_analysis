@@ -265,6 +265,20 @@ from the dashboards' endpoints), one chapter per dashboard with a live chart of 
 both timelines per year, the gas storages as circles on a small SVG map, `lib/svgMap.js`), then where the numbers come
 from. What it requests is in `homeData.js`.
 
+## Analytics (`components/layout/AppLayout.jsx`, `lib/analytics.js`)
+
+- **Vercel Web Analytics** (`<Analytics />`): a page view per path, with its route (`routeOf`: the Land and Kreis of
+  a dashboard as `[land]`, `[kreis]`, so the panel "Routes" adds up e.g. every Kreis map). A new choice in the query
+  (technology, filters) is no page view. Cookieless; visitors are a daily hash, no IP addresses.
+- **Vercel Speed Insights** (`<SpeedInsights />`): loading times of real visitors per route.
+- **Custom events** (`trackEvent`): `Kartenexport` (format, map), `Tabellenexport` (analysis, level), `Technologie`
+  (dashboard, technology), `Filter` (parameter, choice), `Kartenansicht` (Kennzahl or Ebene). They need the Pro plan
+  and are only sent with `VITE_ANALYTICS_EVENTS=true` (Vercel env); the Datenschutzerklärung mentions them only then.
+  At most 2 properties each (Pro).
+
+In development both only log to the console. Enabling them in the Vercel dashboard, the IP addresses (Firewall →
+Traffic) and the API's access log: `DEPLOY.md` §13.
+
 ## Datenstand
 
 Every "Datenstand" on the site (dashboard header, map footer, site footer, home page, Info page, PDF export) comes from

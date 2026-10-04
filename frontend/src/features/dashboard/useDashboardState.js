@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { GRANULARITIES } from '../../config/dashboards';
 import { findBundesland, isKreisKey } from '../../config/regions';
 import { VIEWS, viewPath } from '../../config/views';
+import { trackEvent } from '../../lib/analytics';
 import { useTopology } from '../../lib/data';
 
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -149,12 +150,27 @@ export default function useDashboardState(config, view) {
     [config.basePath, region, kreisAgs, location.search],
   );
 
-  const setTechnology = useCallback((id) => setParam('technologie', id, config.technologies[0].id), [setParam, config.technologies]);
+  const setTechnology = useCallback(
+    (id) => {
+      trackEvent('Technologie', { dashboard: config.id, technologie: id });
+      setParam('technologie', id, config.technologies[0].id);
+    },
+    [setParam, config.id, config.technologies],
+  );
   const setSubtypes = useCallback(
-    (ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(',')),
+    (ids) => {
+      trackEvent('Filter', { filter: technology.subtypes.param, auswahl: ids.join(',') });
+      setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','));
+    },
     [setParam, technology],
   );
-  const setLeistung = useCallback((id) => setParam(technology.leistung.param, id, technology.leistung.options[0].id), [setParam, technology]);
+  const setLeistung = useCallback(
+    (id) => {
+      trackEvent('Filter', { filter: technology.leistung.param, auswahl: id });
+      setParam(technology.leistung.param, id, technology.leistung.options[0].id);
+    },
+    [setParam, technology],
+  );
 
   return {
     view,

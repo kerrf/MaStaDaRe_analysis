@@ -5,6 +5,7 @@ import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable } from
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
 import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
+import { trackEvent } from '../../lib/analytics';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
@@ -331,6 +332,7 @@ export default function MapView({ config, state }) {
   const exportRows = mapData.data;
   const fileBase = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}_${isSites ? plantsLevel.id : granularity.id}`;
   const handleExport = async (kind) => {
+    trackEvent('Kartenexport', { format: kind, karte: `${config.id}/${technology.id}` });
     setExporting(kind);
     try {
       if (kind === 'png') await exportPng(frameRef.current, fileBase);
@@ -488,9 +490,15 @@ export default function MapView({ config, state }) {
           onLeistung={state.setLeistung}
           metrics={metrics}
           metric={metric}
-          onMetric={(id) => setParam('kennzahl', id, metrics[0].id)}
+          onMetric={(id) => {
+            trackEvent('Kartenansicht', { einstellung: 'kennzahl', wert: id });
+            setParam('kennzahl', id, metrics[0].id);
+          }}
           granularity={granularity}
-          onGranularity={(id) => setParam('ebene', id, config.defaultGranularity)}
+          onGranularity={(id) => {
+            trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
+            setParam('ebene', id, config.defaultGranularity);
+          }}
         />
       </div>
 

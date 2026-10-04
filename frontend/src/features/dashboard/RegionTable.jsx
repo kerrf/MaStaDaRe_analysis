@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, Table2 } from 'lucide-react';
 import { GRANULARITIES, regionTablesOf } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
+import { trackEvent } from '../../lib/analytics';
 import { inkOn, makeColorScale } from '../../lib/colorScale';
 import { useJson, useTopology } from '../../lib/data';
 import { formatNumber, formatShare } from '../../lib/format';
@@ -130,7 +131,8 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
       prev.column === column ? { column, descending: !prev.descending } : { column, descending: column !== 'name' },
     );
 
-  const download = () =>
+  const download = () => {
+    trackEvent('Tabellenexport', { analyse: `${technology.id}/${dataset.id}`, ebene: level.id });
     exportCsv(
       ordered.map((row) => ({
         AGS: row.ags,
@@ -149,6 +151,7 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
       })),
       `${fileBase}_${dataset.id}_${level.id}_${scopeKey.toLowerCase()}_${mode}`,
     );
+  };
 
   // Data and names (the boundaries of the level) both have to be there
   const statuses = [table.status, shapes.status];
