@@ -12,7 +12,13 @@ const VIEWS = [
   { id: 'jahr', label: 'Jährlich' },
   { id: 'monat', label: 'Monatlich' },
 ];
-// Two versions of the monthly chart: Zubau per month as bars, Bestand at the end of each month as a curve
+// Zubau: what went into operation in each year or month; Bestand: what was in operation at its end, added up over the
+// years (minus what was finally decommissioned)
+const MEASURES = [
+  { id: 'zubau', label: 'Zubau' },
+  { id: 'bestand', label: 'Bestand' },
+];
+// The Bestand as bars or as a curve; the Zubau of each period is always a bar
 const STYLES = [
   { id: 'balken', label: 'Balken' },
   { id: 'kurve', label: 'Kurve' },
@@ -38,8 +44,9 @@ function indexRows(rows, seriesOf) {
   return { byPeriod, latest: { year: Math.floor(latest / 12), month: (latest % 12) + 1 } };
 }
 
-function buildPeriods({ byPeriod, latest }, { view, range, style }, series, since) {
-  const valueKey = view === 'monat' && style === 'kurve' ? 'installed' : 'added';
+function buildPeriods({ byPeriod, latest }, { view, range, measure }, series, since) {
+  const bestand = measure === 'bestand';
+  const valueKey = bestand ? 'installed' : 'added';
   const period = (year, month, label, tick) => ({
     key: periodKey(year, month),
     label,
@@ -51,7 +58,11 @@ function buildPeriods({ byPeriod, latest }, { view, range, style }, series, sinc
   if (view === 'jahr') {
     return Array.from({ length: latest.year - since + 1 }, (_, i) => {
       const year = since + i;
-      return period(year, null, year === latest.year ? `${year} (bis ${MONTHS[latest.month - 1]})` : String(year), String(year));
+      const current = year === latest.year;
+      const label = bestand
+        ? current ? `Stand ${MONTHS[latest.month - 1]} ${year}` : `Ende ${year}`
+        : current ? `${year} (bis ${MONTHS[latest.month - 1]})` : String(year);
+      return period(year, null, label, String(year));
     });
   }
 
@@ -66,7 +77,7 @@ function buildPeriods({ byPeriod, latest }, { view, range, style }, series, sinc
     const [year, month] = [Math.floor((first + i) / 12), ((first + i) % 12) + 1];
     const name = `${MONTHS[month - 1]} ${year}`;
     const isLatest = first + i === last;
-    const label = style === 'kurve' ? (isLatest ? `${name} (aktueller Stand)` : `Ende ${name}`) : isLatest ? `${name} (laufend)` : name;
+    const label = bestand ? (isLatest ? `${name} (aktueller Stand)` : `Ende ${name}`) : isLatest ? `${name} (laufend)` : name;
     const short = MONTHS[month - 1].slice(0, 3);
     const tick = range === LAST_12 ? `${short} ${String(year).slice(2)}` : range === ALL ? (month === 1 ? String(year) : null) : short;
     return period(year, month, label, tick);
@@ -95,20 +106,22 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
 
   const [view, setView] = useState('jahr');
   const [range, setRange] = useState(LAST_12);
-  const [style, setStyle] = useState('balken');
+  const [measure, setMeasure] = useState('zubau');
+  const [style, setStyle] = useState('kurve');
   const [hidden, setHidden] = useState(() => new Set());
 
   const visible = useMemo(() => series.filter((s) => !hidden.has(s.id)), [series, hidden]);
   const periods = useMemo(
-    () => (table ? buildPeriods(table, { view, range, style }, visible, since) : []),
-    [table, view, range, style, visible, since],
+    () => (table ? buildPeriods(table, { view, range, measure }, visible, since) : []),
+    [table, view, range, measure, visible, since],
   );
   const years = table ? Array.from({ length: table.latest.year - since + 1 }, (_, i) => String(table.latest.year - i)) : [];
 
-  const isCurve = view === 'monat' && style === 'kurve';
+  const bestand = measure === 'bestand';
+  const isCurve = bestand && style === 'kurve';
   const solar = hasNetto ? ` · Solar ${netto ? 'Netto (AC)' : 'Brutto (DC)'}` : '';
-  const subtitle = isCurve
-    ? `Deutschland · installierte ${quantity} am Monatsende${solar}`
+  const subtitle = bestand
+    ? `Deutschland · installierte ${quantity} am ${view === 'jahr' ? 'Jahresende' : 'Monatsende'}${solar}`
     : `Deutschland · neu in Betrieb genommene ${quantity} je ${view === 'jahr' ? 'Jahr' : 'Monat'}${solar}`;
 
   const toggle = (id) =>
@@ -121,8 +134,17 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
 
   return (
     <AnalysisPanel id={anchor} icon={analysis.icon} title={title} lead={subtitle} className="timeline-card">
-      {/* The view comes first, so switching it never moves it */}
+      {/* Every control always in its place: only the Zeitraum of the months comes and goes, at the end */}
       <div className="timeline__controls">
+        <SegmentedControl label="Größe" options={MEASURES} value={measure} onChange={setMeasure} />
+        <SegmentedControl
+          label="Darstellung"
+          options={STYLES}
+          value={bestand ? style : 'balken'}
+          onChange={setStyle}
+          disabled={!bestand}
+          hint="Als Kurve: der Bestand"
+        />
         <SegmentedControl label="Zeitraster" options={VIEWS} value={view} onChange={setView} />
         {view === 'monat' && (
           <>
@@ -138,7 +160,6 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
                 </option>
               ))}
             </select>
-            <SegmentedControl label="Darstellung" options={STYLES} value={style} onChange={setStyle} />
           </>
         )}
         {hasNetto && leistungOption && onLeistung && (

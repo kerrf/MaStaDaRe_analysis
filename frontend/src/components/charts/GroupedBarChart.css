@@ -100,3 +100,11 @@
   height: 9px;
   border-radius: 2px;
 }
+
+/* The value above a column */
+.bar-chart__value {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-secondary);
+}

@@ -234,6 +234,11 @@ export const ERZEUGER = {
   ],
 };
 
+// The size classes of the battery timelines (aggregate_zubau.sql)
+const BATTERY_NOTE =
+  'Größenklassen wie battery-charts.de: Heimspeicher unter 30 kWh und 30 kW, Großspeicher ab 1 MWh oder 1 MW. ' +
+  'Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht enthalten.';
+
 export const SPEICHER = {
   id: 'speicher',
   basePath: '/speicher',
@@ -306,7 +311,7 @@ export const SPEICHER = {
   analyses: [
     {
       id: 'timeline',
-      title: 'Zubau im Zeitverlauf',
+      title: 'Zubau im Zeitverlauf: Kapazität',
       icon: ChartColumnIncreasing,
       view: 'zubau',
       // Battery capacity by size class, like battery-charts.de (RWTH Aachen)
@@ -320,9 +325,26 @@ export const SPEICHER = {
           { id: 'gewerbespeicher', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
           { id: 'heimspeicher', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
         ],
-        note:
-          'Größenklassen wie battery-charts.de: Heimspeicher unter 30 kWh und 30 kW, Großspeicher ab 1 MWh oder 1 MW. ' +
-          'Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht enthalten.',
+        note: BATTERY_NOTE,
+      },
+    },
+    {
+      id: 'timeline-leistung',
+      title: 'Zubau im Zeitverlauf: Leistung',
+      icon: Zap,
+      view: 'zubau',
+      // The same batteries by their power (Bruttoleistung, as on the map)
+      timeline: {
+        path: '/zubau/zeitverlauf',
+        unit: 'MW',
+        quantity: 'Batterieleistung',
+        since: 2013,
+        series: [
+          { id: 'grossspeicher_leistung', label: 'Großspeicher', color: 'var(--series-grossspeicher)' },
+          { id: 'gewerbespeicher_leistung', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
+          { id: 'heimspeicher_leistung', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
+        ],
+        note: BATTERY_NOTE,
       },
     },
     ...registrations([

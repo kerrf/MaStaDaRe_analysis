@@ -273,6 +273,15 @@
   cursor: not-allowed;
 }
 
+/* The whole control out of use (it applies to another setting): faded as one, not option by option */
+.segmented.is-disabled {
+  opacity: 0.5;
+}
+
+.segmented.is-disabled .segmented__option:disabled {
+  opacity: 1;
+}
+
 /* ------------------------------------------------------------- Stat tile */
 .stat-tile {
   display: flex;

@@ -83,6 +83,7 @@ export default function RegistrationDelayAnalysis({ analysis, initial, anchor })
             kind="bars"
             unit="%"
             formatValue={percent}
+            valueLabels={false}
             label={`${analysis.title}: ${selected.label}, Anteile je Inbetriebnahmejahr`}
           />
           <div className="timeline-legend" aria-hidden="true">

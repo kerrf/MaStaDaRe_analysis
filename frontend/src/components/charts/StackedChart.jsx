@@ -1,12 +1,13 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatAmount, formatNumber } from '../../lib/format';
 import './StackedChart.css';
 
 const HEIGHT = 300;
 const MARGIN = { top: 24, right: 8, bottom: 28, left: 44 };
 const MAX_BAR_WIDTH = 56;
-// Width of an x-axis label per character (11.5px font), to keep the labels apart
+// Width of an x-axis label per character (11.5px font), to keep the labels apart; of a value above a bar (10.5px)
 const CHAR_WIDTH = 7;
+const VALUE_CHAR_WIDTH = 6.4;
 const NICE = [1, 2, 2.5, 5, 10];
 const LABEL_EVERY = [1, 2, 3, 5, 10, 20, 50];
 
@@ -22,13 +23,24 @@ function useWidth(ref) {
   return width;
 }
 
-// Axis ticks from 0 in steps of 1, 2, 2.5 or 5 times a power of ten, up to at least max.
-function niceTicks(max, target = 5) {
-  if (!(max > 0)) return [0, 1];
-  const rough = max / target;
+// Axis ticks in steps of 1, 2, 2.5 or 5 times a power of ten, from min (0, or a round value at or below it) up to at
+// least max.
+function niceTicks(max, min = 0, target = 5) {
+  if (!(max > min)) return [min, min + 1];
+  const rough = (max - min) / target;
   const power = 10 ** Math.floor(Math.log10(rough));
   const step = NICE.map((f) => f * power).find((s) => s >= rough);
-  return Array.from({ length: Math.ceil(max / step - 1e-9) + 1 }, (_, i) => i * step);
+  const first = Math.floor(min / step + 1e-9) * step;
+  return Array.from({ length: Math.ceil((max - first) / step - 1e-9) + 1 }, (_, i) => Number((first + i * step).toFixed(9)));
+}
+
+// Where the value axis of a curve starts: at 0, unless the curve stays high up (its lowest point above 30 % of its
+// highest). Then about as far below the lowest point as the curve rises, so the change fills the chart instead of a thin
+// band at its top: 35 → 40 GWh reads from 30 GWh. Bars always start at 0, their length is the value.
+function curveFloor(lowest, highest) {
+  if (!(lowest > 0.3 * highest)) return 0;
+  const rise = highest - lowest || highest * 0.1;
+  return Math.max(0, lowest - rise);
 }
 
 // Fraction digits an axis step needs: 2.5 -> 1, 0.25 -> 2
@@ -80,11 +92,24 @@ function roundedTop(x, y, width, height, radius) {
  * unit:    unit of the values, 'MW' or 'MWh' (from 1,000 on, the axis switches to GW or GWh), '%', or a count such as
  *          'Anzahl' (from 10,000 on, the axis counts in thousands)
  * formatValue: how the tooltip writes a value; default: with unit, in GW from 1,000 MW on
+ * valueLabels: bars only: the total of each bar above it, in the unit of the axis, where every one fits (not for shares
+ *              that add up to 100 %)
  */
-export default function StackedChart({ periods, series, kind = 'bars', unit, label, formatValue = (value) => formatAmount(value, unit) }) {
+export default function StackedChart({
+  periods,
+  series,
+  kind = 'bars',
+  unit,
+  label,
+  formatValue = (value) => formatAmount(value, unit),
+  valueLabels = true,
+}) {
   const frameRef = useRef(null);
+  const clipId = useId();
   const width = useWidth(frameRef);
   const [activeKey, setActiveKey] = useState(null);
+  // Curves: the axis near the curve (the default) or from 0, switchable below the chart
+  const [fromZero, setFromZero] = useState(false);
 
   // Bottom and top of each series' segment, per period
   const stacks = useMemo(
@@ -114,13 +139,35 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
   const max = stacked
     ? stacks.reduce((m, _, j) => Math.max(m, totalOf(j)), 0)
     : stacks.reduce((m, segments) => Math.max(m, ...segments.map((seg) => seg.value ?? 0)), 0);
-  const ticks = niceTicks(max);
-  const domainTop = ticks.at(-1);
-  const y = (value) => MARGIN.top + plotHeight * (1 - value / domainTop);
+  // The lowest point of the curve: the top of the stack (areas), the lowest value of any line (lines)
+  const plotted = periods.flatMap((_, j) =>
+    !hasData(j) ? [] : stacked ? [totalOf(j)] : stacks[j].flatMap((seg) => (seg.value == null ? [] : [seg.value])),
+  );
+  const nearFloor = kind === 'bars' || !plotted.length ? 0 : curveFloor(Math.min(...plotted), max);
+  const floor = fromZero ? 0 : nearFloor;
+  const ticks = niceTicks(max, floor);
+  const [domainBottom, domainTop] = [ticks[0], ticks.at(-1)];
+  const truncated = domainBottom > 0;
+  // Stacked series that lie wholly below the axis there, so the curve doesn't show them: named below the chart
+  const belowAxis = truncated && stacked ? series.filter((_, i) => periods.every((__, j) => !hasData(j) || stacks[j][i].top <= domainBottom)) : [];
+  const y = (value) => MARGIN.top + plotHeight * (1 - (value - domainBottom) / (domainTop - domainBottom));
   const power = /^M/.test(unit);
   const large = power ? domainTop >= 1000 : unit !== '%' && domainTop >= 10000;
   const axisUnit = !large ? unit : power ? unit.replace(/^M/, 'G') : 'Tsd.';
-  const tickDigits = digitsOf((large ? ticks[1] / 1000 : ticks[1]) || 1);
+  const tickDigits = digitsOf((large ? (ticks[1] - ticks[0]) / 1000 : ticks[1] - ticks[0]) || 1);
+
+  // The total above each bar, in the unit of the axis: "16,2" under "GW". Only where every one fits above its bar.
+  const valueText = (total) => {
+    const v = large ? total / 1000 : total;
+    if (!(v > 0)) return null;
+    const text =
+      unit === '%' || !power ? formatNumber(v, unit === '%' ? 1 : large && v < 10 ? 1 : 0) : formatNumber(v, v >= 100 ? 0 : v >= 1 ? 1 : 2);
+    // A bar too small for its digits gets none: "0" over a bar would be wrong
+    return /^0$/.test(text) ? null : text;
+  };
+  const totals = kind === 'bars' && valueLabels ? periods.map((_, j) => valueText(totalOf(j))) : [];
+  const showValues =
+    totals.some(Boolean) && Math.max(...totals.map((t) => (t ? t.length : 0))) * VALUE_CHAR_WIDTH + 4 <= slot;
 
   // x-axis labels: as many as fit, every 1st, 2nd, 5th … of them; year labels on round years
   const labelled = periods.flatMap((p, j) => (p.tick ? [j] : []));
@@ -163,6 +210,13 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
           onKeyDown={onKeyDown}
           onBlur={() => setActiveKey(null)}
         >
+          {/* Curves on an axis that starts above 0 run below it: cut off at the bottom of the chart */}
+          <defs>
+            <clipPath id={clipId}>
+              <rect x={MARGIN.left} y={0} width={plotWidth} height={MARGIN.top + plotHeight} />
+            </clipPath>
+          </defs>
+
           <g className="stacked-chart__grid">
             {ticks.map((t) => (
               <g key={t}>
@@ -181,31 +235,38 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
             <rect className="stacked-chart__hover" x={MARGIN.left + active * slot} y={MARGIN.top} width={slot} height={plotHeight} />
           )}
 
-          {kind === 'lines' &&
-            series.map((s, i) => {
-              // Each line through the periods it has a value for
-              const points = periods.flatMap((_, j) => (stacks[j][i].value != null ? [j] : []));
-              if (!points.length) return null;
-              const xs = points.map(cx);
-              const ys = points.map((j) => y(stacks[j][i].value));
-              return (
-                <g key={s.id} className="stacked-chart__line" style={{ color: s.color }}>
-                  <path d={`M${xs[0]},${ys[0]}${xs.length > 1 ? curve(xs, ys) : ''}`} />
-                  {n <= 40 && xs.map((x, k) => <circle key={points[k]} cx={x} cy={ys[k]} r={2.5} />)}
-                </g>
-              );
-            })}
+          {kind === 'lines' && (
+            <g clipPath={`url(#${clipId})`}>
+              {series.map((s, i) => {
+                // Each line through the periods it has a value for
+                const points = periods.flatMap((_, j) => (stacks[j][i].value != null ? [j] : []));
+                if (!points.length) return null;
+                const xs = points.map(cx);
+                const ys = points.map((j) => y(stacks[j][i].value));
+                return (
+                  <g key={s.id} className="stacked-chart__line" style={{ color: s.color }}>
+                    <path d={`M${xs[0]},${ys[0]}${xs.length > 1 ? curve(xs, ys) : ''}`} />
+                    {n <= 40 && xs.map((x, k) => <circle key={points[k]} cx={x} cy={ys[k]} r={2.5} />)}
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {kind === 'lines'
             ? null
             : asArea
-            ? series.map((s, i) => {
-                const xs = withData.map(cx);
-                const tops = withData.map((j) => y(stacks[j][i].top));
-                const bottoms = withData.map((j) => y(stacks[j][i].bottom));
-                const d = `M${xs[0]},${tops[0]}${curve(xs, tops)}L${xs.at(-1)},${bottoms.at(-1)}${curve(xs, bottoms, true)}Z`;
-                return <path key={s.id} className="stacked-chart__area" d={d} style={{ fill: s.color }} />;
-              })
+            ? (
+                <g clipPath={`url(#${clipId})`}>
+                  {series.map((s, i) => {
+                    const xs = withData.map(cx);
+                    const tops = withData.map((j) => y(stacks[j][i].top));
+                    const bottoms = withData.map((j) => y(stacks[j][i].bottom));
+                    const d = `M${xs[0]},${tops[0]}${curve(xs, tops)}L${xs.at(-1)},${bottoms.at(-1)}${curve(xs, bottoms, true)}Z`;
+                    return <path key={s.id} className="stacked-chart__area" d={d} style={{ fill: s.color }} />;
+                  })}
+                </g>
+              )
             : periods.map((period, j) => {
                 const segments = stacks[j];
                 const topIndex = segments.findLastIndex((seg) => seg.top > seg.bottom);
@@ -222,6 +283,11 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
                         <rect key={series[i].id} x={x} y={top} width={barWidth} height={bottom - top} style={style} />
                       );
                     })}
+                    {showValues && totals[j] && (
+                      <text className="stacked-chart__value" x={cx(j)} y={y(totalOf(j)) - 5} textAnchor="middle">
+                        {totals[j]}
+                      </text>
+                    )}
                   </g>
                 );
               })}
@@ -237,7 +303,16 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
             </g>
           )}
 
-          <line className="stacked-chart__baseline" x1={MARGIN.left} x2={width - MARGIN.right} y1={y(0)} y2={y(0)} />
+          <line className="stacked-chart__baseline" x1={MARGIN.left} x2={width - MARGIN.right} y1={y(domainBottom)} y2={y(domainBottom)} />
+          {/* The axis doesn't start at 0: a break at its foot */}
+          {truncated && (
+            <path
+              className="stacked-chart__break"
+              d={`M${MARGIN.left - 4},${y(domainBottom) + 4}l8,-8M${MARGIN.left + 1},${y(domainBottom) + 4}l8,-8`}
+            >
+              <title>Die Achse beginnt nicht bei 0</title>
+            </path>
+          )}
           {periods.map((period, j) => {
             const k = labelled.indexOf(j);
             return (
@@ -287,6 +362,19 @@ export default function StackedChart({ periods, series, kind = 'bars', unit, lab
             )}
           </table>
         </div>
+      )}
+
+      {nearFloor > 0 && (
+        <p className="stacked-chart__cut">
+          {truncated
+            ? `Achse ab ${formatNumber(large ? domainBottom / 1000 : domainBottom, tickDigits)} ${axisUnit}`
+            : 'Achse ab 0'}
+          {truncated && belowAxis.length > 0 && ` · darunter und daher nicht zu sehen: ${belowAxis.map((s) => s.label).join(', ')}`}
+          {' · '}
+          <button type="button" className="stacked-chart__axis-toggle" onClick={() => setFromZero((v) => !v)}>
+            {truncated ? 'Achse ab 0 zeigen' : 'Achse an die Kurve anpassen'}
+          </button>
+        </p>
       )}
 
       {series.length === 0 && <div className="stacked-chart__empty">Alle Reihen ausgeblendet – in der Legende wieder einblenden.</div>}

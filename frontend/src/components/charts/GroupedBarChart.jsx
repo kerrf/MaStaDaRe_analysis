@@ -33,6 +33,9 @@ const splitUnit = (label) => {
 
 const percent = (share) => formatShare(share);
 const tickLabel = (share) => `${formatNumber(share * 100, 1)} %`;
+// The value above a column: whole percent, "<1 %" for the small ones, nothing for none
+const columnLabel = (share) => (!(share > 0) ? null : share < 0.01 ? '<1 %' : `${Math.round(share * 100)} %`);
+const VALUE_CHAR_WIDTH = 5.8; // per character, 10px font
 
 // Width of a label per character (12px font)
 const CHAR_WIDTH = 6.6;
@@ -43,15 +46,18 @@ const TILT = 40; // degrees, for labels that don't fit side by side
 function Columns({ width, categories, series, active, onActive }) {
   const AXIS = 40;
   const PLOT = 210;
-  const TOP = 12;
   const plot = Math.max(0, width - AXIS - 4);
   const slot = categories.length ? plot / categories.length : 0;
   const tilted = Math.max(...categories.map((c) => splitUnit(c.label)[0].length)) * CHAR_WIDTH + 6 > slot;
   const longest = Math.max(...categories.map((c) => c.label.length)) * CHAR_WIDTH;
   const LABELS = tilted ? Math.ceil(longest * Math.sin((TILT * Math.PI) / 180)) + 18 : 36;
-  const column = Math.min(20, Math.max(4, (slot * 0.7 - (series.length - 1) * 3) / series.length));
+  const column = Math.min(26, Math.max(4, (slot * 0.7 - (series.length - 1) * 3) / series.length));
   const group = series.length * column + (series.length - 1) * 3;
   const max = Math.max(...categories.flatMap((c) => series.map((s) => c.values[s.id] ?? 0)));
+  // Values above the columns where every one fits over its column (and the gap to the next)
+  const longestValue = Math.max(...categories.flatMap((c) => series.map((s) => columnLabel(c.values[s.id])?.length ?? 0)));
+  const showValues = longestValue * VALUE_CHAR_WIDTH <= column + 3;
+  const TOP = showValues ? 22 : 12;
   const ticks = niceTicks(max * 100).map((t) => t / 100);
   const top = ticks.at(-1);
   const y = (share) => TOP + PLOT * (1 - share / top);
@@ -76,7 +82,17 @@ function Columns({ width, categories, series, active, onActive }) {
             {series.map((s, k) => {
               const value = c.values[s.id] ?? 0;
               const h = Math.max(value > 0 ? 1.5 : 0, TOP + PLOT - y(value));
-              return <rect key={s.id} x={x0 + k * (column + 3)} y={TOP + PLOT - h} width={column} height={h} rx={2} style={{ fill: s.color }} />;
+              const x = x0 + k * (column + 3);
+              return (
+                <g key={s.id}>
+                  <rect x={x} y={TOP + PLOT - h} width={column} height={h} rx={2} style={{ fill: s.color }} />
+                  {showValues && columnLabel(value) && (
+                    <text className="bar-chart__value" x={x + column / 2} y={TOP + PLOT - h - 4} textAnchor="middle">
+                      {columnLabel(value)}
+                    </text>
+                  )}
+                </g>
+              );
             })}
             {tilted ? (
               <text
