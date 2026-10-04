@@ -20,12 +20,13 @@ has to hold everything (`src/config/views.js`):
 
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
-| Karte | `/erzeuger/:land?/:kreis?` | KPIs, map with its controls, Top 10, links to the other pages | `MapView.jsx` |
+| Karte | `/erzeuger/:land?/:kreis?` | KPIs, map with its controls, Top 10, Ausrichtung or Anlagengröße of the area in view (or of one clicked on the map) | `MapView.jsx`, `ScopeAnalysisCard.jsx` |
+| Landkreis/Gemeinde | `/erzeuger/kommune/:land?/:kreis?` | one Kreis and its Gemeinden in depth, solar only for now (see below) | `KommuneView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau` | Zubau im Zeitverlauf, Registrierungen im MaStR, Zeit bis zur Registrierung – Germany-wide | `ZubauView.jsx` |
-| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope, batteries at solar units | `AnlagenView.jsx` |
+| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), batteries at solar units | `AnlagenView.jsx` |
 | Regionen | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
 
-Erzeuger and Speicher have all four, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
+Erzeuger has all five, Speicher all but Landkreis/Gemeinde, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
 in the nav bar). `Dashboard.jsx` is the shell: header (dashboard, page, scope), tabs to the other pages, the page. Each
 analysis says on which page it is (`view` on the analysis). The map page loads Leaflet; the other pages don't.
 
@@ -45,6 +46,7 @@ parameters, so the Steckbrief and the timeline can read solar's choice while win
 | `?ebene=` | Resolution id from `GRANULARITIES`, default = `defaultGranularity` |
 | `?anlagenart=gebaeude` | Solar sub-selection (comma separated). No parameter = all options |
 | `?lage=an_land` | Wind: an Land or auf See. No parameter = both |
+| `?gemeinde=` | A Gemeinde of the Kreis (8-digit key), on the pages with `gemeinde` in `VIEWS` (Anlagen, Landkreis/Gemeinde) |
 
 Defaults are never written to the URL.
 
@@ -248,15 +250,36 @@ the map. The Analysen section only shows when it has something (Gas: nothing yet
 An analysis with `timeline` is drawn full-width above the other cards (`TimelineAnalysis.jsx`), Germany-wide whatever
 the scope. Data: `/zubau/zeitverlauf?technology=…` from `mrt.zubau_zeitverlauf` (`aggregate_zubau.sql`), one row per
 series and month plus one per year (`month` null), with `added` (Zubau) and `installed` (Bestand at the period's end).
-Views: yearly bars, or monthly for the last 12 months, a year or all months since `since`, as bars (Zubau) or as a
-curve (Bestand, stacked areas). Series are stacked in config order, the first at the bottom; a click on the legend
-hides one. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG, no chart library. On the Zubau page the
+Views: Zubau (what went into operation per period, bars) or Bestand (in operation at its end, bars or a curve of stacked
+areas), per year or per month (the last 12 months, a year or all months since `since`). Series are stacked in config
+order, the first at the bottom; a click on the legend hides one. Bars carry their total where every one fits. A curve's
+axis starts near its lowest point (`curveFloor`: 35 → 40 reads from 30) when the curve stays high up; series that then
+lie wholly below the axis are named under the chart, which also switches the axis back to 0. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG, no chart library. On the Zubau page the
 timeline has its own Netto/Brutto switch for solar (`leistungOption`, `onLeistung`).
 
 - Erzeuger: Solar, Wind an Land, Wind auf See in MW (`Bruttoleistung`; Solar as `Nettonennleistung`, series
   `solar_netto`, while the Leistung is Netto, the default).
-- Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage), by size class and with the
-  plausibility check of battery-charts.de.
+- Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage) and, in a second chart, their
+  power in MW (`Bruttoleistung`, series `…speicher_leistung`), by size class and with the plausibility check of
+  battery-charts.de.
+
+### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`)
+
+For people who want to know their region: one Landkreis and its Gemeinden, solar for now. Without a Kreis the page is a
+search over every Kreis and Gemeinde (names from the Kreis boundaries and `/regions/areas?level=gemeinde`); a Gemeinde
+found opens its Kreis with it picked.
+
+- **Map** (`KommuneMap.jsx`): the Gemeinden of the Kreis, shaded by a figure (Leistung, je Einwohner, je km², Zubau
+  12 Monate, Anlagen) on a background map of tiles (`config/basemaps.js`: basemap.de grey or in colour from the BKG,
+  Sentinel-2 satellite from EOX, or none), with an opacity slider, the Kreise around as dashed lines, a light veil
+  outside the Kreis, names at each Gemeinde's label point (`lib/geometry.js`, placed without overlap like the place
+  names) and a scale bar. The switch's pictures are tiles of basemap.de only: EOX is asked first when its view is chosen
+  (Datenschutzerklärung).
+- **Panel** left of it: the Kreis (or the picked Gemeinde) in figures, each with its share of the Land (Kreis), its
+  multiple of the Landes-/Kreis- and Bundesschnitt and its rank; Gebäude against Freifläche; the largest Gemeinden.
+- Below: Zubau and Bestand per year of the area (`/solar/zubau?region=…`, `mrt.solar_zubau_regions`, kW for small
+  Gemeinden), Ausrichtung and Anlagengröße (their endpoints take Gemeinde keys too) and every Gemeinde in a sortable
+  table with CSV export. A click on a Gemeinde – map, list, table, scope bar – picks it (`?gemeinde=`); again: the Kreis.
 
 ## Start page (`pages/HomePage.jsx`, `features/home/`)
 
