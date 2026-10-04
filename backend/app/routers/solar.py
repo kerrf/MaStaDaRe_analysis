@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.analyses import PvSpeicher, SizeDistribution, SolarOrientation, SpeicherPv
+from app.models.analyses import PvSpeicher, SizeDistribution, SolarOrientation, SolarZubauRegion, SpeicherPv
 from app.models.regions import RegionLevel, SolarRegionStats
 from app.models.solar import SolarRollupStats, SolarUnit
 from app.schemas.analyses import (
@@ -16,6 +16,7 @@ from app.schemas.analyses import (
     Regions,
     RegionTable,
     SizeClassShare,
+    ZubauYear,
     regions,
 )
 from app.schemas.selection import SolarSelection, solar_selection
@@ -99,6 +100,13 @@ def get_orientation(
     """Units and power per main orientation of the modules (8 directions, ost_west, nachgefuehrt, unbekannt)."""
     response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientation.of(db, region, selection.anlagenarten, selection.netto)
+
+
+@router.get("/zubau", response_model=list[ZubauYear])
+def get_zubau(response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
+    """Zubau and Bestand per year since 2000 in a region, per chosen Anlagenart (mrt.solar_zubau_regions)."""
+    response.headers["Cache-Control"] = CACHE_CONTROL
+    return SolarZubauRegion.of(db, region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/size-distribution/regions", response_model=RegionTable)

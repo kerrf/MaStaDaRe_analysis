@@ -152,6 +152,42 @@ class SolarOrientation(Base):
         return {"columns": columns, "rows": table_of(db, cls, cls.sort, filters, netto)}
 
 
+class SolarZubauRegion(Base):
+    """Solar Zubau and Bestand per year, Anlagenart and region since 2000 (aggregate_solar_zubau_regions.sql)."""
+
+    __tablename__ = "solar_zubau_regions"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
+    region = Column(String, primary_key=True)
+    year = Column(Integer, primary_key=True)
+    anlagenart = Column(String, primary_key=True)  # gebaeude, freiflaeche
+
+    added_units = Column(Integer)  # went into operation in the year
+    added = Column(Float)  # MW, Brutto
+    added_net = Column(Float)  # MW, Netto
+    installed_units = Column(Integer)  # in operation at the end of the year
+    installed = Column(Float)
+    installed_net = Column(Float)
+
+    @classmethod
+    def of(cls, db: Session, region: str, anlagenarten: tuple, netto: bool) -> list:
+        """The years of one region, per chosen Anlagenart, in the chosen measure."""
+        return (
+            db.query(
+                cls.year,
+                cls.anlagenart,
+                cls.added_units,
+                (cls.added_net if netto else cls.added).label("added"),
+                cls.installed_units,
+                (cls.installed_net if netto else cls.installed).label("installed"),
+            )
+            .filter(cls.level == level_of(region), cls.region == region, cls.anlagenart.in_(anlagenarten))
+            .order_by(cls.year, cls.anlagenart)
+            .all()
+        )
+
+
 class PvSpeicher(Base):
     """Solar units per Anlagenart, size class and year, and the batteries at their Lokation (aggregate_pv_speicher.sql)."""
 

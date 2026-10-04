@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Calls every route the website uses, as the website does: each has to answer 200. That checks the code and the data at
-# once, for a route fails too when the server's database lacks a view the new code reads (push the database first,
-# deploy/push_db.sh). The pipeline runs it after each backend deploy and goes back if it fails.
+# Calls every route the website uses, as the website does: each has to answer 200 with data (not an empty list). That
+# checks the code and the data at once, for a route fails too when the server's database lacks a view or the rows the
+# new code reads (push the database first, deploy/push_db.sh). The pipeline runs it after each backend deploy and goes
+# back if it fails.
 #
 #   ./deploy/smoke_test.sh                                   # the live API
 #   API_URL=http://localhost:8000 ./deploy/smoke_test.sh     # your local backend
@@ -18,6 +19,7 @@ ROUTES=(
   /health
   /meta/datenstand
   "/zubau/zeitverlauf?yearly=true&technology=solar_netto&technology=wind_an_land&technology=wind_auf_see&technology=grossspeicher&technology=gewerbespeicher&technology=heimspeicher"
+  "/zubau/zeitverlauf?yearly=true&technology=grossspeicher_leistung&technology=gewerbespeicher_leistung&technology=heimspeicher_leistung"
   /zubau/registrierungen
   /zubau/registrierungsverzug
   "/solar/dashboard-stats?level=bundesland"
@@ -37,15 +39,24 @@ ROUTES=(
   /gas/erzeuger
   /gas/speicher
   "/regions/areas?level=bundesland"
+  # Landkreis/Gemeinde (Landkreis Zwickau, Gemeinde Zwickau)
+  "/regions/areas?level=gemeinde&within=14524"
+  "/solar/zubau?region=14524"
+  "/solar/orientation?region=14524330"
+  "/solar/size-distribution?region=14524330"
 )
 
 printf 'Smoke test of %s\n' "$API_URL"
+body=$(mktemp)
+trap 'rm -f "$body"' EXIT
 failed=0
 for route in "${ROUTES[@]}"; do
   # A few tries: right after a deploy, Cloudflare and Caddy may need a moment
-  result=$(curl --silent --output /dev/null --write-out '%{http_code} %{time_total}' --max-time 60 \
+  result=$(curl --silent --output "$body" --write-out '%{http_code} %{time_total}' --max-time 60 \
     --retry 2 --retry-delay 5 --retry-all-errors "$API_URL$route")
   code=${result%% *}
+  # An empty list: the route works, but the database lacks its rows
+  [[ $code == 200 && $(head -c 2 "$body") == '[]' ]] && code='200, but empty'
   if [[ $code == 200 ]]; then
     printf '  \033[32mok\033[0m   %s  %5.2fs  %s\n' "$code" "${result#* }" "$route"
   else

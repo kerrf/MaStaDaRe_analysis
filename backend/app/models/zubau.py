@@ -4,15 +4,24 @@ from sqlalchemy import Column, Float, Integer, String
 
 from app.models.solar import Base
 
-# solar: Bruttoleistung (DC), solar_netto: Nettonennleistung (AC)
+# solar: Bruttoleistung (DC), solar_netto: Nettonennleistung (AC); batteries: capacity, and power as "..._leistung"
 Technology = Literal[
-    "solar", "solar_netto", "wind_an_land", "wind_auf_see", "heimspeicher", "gewerbespeicher", "grossspeicher"
+    "solar",
+    "solar_netto",
+    "wind_an_land",
+    "wind_auf_see",
+    "heimspeicher",
+    "gewerbespeicher",
+    "grossspeicher",
+    "heimspeicher_leistung",
+    "gewerbespeicher_leistung",
+    "grossspeicher_leistung",
 ]
 
 
 class Zubau(Base):
     """Zubau and Bestand in Germany per month and, with month NULL, per year since 2000
-    (etl/queries/aggregate_zubau.sql). Solar and wind in MW, battery storage in MWh of usable capacity.
+    (etl/queries/aggregate_zubau.sql). Solar and wind in MW, battery storage in MWh of usable capacity and in MW.
     """
 
     __tablename__ = "zubau_zeitverlauf"

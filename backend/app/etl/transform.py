@@ -60,6 +60,10 @@ if __name__ == "__main__":
     query_path = Path("app/etl/queries/aggregate_solar_orientation.sql")
     run_sql_file(engine, query_path)
 
+    # Solar Zubau and Bestand per year in every region (the Landkreis/Gemeinde page)
+    query_path = Path("app/etl/queries/aggregate_solar_zubau_regions.sql")
+    run_sql_file(engine, query_path)
+
     # Solar units and batteries at the same Lokation (Germany-wide), needs raw.storage_plants for the capacity
     query_path = Path("app/etl/queries/aggregate_pv_speicher.sql")
     run_sql_file(engine, query_path)

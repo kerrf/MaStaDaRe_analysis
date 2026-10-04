@@ -3,7 +3,8 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 DROP MATERIALIZED VIEW IF EXISTS mrt.zubau_zeitverlauf;
 
 -- Zubau (additions by commissioning date) and Bestand (installed at the end of the period) in Germany, per month and
--- per year since 2000: solar and wind in MW, battery storage in MWh of usable capacity, split into size classes.
+-- per year since 2000: solar and wind in MW, battery storage split into size classes, twice: in MWh of usable capacity
+-- ('heimspeicher', ...) and in MW of power ('heimspeicher_leistung', ...).
 -- Solar twice: as Bruttoleistung (DC, 'solar') and Nettonennleistung (AC, 'solar_netto', the dashboard's default).
 CREATE MATERIALIZED VIEW mrt.zubau_zeitverlauf AS
 WITH battery_plants AS (
@@ -53,20 +54,27 @@ units AS (
 
     UNION ALL
     -- Size classes of battery-charts.de (RWTH Aachen) by the plant: Heimspeicher below 30 kWh and 30 kW,
-    -- Großspeicher from 1,000 kWh or 1,000 kW, Gewerbespeicher in between. A plant's capacity is split between its
-    -- units by their power.
+    -- Großspeicher from 1,000 kWh or 1,000 kW, Gewerbespeicher in between. Each unit twice: its share of the plant's
+    -- capacity (split between the units by their power) and its power, as on the map.
     SELECT
-        CASE
-            WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
-            WHEN b.capacity >= 1000 OR b.power >= 1000 THEN 'grossspeicher'
-            ELSE 'gewerbespeicher'
-        END,
+        s.technology,
         u."Inbetriebnahmedatum",
         CASE WHEN u."EinheitBetriebsstatus" = '38'
             THEN GREATEST(u."DatumEndgueltigeStilllegung"::date, u."Inbetriebnahmedatum") END,
-        b.capacity * u."Bruttoleistung" / b.power  -- kWh
+        s.amount
     FROM raw.storage_units u
     JOIN battery_plants b USING ("SpeMastrNummer")
+    CROSS JOIN LATERAL (
+        SELECT CASE
+            WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
+            WHEN b.capacity >= 1000 OR b.power >= 1000 THEN 'grossspeicher'
+            ELSE 'gewerbespeicher'
+        END AS size_class
+    ) c
+    CROSS JOIN LATERAL (VALUES
+        (c.size_class, b.capacity * u."Bruttoleistung" / b.power),  -- kWh
+        (c.size_class || '_leistung', u."Bruttoleistung")  -- kW
+    ) AS s(technology, amount)
     WHERE u."Technologie" = '524'
       AND u."Inbetriebnahmedatum" IS NOT NULL
       -- Plausibility check of battery-charts.de: more than 0.3 kWh and 0.3 kW, full in 6 minutes to 12 hours.
@@ -118,7 +126,7 @@ SELECT
     technology,
     year,
     month,
-    CASE WHEN technology LIKE '%speicher' THEN 'MWh' ELSE 'MW' END AS unit,
+    CASE WHEN technology LIKE '%speicher' THEN 'MWh' ELSE 'MW' END AS unit,  -- '..._leistung': MW
     CAST(SUM(added_units) AS INTEGER) AS added_units,
     CAST(SUM(added) / 1000 AS NUMERIC(12,3)) AS added,
     CAST((array_agg(installed ORDER BY month_start DESC))[1] / 1000 AS NUMERIC(12,3)) AS installed

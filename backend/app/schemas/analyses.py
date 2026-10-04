@@ -7,10 +7,13 @@ from pydantic import BaseModel, ConfigDict
 from app.models.analyses import DIGITS
 from app.models.regions import RegionLevel
 
-# The dashboard's scope: all of Germany, a Bundesland or a Landkreis, by its Gemeindeschlüssel prefix
+# The dashboard's scope: all of Germany, a Bundesland, a Landkreis or a Gemeinde, by its Gemeindeschlüssel (prefix)
 Region = Annotated[
     str,
-    Query(pattern=r"^(DE|\d{2}|\d{5})$", description='"DE", a Bundesland (e.g. "09") or a Landkreis (e.g. "09175")'),
+    Query(
+        pattern=r"^(DE|\d{2}|\d{5}|\d{8})$",
+        description='"DE", a Bundesland (e.g. "09"), a Landkreis (e.g. "09175") or a Gemeinde (e.g. "09175111")',
+    ),
 ]
 
 # The views change once a night (update.py refreshes them)
@@ -44,6 +47,20 @@ class SizeClassShare(BaseModel):
     hint: str | None
     total_units: int
     total_power: float  # MW
+
+
+class ZubauYear(BaseModel):
+    """Solar units of one Anlagenart in a region: those that went into operation in the year, and those in operation at
+    its end (mrt.solar_zubau_regions)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int
+    anlagenart: str
+    added_units: int
+    added: float  # MW
+    installed_units: int
+    installed: float  # MW
 
 
 class OrientationShare(BaseModel):
