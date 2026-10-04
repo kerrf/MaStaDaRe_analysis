@@ -129,8 +129,8 @@ export const ERZEUGER = {
           { id: 'brutto', label: 'Brutto (DC)' },
         ],
         note:
-          'Für jede Solaranlage gibt das MaStR eine Bruttoleistung und Nettonennleistung an. Dabei ist die Bruttoleistung ' +
-          'die Peakproduktion der Anlage, während die Nettonennleistung = min(Bruttoleistung, Wechselrichterwirkleistung).',
+          'Jede Solaranlage besitzt im MaStR eine Bruttoleistung und Nettonennleistung. Die Bruttoleistung entspricht ' +
+          'der Peakproduktion der Anlage, während die Nettonennleistung dem Minimum aus Bruttoleistung und Wechselrichterwirkleistung entspricht.',
       },
       // Shown after the dashboard-wide analyses of their page while the technology is active
       analyses: [
