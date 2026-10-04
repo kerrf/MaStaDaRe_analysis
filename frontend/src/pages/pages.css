@@ -100,7 +100,7 @@
 
 .toc {
   position: sticky;
-  top: calc(var(--nav-h) + 24px);
+  top: 24px;
   font-size: 14px;
 }
 

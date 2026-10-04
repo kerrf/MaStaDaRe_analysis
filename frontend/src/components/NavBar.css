@@ -1,6 +1,6 @@
+/* Scrolls away with the page: on a dashboard the space belongs to the map and the charts */
 .navbar {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 1500;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: saturate(180%) blur(12px);

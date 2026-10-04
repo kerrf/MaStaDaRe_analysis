@@ -727,7 +727,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 /* -------------------------------------------------------------- Controls */
 .controls {
   position: sticky;
-  top: calc(var(--nav-h) + 16px);
+  top: 16px;
   display: flex;
   flex-direction: column;
 }
@@ -1085,7 +1085,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .analysis {
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  scroll-margin-top: calc(var(--nav-h) + 16px);
+  scroll-margin-top: 16px;
 }
 
 /* The head marks where an analysis starts: an accent bar on the left, a tinted band, a large title */
