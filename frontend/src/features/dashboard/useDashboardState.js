@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { GRANULARITIES } from '../../config/dashboards';
 import { findBundesland, isKreisKey } from '../../config/regions';
 import { VIEWS, viewPath } from '../../config/views';
-import { trackEvent } from '../../lib/analytics';
+import { trackEvent } from '../../lib/usage';
 import { useTopology } from '../../lib/data';
 
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');

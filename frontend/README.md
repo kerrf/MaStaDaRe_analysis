@@ -265,7 +265,7 @@ from the dashboards' endpoints), one chapter per dashboard with a live chart of 
 both timelines per year, the gas storages as circles on a small SVG map, `lib/svgMap.js`), then where the numbers come
 from. What it requests is in `homeData.js`.
 
-## Analytics (`components/layout/AppLayout.jsx`, `lib/analytics.js`)
+## Analytics (`components/layout/AppLayout.jsx`, `lib/usage.js`)
 
 - **Vercel Web Analytics** (`<Analytics />`): a page view per path, with its route (`routeOf`: the Land and Kreis of
   a dashboard as `[land]`, `[kreis]`, so the panel "Routes" adds up e.g. every Kreis map). A new choice in the query

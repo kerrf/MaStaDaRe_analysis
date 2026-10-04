@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, Table2 } from 'lucide-react';
 import { GRANULARITIES, regionTablesOf } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
-import { trackEvent } from '../../lib/analytics';
+import { trackEvent } from '../../lib/usage';
 import { inkOn, makeColorScale } from '../../lib/colorScale';
 import { useJson, useTopology } from '../../lib/data';
 import { formatNumber, formatShare } from '../../lib/format';

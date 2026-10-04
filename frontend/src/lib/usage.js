@@ -1,6 +1,9 @@
 import { track } from '@vercel/analytics/react';
 import { findBundesland, isKreisKey } from '../config/regions';
 
+// Not named analytics.js: ad blockers block "/lib/analytics.js" (EasyPrivacy), and in the dev server, where every file
+// is a request of its own, that leaves the whole app blank.
+
 // Custom events of Vercel Web Analytics (which features are used: exports, technologies, filters) need the Pro plan.
 // They are sent only with VITE_ANALYTICS_EVENTS=true in the Vercel project, so on Hobby they don't count against the
 // page views. Pro allows 2 properties per event.

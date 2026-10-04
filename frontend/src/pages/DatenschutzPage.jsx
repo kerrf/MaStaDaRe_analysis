@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
-import { EVENTS_ENABLED } from '../lib/analytics';
+import { EVENTS_ENABLED } from '../lib/usage';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
 

@@ -5,7 +5,7 @@ import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable } from
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
 import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
-import { trackEvent } from '../../lib/analytics';
+import { trackEvent } from '../../lib/usage';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';

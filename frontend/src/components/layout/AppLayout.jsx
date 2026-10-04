@@ -3,7 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { VIEW_PATHS } from '../../config/views';
-import { routeOf } from '../../lib/analytics';
+import { routeOf } from '../../lib/usage';
 import NavBar from '../NavBar';
 import Footer from '../Footer';
 
