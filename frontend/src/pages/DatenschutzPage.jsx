@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
+import { EVENTS_ENABLED } from '../lib/analytics';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
 
@@ -33,7 +34,9 @@ export default function DatenschutzPage() {
           <h2>2. Hosting der Webseite</h2>
           <p>
             Die Webseite wird bei <strong>Vercel Inc.</strong> (USA) gehostet. Beim Aufruf verarbeitet Vercel technisch notwendige Daten wie
-            IP-Adresse, Datum und Uhrzeit, aufgerufene Seite und Browserinformationen, um die Seite auszuliefern (Art. 6 Abs. 1 lit. f DSGVO).
+            IP-Adresse, Datum und Uhrzeit, aufgerufene Seite und Browserinformationen, um die Seite auszuliefern und vor Angriffen zu schützen
+            (Art. 6 Abs. 1 lit. f DSGVO). In der Firewall-Übersicht von Vercel kann der Betreiber diese Verbindungsdaten der letzten
+            24 Stunden einsehen.
           </p>
 
           <h2>3. Datenschnittstelle (API)</h2>
@@ -42,11 +45,22 @@ export default function DatenschutzPage() {
             <strong>Cloudflare, Inc.</strong> (USA), das als Reverse Proxy Schutz vor Angriffen und eine verschlüsselte Verbindung
             bereitstellt. Dabei werden technisch notwendige Verbindungsdaten verarbeitet.
           </p>
-
-          <h2>4. Reichweitenmessung</h2>
           <p>
-            Zur anonymisierten Reichweitenmessung wird <strong>Vercel Web Analytics</strong> eingesetzt. Es werden keine Cookies gesetzt und
-            keine personenbezogenen Profile gebildet.
+            Der Server führt ein Zugriffsprotokoll: Für jede Anfrage an die Datenschnittstelle werden die IP-Adresse, Datum und Uhrzeit, die
+            abgerufene Adresse, Statuscode und Datenmenge, Browser und Betriebssystem (User-Agent), die verweisende Seite und das von
+            Cloudflare ermittelte Land gespeichert. Zweck sind der sichere Betrieb, die Analyse von Fehlern, die Abwehr von Missbrauch und
+            eine statistische Auswertung der Nutzung (Art. 6 Abs. 1 lit. f DSGVO). Die Protokolle werden nach 7 Tagen gelöscht.
+          </p>
+
+          <h2>4. Reichweitenmessung und Ladezeiten</h2>
+          <p>
+            Zur Reichweitenmessung werden <strong>Vercel Web Analytics</strong> und <strong>Vercel Speed Insights</strong> eingesetzt. Beide
+            setzen keine Cookies, speichern keine IP-Adressen und bilden keine Profile: Besucher werden über einen Hash aus der Anfrage
+            gezählt, der nach einem Tag verfällt, sodass sie weder über mehrere Tage noch über andere Webseiten hinweg wiedererkannt werden.
+            Erfasst werden die aufgerufene Seite, die verweisende Seite, Land, Browser, Betriebssystem und Gerätetyp, bei Speed Insights
+            zusätzlich Messwerte zur Ladezeit der Seite
+            {EVENTS_ENABLED ? ', außerdem die Nutzung einzelner Funktionen wie Kartenexporte oder die Wahl der Technologie' : ''} (Art. 6 Abs. 1
+            lit. f DSGVO).
           </p>
 
           <h2>5. Schriftarten und Karten</h2>
