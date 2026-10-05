@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Construction, Download, Maximize2, Minimize2, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, Construction, Download, Maximize2, Minimize2, RefreshCw, Scale, TriangleAlert } from 'lucide-react';
 import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -8,11 +9,11 @@ import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import ChoroplethMap from './ChoroplethMap';
-import ControlPanel from './ControlPanel';
 import KpiStrip from './KpiStrip';
 import MapLegend from './MapLegend';
 import RankingPanel from './RankingPanel';
-import ScopeAnalysisCard from './ScopeAnalysisCard';
+import MapRail from './MapRail';
+import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
@@ -66,7 +67,8 @@ function MapOverlay({ state, technology, onRetry }) {
   return null;
 }
 
-// The map page of a dashboard: KPIs of the scope, the map with its controls, and the Top 10 of its areas
+// The map page of a dashboard: KPIs of the scope, then one workspace – the map's settings in a band above it, the map, and
+// beside it as high as the map its Rangliste and the analyses of the area in view or clicked
 export default function MapView({ config, state }) {
   const datenstand = useDatenstand();
   const { region, kreisAgs, kreise, kreisOptions, kreisFeature, scopeName, parentName, technology, subtypes, leistung } = state;
@@ -189,11 +191,14 @@ export default function MapView({ config, state }) {
     [canDrill, activeGranularity.id, region, kreisAgs],
   );
   // An area that doesn't lead deeper (a Gemeinde of the Kreis, a Kreis while Germany shows Kreise) is picked instead:
-  // the card next to the Top 10 shows it. Only areas the analyses know (Länder, Kreise, Gemeinden), and only while the
+  // the rail beside the map shows its analysis. Only areas the analyses know (Länder, Kreise, Gemeinden), and only while the
   // technology has such an analysis. A new scope, layer or technology lets it go.
   const hasScopeAnalyses = withData && !isSites && scopeAnalysesOf(technology).length > 0;
   const canPick = hasScopeAnalyses && Boolean(AGS_LENGTH[activeGranularity.id]);
   const [picked, setPicked] = useState(null);
+  // The rail's tab: the Rangliste, or one of the technology's analyses (one it doesn't have falls back to the Rangliste)
+  const [railTab, setRailTab] = useState('rangliste');
+  const scopeAnalyses = hasScopeAnalyses ? scopeAnalysesOf(technology) : [];
   const pickContext = `${state.scopeKey}|${activeGranularity.id}|${technology.id}`;
   const [pickedIn, setPickedIn] = useState(pickContext);
   if (pickedIn !== pickContext) {
@@ -206,9 +211,10 @@ export default function MapView({ config, state }) {
       if (target) selectScope(target.land, target.kreis);
       else if (canPick && f.properties.ags?.length === AGS_LENGTH[activeGranularity.id]) {
         setPicked({ key: f.properties.ags, name: labelFor(f) });
+        setRailTab((tab) => (tab === 'rangliste' ? scopeAnalysesOf(technology)[0].id : tab));
       }
     },
-    [drillTarget, selectScope, canPick, activeGranularity.id, labelFor],
+    [drillTarget, selectScope, canPick, activeGranularity.id, labelFor, technology],
   );
   const pickedFeature = useMemo(
     () => (picked && merged ? merged.features.find((f) => f.properties._key === picked.key) ?? null : null),
@@ -216,15 +222,8 @@ export default function MapView({ config, state }) {
   );
 
   const mapCardRef = useRef(null);
-  const analysisCardRef = useRef(null);
-  const onRankingRowClick = (f) => {
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const target = drillTarget(f);
-    onRegionClick(f);
-    // Deeper: the map shows it; picked: the card next to the list does
-    if (target) mapCardRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    else analysisCardRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
-  };
+  // A row of the Rangliste: deeper into it (the map zooms there), or its analysis in the rail
+  const onRankingRowClick = (f) => onRegionClick(f);
 
   // The ranking compares areas within the deepest scope that contains them (Kreise within their Land, Gemeinden within
   // their Kreis) and highlights the area in scope itself.
@@ -258,7 +257,7 @@ export default function MapView({ config, state }) {
   if (canDrill && !kreisAgs && activeGranularity.id === (region ? 'landkreis' : 'bundesland')) {
     mapHints.push(region ? 'Klick auf einen Landkreis zum Hineinzoomen' : 'Klick auf ein Land zum Hineinzoomen');
   }
-  if (canPick && !canDrill) mapHints.push(`Klick auf ein Gebiet: seine ${scopeAnalysesOf(technology)[0].label} unter der Karte`);
+  if (canPick && !canDrill) mapHints.push(`Klick auf ein Gebiet zeigt seine ${scopeAnalysesOf(technology)[0].label}`);
   if (region) mapHints.push(`Klick außerhalb von ${scopeName}: zurück zu ${parentName}`);
 
   const tooltipFor = useCallback(
@@ -340,49 +339,70 @@ export default function MapView({ config, state }) {
 
       <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
 
-      <div className="dashboard-main">
-        <section ref={mapCardRef} className={`card map-card${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
-          <header className="card__header map-card__header">
-            <div>
-              <h2 className="card__title">
-                {technology.label}: {mapTitle}
-                {leistungNote && !isSites && !isHeatmap && (
-                  <sup className="footnote-ref" aria-hidden="true">
-                    1
-                  </sup>
-                )}
-              </h2>
-              <div className="card__subtitle">
-                {scopeLabel} · {layerLabel}
-              </div>
+      <section ref={mapCardRef} className={`card map-card map-workspace${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
+        <header className="card__header map-card__header">
+          <div>
+            <h2 className="card__title">
+              {technology.label}: {mapTitle}
+              {leistungNote && !isSites && !isHeatmap && (
+                <sup className="footnote-ref" aria-hidden="true">
+                  1
+                </sup>
+              )}
+            </h2>
+            <div className="card__subtitle">
+              {scopeLabel} · {layerLabel}
             </div>
-            <div className="map-card__tools">
-              <div className="export-group" role="group" aria-label="Exportieren">
-                <Download size={15} aria-hidden="true" className="export-group__icon" />
-                {['png', 'pdf', 'csv'].map((kind) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    className="export-group__btn"
-                    disabled={Boolean(exporting) || mapState !== 'ready' || (kind === 'csv' && !exportRows)}
-                    onClick={() => handleExport(kind)}
-                  >
-                    {exporting === kind ? '…' : kind.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => setFullscreen((v) => !v)}
-                aria-label={fullscreen ? 'Vollbild beenden' : 'Vollbild'}
-                title={fullscreen ? 'Vollbild beenden (Esc)' : 'Vollbild'}
-              >
-                {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-              </button>
+          </div>
+          <div className="map-card__tools">
+            <div className="export-group" role="group" aria-label="Exportieren">
+              <Download size={15} aria-hidden="true" className="export-group__icon" />
+              {['png', 'pdf', 'csv'].map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className="export-group__btn"
+                  disabled={Boolean(exporting) || mapState !== 'ready' || (kind === 'csv' && !exportRows)}
+                  onClick={() => handleExport(kind)}
+                >
+                  {exporting === kind ? '…' : kind.toUpperCase()}
+                </button>
+              ))}
             </div>
-          </header>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setFullscreen((v) => !v)}
+              aria-label={fullscreen ? 'Vollbild beenden' : 'Vollbild'}
+              title={fullscreen ? 'Vollbild beenden (Esc)' : 'Vollbild'}
+            >
+              {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          </div>
+        </header>
 
+        <MapToolbar
+          config={config}
+          technology={technology}
+          onTechnology={state.setTechnology}
+          subtypes={subtypes}
+          onSubtypes={state.setSubtypes}
+          leistung={leistung}
+          onLeistung={state.setLeistung}
+          metrics={metrics}
+          metric={metric}
+          onMetric={(id) => {
+            trackEvent('Kartenansicht', { einstellung: 'kennzahl', wert: id });
+            setParam('kennzahl', id, metrics[0].id);
+          }}
+          granularity={granularity}
+          onGranularity={(id) => {
+            trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
+            setParam('ebene', id, config.defaultGranularity);
+          }}
+        />
+
+        <div className="map-workspace__body">
           <div className="map-frame" ref={frameRef}>
             <ChoroplethMap
               mode={isHeatmap ? 'heatmap' : 'choropleth'}
@@ -445,90 +465,63 @@ export default function MapView({ config, state }) {
             </div>
           </div>
 
-          <footer className="map-card__footer">
-            <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(datenstand)}</span>
-            <span className="map-card__footer-hint">{mapHints.join(' · ')}</span>
-            {/* Boundaries and place names (VG250-EW), the sea, Europe: their sources, the BKG's linked */}
-            <span className="map-card__credit">
-              Karte: © GeoBasis-DE /{' '}
-              <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">
-                BKG
-              </a>{' '}
-              (2025){' '}
-              <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener noreferrer">
-                dl-de/by-2-0
-              </a>
-              , Daten verändert · Marine Regions · Natural Earth
+          <MapRail
+            analyses={scopeAnalyses}
+            tab={railTab}
+            onTab={setRailTab}
+            rankingTitle={`Top 10 · ${isSites ? plantsLevel.label : activeGranularity.label}`}
+            rankingSubtitle={`${metricLegend} (${metric.unit})`}
+            ranking={
+              <RankingPanel
+                features={isSites ? plantFeatures : merged?.features}
+                metric={metric}
+                granularity={isSites ? plantsLevel : activeGranularity}
+                within={rankingWithin}
+                focusKey={rankingFocus}
+                status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
+                labelFor={isSites ? (f) => f.properties.name : labelFor}
+                onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
+              />
+            }
+            scopeKey={state.scopeKey}
+            scopeName={scopeName}
+            picked={picked}
+            onClearPick={() => setPicked(null)}
+            query={selectionQuery}
+          />
+        </div>
+
+        <footer className="map-card__footer">
+          <span>Quelle: Marktstammdatenregister (BNetzA) · Datenstand {formatDate(datenstand)}</span>
+          <span className="map-card__footer-hint">{mapHints.join(' · ')}</span>
+          {/* Boundaries and place names (VG250-EW), the sea, Europe: their sources, the BKG's linked */}
+          <span className="map-card__credit">
+            Karte: © GeoBasis-DE /{' '}
+            <a href="https://www.bkg.bund.de" target="_blank" rel="noopener noreferrer">
+              BKG
+            </a>{' '}
+            (2025){' '}
+            <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener noreferrer">
+              dl-de/by-2-0
+            </a>
+            , Daten verändert · Marine Regions · Natural Earth
+            <span className="map-card__links">
+              <Link to="/info#methodik">
+                <BookOpen size={13} aria-hidden="true" /> Methodik &amp; Legende
+              </Link>
+              <Link to="/info#quellen">
+                <Scale size={13} aria-hidden="true" /> Datenquellen &amp; Lizenz
+              </Link>
             </span>
-            {leistungNote && (
-              <p id={footnoteId(technology.leistung)} className="map-card__footnote">
-                <sup className="footnote-ref">1</sup> {leistungNote}
-              </p>
-            )}
-            {technology.note && <p className="map-card__footnote">{technology.note}</p>}
-          </footer>
-        </section>
-
-        <ControlPanel
-          config={config}
-          technology={technology}
-          onTechnology={state.setTechnology}
-          subtypes={subtypes}
-          onSubtypes={state.setSubtypes}
-          leistung={leistung}
-          onLeistung={state.setLeistung}
-          metrics={metrics}
-          metric={metric}
-          onMetric={(id) => {
-            trackEvent('Kartenansicht', { einstellung: 'kennzahl', wert: id });
-            setParam('kennzahl', id, metrics[0].id);
-          }}
-          granularity={granularity}
-          onGranularity={(id) => {
-            trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
-            setParam('ebene', id, config.defaultGranularity);
-          }}
-        />
-      </div>
-
-      {/* Right below the map, for its scope: the Top 10 of its areas, and the orientation or size classes of the scope or
-          of the area picked on the map */}
-      <div className={`analyses-grid ${hasScopeAnalyses ? 'analyses-grid--pairs' : 'analyses-grid--single'}`}>
-        <article className="card">
-          <header className="card__header">
-            <div>
-              <h3 className="card__title">Top 10 · {isSites ? plantsLevel.label : activeGranularity.label}</h3>
-              <div className="card__subtitle">
-                {metricLegend} ({metric.unit})
-              </div>
-            </div>
-          </header>
-          <div className="card__body">
-            <RankingPanel
-              features={isSites ? plantFeatures : merged?.features}
-              metric={metric}
-              granularity={isSites ? plantsLevel : activeGranularity}
-              within={rankingWithin}
-              focusKey={rankingFocus}
-              status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
-              labelFor={isSites ? (f) => f.properties.name : labelFor}
-              onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
-            />
-          </div>
-        </article>
-        {hasScopeAnalyses && (
-          <div ref={analysisCardRef}>
-            <ScopeAnalysisCard
-              technology={technology}
-              scopeKey={state.scopeKey}
-              scopeName={scopeName}
-              picked={picked}
-              onClearPick={() => setPicked(null)}
-              query={selectionQuery}
-            />
-          </div>
-        )}
-      </div>
+          </span>
+          {leistungNote && (
+            <p id={footnoteId(technology.leistung)} className="map-card__footnote">
+              <sup className="footnote-ref">1</sup> {leistungNote}
+            </p>
+          )}
+          {technology.note && <p className="map-card__footnote">{technology.note}</p>}
+        </footer>
+      </section>
     </>
   );
 }

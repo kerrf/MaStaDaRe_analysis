@@ -75,12 +75,12 @@ function OptionSwitch({ labelledBy, describedBy, option, value, onChange }) {
 }
 
 // The active technology's own filters, a layer below the choice of technology that hangs off it: they narrow down the
-// technology (Solar: Anlagenart, Leistung), they are not another technology.
-export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {
+// technology (Solar: Anlagenart, Leistung), they are not another technology. inline: in one row (the map's toolbar).
+export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung, inline = false }) {
   const Icon = technology.icon;
   const id = `filter-${technology.id}`;
   return (
-    <div id={id} className="tech-filters" role="group" aria-labelledby={`${id}-title`}>
+    <div id={id} className={`tech-filters${inline ? ' tech-filters--inline' : ''}`} role="group" aria-labelledby={`${id}-title`}>
       <div id={`${id}-title`} className="tech-filters__title">
         <Icon size={14} aria-hidden="true" />
         Filter für {technology.label}

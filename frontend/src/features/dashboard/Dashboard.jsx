@@ -95,7 +95,8 @@ export default function Dashboard({ config, view }) {
         <Suspense fallback={<PageLoader />}>
           <Page config={config} state={state} />
         </Suspense>
-        {view === 'karte' && config.todos?.map((todo) => <TodoNote key={todo}>{todo}</TodoNote>)}
+        {/* Notes for development (config todos): only in `npm run dev`, not for visitors */}
+        {import.meta.env.DEV && view === 'karte' && config.todos?.map((todo) => <TodoNote key={todo}>{todo}</TodoNote>)}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { formatNumber } from '../../lib/format';
+import { formatFixed } from '../../lib/format';
 
 const TOP_N = 10;
 
@@ -61,7 +61,7 @@ export default function RankingPanel({ features, metric, granularity, within, fo
                   <span style={{ width: `${Math.max(2, (value / top) * 100)}%` }} />
                 </div>
                 <span className="tabular">
-                  {formatNumber(value, metric.digits)} <span className="ranking__unit">{metric.unit}</span>
+                  {formatFixed(value, metric.digits)} <span className="ranking__unit">{metric.unit}</span>
                 </span>
               </td>
             </tr>

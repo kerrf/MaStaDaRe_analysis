@@ -218,14 +218,6 @@
   cursor: not-allowed;
 }
 
-/* -------------------------------------------------------------- Main grid */
-.dashboard-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 20px;
-  align-items: start;
-}
-
 /* --------------------------------------------------------------- Map card */
 .map-card {
   display: flex;
@@ -340,6 +332,251 @@
 .map-card.is-fullscreen .map-frame {
   flex: 1;
   height: auto;
+}
+
+/* -------------------------------------------------- Map workspace (MapView) */
+/* One card: title and export, the settings in a band, the map and beside it the rail with the Rangliste and analyses,
+   as high as the map, and one footer. --map-height sets both. */
+.map-workspace {
+  --map-height: clamp(500px, 72vh, 780px);
+}
+
+.map-workspace__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+}
+
+.map-workspace .map-frame {
+  height: var(--map-height);
+}
+
+/* The settings: a band between the title and the map, the map's own toolbar */
+.map-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+}
+
+.map-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 28px;
+}
+
+.map-toolbar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.map-toolbar__label {
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.map-toolbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-toolbar .tech-chip {
+  min-height: 34px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+}
+
+.map-toolbar .segmented {
+  background: var(--surface-card);
+}
+
+.map-toolbar .segmented__option {
+  flex: 0 0 auto;
+  height: 28px;
+}
+
+.map-toolbar__select {
+  min-width: 200px;
+  height: 36px;
+}
+
+/* The active technology's filters in one row below, hanging off its chip (two classes: over .tech-filters, later on) */
+.tech-filters.tech-filters--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 2px 0 2px 12px;
+}
+
+.tech-filters--inline .tech-filters__row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Beside the map: the Rangliste and the analyses of the area, in tabs */
+.map-rail {
+  display: flex;
+  flex-direction: column;
+  height: var(--map-height);
+  min-width: 0;
+  border-left: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+}
+
+.map-rail__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.map-rail__tab {
+  padding: 12px 8px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.map-rail__tab:hover {
+  color: var(--ink-primary);
+}
+
+.map-rail__tab.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+.map-rail__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+}
+
+.map-rail__head {
+  margin-bottom: 12px;
+}
+
+.map-rail__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.map-rail__subtitle {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.map-rail__pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 12px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.map-rail__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.map-rail__clear:hover {
+  border-color: var(--accent);
+  color: var(--ink-primary);
+}
+
+/* The links to Methodik and Quellen, at the end of the credit line */
+.map-card__links {
+  display: inline-flex;
+  gap: 14px;
+  margin-left: 14px;
+}
+
+.map-card__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.map-card__links a:hover {
+  color: var(--accent-strong);
+}
+
+/* Full screen: the whole workspace, the map and rail filling what the title, band and footer leave */
+.map-workspace.is-fullscreen .map-workspace__body {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.map-workspace.is-fullscreen .map-frame,
+.map-workspace.is-fullscreen .map-rail {
+  height: 100%;
+}
+
+@media (max-width: 1200px) {
+  .map-workspace__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The rail below the map, as long as its content */
+  .map-rail {
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .map-rail__body {
+    overflow: visible;
+  }
+
+  /* Full screen: the map on top, the rail below it in what is left, scrolling */
+  .map-workspace.is-fullscreen .map-workspace__body {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 40%);
+  }
+
+  .map-workspace.is-fullscreen .map-rail__body {
+    overflow-y: auto;
+  }
 }
 
 /* Leaflet chrome */
@@ -724,47 +961,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* -------------------------------------------------------------- Controls */
-.controls {
-  position: sticky;
-  top: 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.controls__body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 16px;
-}
-
-.controls__section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.controls__title {
-  font-size: 12.5px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.controls__note {
-  font-size: 12px;
-  color: var(--ink-muted);
-}
-
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
-  gap: 6px;
-}
-
 .tech-chip {
   position: relative;
   display: flex;
@@ -958,88 +1154,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   outline-offset: 2px;
 }
 
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.option-list__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-secondary);
-  text-align: left;
-  cursor: pointer;
-}
-
-.option-list__item:hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--ink-primary);
-}
-
-.option-list__item.is-active {
-  background: var(--surface-sunken);
-  color: var(--ink-primary);
-  font-weight: 600;
-}
-
-.option-list__item:disabled {
-  cursor: not-allowed;
-  color: var(--ink-muted);
-}
-
-.option-list__dot {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border-strong);
-  background: var(--surface-card);
-}
-
-.option-list__item.is-active .option-list__dot {
-  border: 5px solid var(--accent);
-}
-
-.option-list__note {
-  margin-left: auto;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--ink-muted);
-}
-
-.controls__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 8px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.controls__link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ink-secondary);
-}
-
-.controls__link:hover {
-  background: var(--surface-hover);
-  color: var(--ink-primary);
-}
-
 /* -------------------------------------------------------------- Analyses */
 /* Below the Steckbrief (Regionen), set off by a rule: the choice of technology and the table per region, each analysis
    a card of its own that starts with a clear head (AnalysisPanel) */
@@ -1176,15 +1290,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 /* Next to the Top 10 of the map: the other pages of the dashboard */
-
-
-
-
-
-
-
-
-
 
 /* The choice of technology on the pages without the map's controls (Anlagen, Regionen) */
 .selection-bar {
@@ -1387,7 +1492,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   appearance: none;
   cursor: pointer;
 }
-
 
 .timeline__state {
   display: flex;
@@ -1760,7 +1864,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-primary);
 }
 
-
 .region-table__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2103,16 +2206,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   }
 }
 
-@media (max-width: 1024px) {
-  .dashboard-main {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .controls {
-    position: static;
-  }
-}
-
 @media (max-width: 720px) {
   .dashboard-header__inner {
     flex-direction: column;
@@ -2214,52 +2307,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   margin-right: 5px;
   border-radius: 50%;
   vertical-align: 0;
-}
-
-/* ------------------------------------------- Analysis of the map's area */
-/* Next to the Top 10: Ausrichtung or Anlagengröße of the area in view, or of the one picked on the map */
-.scope-analysis .card__header {
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.scope-analysis__pick {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin: 0 20px;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-  font-size: 13px;
-  color: var(--ink-secondary);
-}
-
-.scope-analysis__clear {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  padding: 2px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-card);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-secondary);
-  cursor: pointer;
-}
-
-.scope-analysis__clear:hover {
-  border-color: var(--accent);
-  color: var(--ink-primary);
-}
-
-/* The choice between the analyses keeps its words whole */
-.scope-analysis .segmented__option {
-  flex: 0 0 auto;
 }
 
 /* ===================================================== Landkreis/Gemeinde (KommuneView) */
