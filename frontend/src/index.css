@@ -1,5 +1,7 @@
 @import './styles/tokens.css';
 @import './styles/ui.css';
+/* The design: tokens and the overrides of components (last, and with "html" in front, so they win) */
+@import './styles/theme.css';
 
 *,
 *::before,
