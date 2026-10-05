@@ -123,7 +123,7 @@ function GemeindeNames({ labels, selected }) {
  * labels:     [{ ags, name, lon, lat }] where to write each Gemeinde's name, the most important first
  * selected:   key of the picked Gemeinde (outlined, its name always shown); onSelect(ags | null) on a click
  * dataKey:    changes with the values (another figure, Anlagenart, Leistung): the shading is drawn anew
- * basemap:    id of the background map; opacity: of the shading (0..1)
+ * basemap:    id of the background map; opacity: of the shading (0..1); kreisColor: the Kreis's outline (the dashboard's)
  */
 export default function KommuneMap({
   gemeinden,
@@ -139,6 +139,7 @@ export default function KommuneMap({
   basemap,
   opacity,
   onBasemap,
+  kreisColor = '#823500',
   children,
 }) {
   const europe = useLayers(EUROPE);
@@ -236,7 +237,7 @@ export default function KommuneMap({
           {neighbours && (
             <GeoJSON key={`neighbours-${kreis?.properties.ags}`} data={neighbours} interactive={false} style={{ fill: false, color: '#667085', weight: 1, opacity: 0.6, dashArray: '4 3' }} />
           )}
-          {kreis && <GeoJSON key={`kreis-${kreis.properties.ags}`} data={kreis} interactive={false} style={{ fill: false, color: '#9a4700', weight: 3, opacity: 1 }} />}
+          {kreis && <GeoJSON key={`kreis-${kreis.properties.ags}-${kreisColor}`} data={kreis} interactive={false} style={{ fill: false, color: kreisColor, weight: 3, opacity: 1 }} />}
           {selectedFeature && (
             <GeoJSON key={`selected-${selected}`} data={selectedFeature} interactive={false} style={{ fill: false, color: '#101828', weight: 3, opacity: 1 }} />
           )}

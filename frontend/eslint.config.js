@@ -30,6 +30,8 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'react/jsx-no-target-blank': 'off',
       'react/prop-types': 'off',
+      // A const used before its line throws at runtime (temporal dead zone); functions may come later
+      'no-use-before-define': ['error', { functions: false, classes: false, variables: true }],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

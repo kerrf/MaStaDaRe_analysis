@@ -60,6 +60,16 @@ export function formatAmount(value, unit) {
   return amount.unit ? `${amount.value} ${amount.unit}` : amount.value;
 }
 
+// Like formatAmount, and below 1 in the next smaller unit: "12 kW", not "0 MW" – for the amounts of small areas
+const SMALLER = { M: 'k', G: 'M' };
+export function formatAmountFine(value, unit) {
+  if (value != null && Math.abs(value) < 1 && value !== 0 && SMALLER[unit[0]]) {
+    const small = value * 1000;
+    return `${formatNumber(small, Math.abs(small) < 10 ? 1 : 0)} ${SMALLER[unit[0]]}${unit.slice(1)}`;
+  }
+  return formatAmount(value, unit);
+}
+
 // Capacity arrives in MWh; large totals read better in GWh.
 export function formatCapacity(mwh) {
   if (mwh == null || Number.isNaN(mwh)) return { value: '—', unit: '' };

@@ -8,7 +8,7 @@ const VIEWS = {
   sizes: {
     Chart: SizeDistribution,
     path: (analysis, technology) => technology.sizesPath,
-    subtitle: (technology) => `${technology.label}, Anteile je Leistungsklasse`,
+    subtitle: (technology) => `${technology.label}: Leistung und Anlagen je Leistungsklasse`,
   },
   orientation: {
     Chart: OrientationRose,

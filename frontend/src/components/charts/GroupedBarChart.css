@@ -108,3 +108,9 @@
   font-variant-numeric: tabular-nums;
   fill: var(--ink-secondary);
 }
+
+/* The unit of an axis, above it, in the colour of its series */
+.bar-chart__axis-unit {
+  font-size: 11.5px;
+  font-weight: 650;
+}

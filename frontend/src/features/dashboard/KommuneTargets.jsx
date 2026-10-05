@@ -4,13 +4,13 @@ import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import { API_BASE_URL } from '../../config/site';
 import { TARGETS, neededPerYear, yearsLeft } from '../../config/targets';
 import { useDatenstand, useJson } from '../../lib/data';
-import { formatAmount, formatDate, formatNumber, formatPercent } from '../../lib/format';
+import { formatAmountFine, formatDate, formatNumber, formatPercent } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
 const SOLAR = TARGETS.solar;
-const mw = (value) => formatAmount(value, 'MW');
-// Small shares with two decimals: "0,37 %", not "0,4 %"
-const pct = (share) => (share < 0.1 ? `${formatNumber(share * 100, 2)} %` : formatPercent(share));
+const mw = (value) => formatAmountFine(value, 'MW');
+// Shares below 1 % with two decimals: "0,37 %", not "0,4 %"
+const pct = (share) => (share < 0.01 ? `${formatNumber(share * 100, 2)} %` : formatPercent(share));
 const zubauUrl = (region) => `${API_BASE_URL}/solar/zubau?region=${region}&leistung=brutto`;
 
 // The Bestand at the end of the latest year (both Anlagenarten, and each), and the Zubau of the last full year

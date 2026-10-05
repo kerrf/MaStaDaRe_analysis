@@ -57,7 +57,7 @@ export function scopeAnalysesOf(technology) {
   const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
   return [
     orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: orientation.path, what: 'Leistung nach Hauptausrichtung der Module' },
-    technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: technology.sizesPath, what: `${technology.label}, Anteile je Leistungsklasse` },
+    technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: technology.sizesPath, what: `${technology.label}: Leistung und Anlagen je Leistungsklasse` },
   ].filter(Boolean);
 }
 
@@ -232,7 +232,7 @@ export const ERZEUGER = {
     {
       id: 'distribution',
       title: 'Verteilung nach Anlagengröße',
-      description: 'Anteile an Leistung und Anlagen je Leistungsklasse.',
+      description: 'Leistung und Anzahl der Anlagen je Leistungsklasse.',
       variant: 'bars',
       kind: 'sizes',
       view: 'anlagen',
@@ -299,15 +299,18 @@ export const SPEICHER = {
       { id: 'gross', label: 'Groß' },
     ],
   },
-  // Power, like the Erzeuger. The capacity (kWh) is not part of the unit data, see todos.
+  // Power, like the Erzeuger, and the usable capacity (only batteries with a plausible one, aggregate_bat_by_region_power.sql)
   metrics: [
     { id: 'total_power', label: 'Absolut', legend: 'Speicherleistung', unit: 'MW', digits: 1 },
     { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
     { id: 'relative_population_power', label: 'je Einw.', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
+    { id: 'total_capacity', label: 'Kapazität', legend: 'Speicherkapazität', unit: 'MWh', digits: 1 },
+    { id: 'relative_population_capacity', label: 'kWh je Einw.', legend: 'Kapazität je Einwohner', unit: 'kWh/Einw.', digits: 2 },
   ],
   tooltipRows: [
     { key: 'total_units', label: 'Speicher', digits: 0 },
     { key: 'total_power', label: 'Leistung', unit: 'MW', digits: 1 },
+    { key: 'total_capacity', label: 'Kapazität', unit: 'MWh', digits: 1 },
     { key: 'relative_area_power', label: 'je Fläche', unit: 'kW/km²', digits: 1 },
     { key: 'relative_population_power', label: 'je Einwohner', unit: 'kW', digits: 2 },
   ],
@@ -365,7 +368,6 @@ export const SPEICHER = {
     PV_SPEICHER,
   ],
   todos: [
-    'Speicherkapazität (kWh) auf der Karte: raw.storage_plants (AnlagenStromSpeicher, NutzbareSpeicherkapazitaet über SpeMastrNummer) ist geladen und fließt schon in den Zubau im Zeitverlauf – noch in aggregate_bat_by_region_power.sql summieren und als Kennzahl ergänzen.',
     'Pumpspeicher und Sonstige: eigene Rollups analog aggregate_bat_by_region_power.sql (Technologie 1537 bzw. 525/526/3067).',
     'Achtung: aggregate_bat_by_bundesland.sql droppt und überschreibt mrt.solar_units_bundesland_agg (die alte Solar-View) – wird nicht mehr gebraucht.',
     'Größenklassen (Heim/Gewerbe/Groß) als Filter-Parameter im Karten-Endpoint vorsehen – mit den Grenzen aus aggregate_zubau.sql (wie battery-charts.de).',

@@ -34,6 +34,7 @@ export const DASHBOARD_MENUS = [
     basePath: '/speicher',
     views: {
       karte: 'Batterie- und Pumpspeicher je Land, Kreis, Gemeinde',
+      kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
       anlagen: 'Batteriespeicher an Solaranlagen',
       regionen: 'Steckbrief eines Gebiets',

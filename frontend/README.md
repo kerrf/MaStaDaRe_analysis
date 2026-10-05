@@ -21,12 +21,12 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Landkreis/Gemeinde | `/erzeuger/kommune/:land?/:kreis?` | one Kreis and its Gemeinden in depth, solar only for now (see below) | `KommuneView.jsx` |
+| Landkreis/Gemeinde | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below) | `KommuneView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau` | Zubau im Zeitverlauf, Registrierungen im MaStR, Zeit bis zur Registrierung – Germany-wide | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), batteries at solar units | `AnlagenView.jsx` |
 | Regionen | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
 
-Erzeuger has all five, Speicher all but Landkreis/Gemeinde, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
+Erzeuger and Speicher have all five, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
 in the nav bar). `Dashboard.jsx` is the shell: header (dashboard, page, scope), tabs to the other pages, the page. Each
 analysis says on which page it is (`view` on the analysis). The map page loads Leaflet; the other pages don't.
 
@@ -274,15 +274,25 @@ of `config.todos` show only in `npm run dev`.
 
 ### Key figures with bars (`components/ui/FigureBlock.jsx`) and the targets (`config/targets.js`)
 
+The size classes (`SizeDistribution.jsx` → `components/charts/GroupedBarChart.jsx`) show absolute values on two
+axes: the power (batteries: the capacity) on the left, the number of units on the right, both in steps that share
+their grid lines.
+
 `FigureBlock` holds rows of `FigureRow`: a name, a value and a bar of its share of a named whole ("15,4 %"), under a
 head with icon, title, a chip with the gist (`good`/`fair`/`poor`/`neutral`) and an info. Used for the expansion
 targets: the national ones in `config/targets.js` (EEG 2023 § 4, WindSeeG § 1, in Bruttoleistung), on the start page
 (`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace) and on the Landkreis/Gemeinde page
 (`KommuneTargets.jsx`: the area's share of the targets by population, how far it is, the pace it needs).
 
-### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`)
+### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`, `config/kommune.js`)
 
-For people who want to know their region: one Landkreis and its Gemeinden, solar for now. Without a Kreis the page is a
+For people who want to know their region: one Landkreis and its Gemeinden, for the dashboard's technology – solar on
+the Erzeuger, batteries on the Speicher. Everything that differs between them is a profile in `config/kommune.js`
+(figures, map metrics, split, timeline, analyses, the block of key figures, table columns); the page only reads it, so
+another technology is another profile. Batteries: capacity, power and units per Gemeinde (`/battery/dashboard-stats`),
+Zubau and Bestand per size class (`/battery/zubau`, `mrt.battery_zubau_regions`), size classes by the plant's capacity
+(`/battery/size-distribution`) and, as there is no statutory target, a comparison with solar, the Land and Germany
+(`KommuneStorage.jsx`). Without a Kreis the page is a
 search over every Kreis and Gemeinde (names from the Kreis boundaries and `/regions/areas?level=gemeinde`); a Gemeinde
 found opens its Kreis with it picked.
 

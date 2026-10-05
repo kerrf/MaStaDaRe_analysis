@@ -1,19 +1,21 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Download, Search, Sun } from 'lucide-react';
+import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Download, Search } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
 import { GRANULARITIES } from '../../config/dashboards';
+import { KOMMUNE } from '../../config/kommune';
 import { BUNDESLAENDER, findBundeslandByAgs, isKreisKey } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useJson, useStats, useTopology } from '../../lib/data';
-import { escapeHtml, formatAmount, formatFixed, formatNumber, formatPercent } from '../../lib/format';
+import { escapeHtml, formatFixed, formatNumber, formatPercent } from '../../lib/format';
 import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
 import { exportCsv } from './exportMap';
 import KommuneMap from './KommuneMap';
+import KommuneStorage from './KommuneStorage';
 import KommuneTargets from './KommuneTargets';
 import MapLegend from './MapLegend';
 import OrientationRose from './OrientationRose';
@@ -25,21 +27,6 @@ import { selectionOf } from './useDashboardState';
 const GEMEINDEN_TOPOLOGY = GRANULARITIES.find((g) => g.id === 'gemeinde').topology;
 const KREISE_TOPOLOGY = GRANULARITIES.find((g) => g.id === 'landkreis').topology;
 
-// What the map can shade the Gemeinden by
-const METRICS = [
-  { id: 'total_power', label: 'Leistung', legend: 'Installierte Leistung', unit: 'MW', digits: 1 },
-  { id: 'relative_population_power', label: 'je Einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
-  { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 0 },
-  { id: 'added_12m_power', label: 'Zubau 12 Monate', legend: 'Zubau der letzten 12 Monate', unit: 'MW', digits: 1 },
-  { id: 'total_units', label: 'Anlagen', legend: 'Anlagen in Betrieb', unit: 'Anlagen', digits: 0 },
-];
-// The two Anlagenarten of solar, in the composition and stacked in the timeline (Gebäude at the bottom)
-const ANLAGENARTEN = [
-  { id: 'gebaeude', label: 'Gebäude', color: 'var(--series-solar)' },
-  { id: 'freiflaeche', label: 'Freifläche', color: 'var(--series-freiflaeche)' },
-];
-
-const subtypesOf = (series) => series.map((s) => s.id);
 const times = (ratio) => `${ratio >= 10 ? formatNumber(ratio, 0) : formatFixed(ratio, 1)}×`;
 const sum = (rows, field) => rows.reduce((total, row) => total + (row[field] ?? 0), 0);
 // Rank by a field among peers, the largest first: "3 von 33"
@@ -52,9 +39,9 @@ function rankOf(peers, row, field) {
 
 /**
  * Without a Kreis: find one by name, a Kreis or a Gemeinde (all of Germany), or pick a Kreis of the chosen Land. The
- * lists load when the search is first used.
+ * lists load when the search is first used. lead: what the page shows, from its profile
  */
-function KommuneFinder({ state, onPick }) {
+function KommuneFinder({ state, onPick, lead }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(false);
   const kreise = useTopology(active ? KREISE_TOPOLOGY : null);
@@ -102,10 +89,7 @@ function KommuneFinder({ state, onPick }) {
           <h2 id="kommune-finder-title" className="kommune-finder__title">
             Landkreis oder Gemeinde finden
           </h2>
-          <p className="kommune-finder__lead">
-            Solaranlagen eines Landkreises und seiner Gemeinden: auf der Karte, in Kennzahlen mit Rang und Vergleich, im Zubau je
-            Jahr.
-          </p>
+          <p className="kommune-finder__lead">{lead}</p>
         </div>
       </div>
       <label className="visually-hidden" htmlFor="kommune-search">
@@ -193,14 +177,15 @@ function Figure({ label, value, compare, rank }) {
 }
 
 /**
- * Left of the map: the Kreis or the picked Gemeinde in figures – each compared with the whole it lies in and ranked
- * among its peers –, how its power splits into Gebäude and Freifläche, and (for the Kreis) its largest Gemeinden.
+ * Left of the map: the Kreis or the picked Gemeinde in the profile's figures – each compared with the whole it lies in
+ * and ranked among its peers –, how its size splits into its kinds, and (for the Kreis) its largest Gemeinden.
  */
-function KommunePanel({ scope, row, split, peers, parentRow, parentLabel, nationalRow, largest, onSelect, onBack, leistungLabel }) {
+function KommunePanel({ profile, what, scope, row, split, peers, parentRow, parentLabel, nationalRow, largest, onSelect, onBack }) {
+  const Icon = profile.icon;
   if (!row) {
     return (
       <aside className="card kommune-panel">
-        <p className="kommune-panel__state">{scope.loading ? 'Wird geladen …' : `Keine Solaranlagen in ${scope.name}.`}</p>
+        <p className="kommune-panel__state">{scope.loading ? 'Wird geladen …' : `Keine ${profile.noun} in ${scope.name}.`}</p>
       </aside>
     );
   }
@@ -210,8 +195,16 @@ function KommunePanel({ scope, row, split, peers, parentRow, parentLabel, nation
     if (nationalRow?.[field]) parts.push(`${times(row[field] / nationalRow[field])} Bundesschnitt`);
     return parts.join(' · ');
   };
-  const growth = row.total_power ? row.added_12m_power / (row.total_power - row.added_12m_power) : 0;
-  const shareOfParent = parentRow?.total_power ? row.total_power / parentRow.total_power : null;
+  const metaOf = (figure) => {
+    if (figure.share) return parentRow?.[figure.field] ? `${formatPercent(row[figure.field] / parentRow[figure.field])} von ${scope.parentName}` : '';
+    if (figure.compare) return compare(figure.field);
+    if (figure.growthOf) {
+      const before = (row[figure.growthOf] ?? 0) - (row[figure.field] ?? 0);
+      return before > 0 && row[figure.field] > 0 ? `+${formatPercent(row[figure.field] / before)} auf den Bestand davor` : '';
+    }
+    return '';
+  };
+  const size = profile.size;
 
   return (
     <aside className="card kommune-panel" aria-label={`${scope.name} in Zahlen`}>
@@ -224,50 +217,35 @@ function KommunePanel({ scope, row, split, peers, parentRow, parentLabel, nation
         <span className="kommune-panel__eyebrow">{scope.kindLabel}</span>
         <h2 className="kommune-panel__title">{scope.name}</h2>
         <span className="kommune-panel__what">
-          <Sun size={13} aria-hidden="true" /> Solar · {leistungLabel}
+          <Icon size={13} aria-hidden="true" /> {what}
         </span>
       </header>
 
       <dl className="kommune-panel__figures">
-        <Figure
-          label="Installierte Leistung"
-          value={formatAmount(row.total_power, 'MW')}
-          compare={shareOfParent != null ? `${formatPercent(shareOfParent)} von ${scope.parentName}` : ''}
-          rank={peers ? `Rang ${rankOf(peers.rows, row, 'total_power')} ${peers.label}` : ''}
-        />
-        <Figure label="Anlagen in Betrieb" value={formatNumber(row.total_units)} rank={peers ? `Rang ${rankOf(peers.rows, row, 'total_units')}` : ''} />
-        <Figure
-          label="Leistung je Einwohner"
-          value={`${formatNumber(row.relative_population_power, 2)} kW`}
-          compare={compare('relative_population_power')}
-          rank={peers ? `Rang ${rankOf(peers.rows, row, 'relative_population_power')}` : ''}
-        />
-        <Figure
-          label="Leistung je km²"
-          value={`${formatNumber(row.relative_area_power, 0)} kW`}
-          compare={compare('relative_area_power')}
-          rank={peers ? `Rang ${rankOf(peers.rows, row, 'relative_area_power')}` : ''}
-        />
-        <Figure
-          label="Zubau der letzten 12 Monate"
-          value={formatAmount(row.added_12m_power, 'MW')}
-          compare={growth > 0 ? `+${formatPercent(growth)} auf den Bestand davor` : ''}
-        />
+        {profile.figures.map((figure, i) => (
+          <Figure
+            key={figure.field}
+            label={figure.label}
+            value={figure.format(row[figure.field] ?? 0)}
+            compare={metaOf(figure)}
+            rank={figure.rank && peers ? `Rang ${rankOf(peers.rows, row, figure.field)}${i === 0 ? ` ${peers.label}` : ''}` : ''}
+          />
+        ))}
       </dl>
 
       {split && (
         <div className="kommune-split">
-          <h3 className="kommune-panel__subtitle">Gebäude und Freifläche</h3>
-          <div className="kommune-split__bar" role="img" aria-label={split.map((s) => `${s.label} ${formatAmount(s.power, 'MW')}`).join(', ')}>
+          <h3 className="kommune-panel__subtitle">{profile.split.title}</h3>
+          <div className="kommune-split__bar" role="img" aria-label={split.map((s) => `${s.label} ${size.format(s.value)}`).join(', ')}>
             {split.map((s) =>
-              s.share > 0 ? <span key={s.id} style={{ width: `${s.share * 100}%`, background: s.color }} title={`${s.label}: ${formatAmount(s.power, 'MW')}`} /> : null,
+              s.share > 0 ? <span key={s.id} style={{ width: `${s.share * 100}%`, background: s.color }} title={`${s.label}: ${size.format(s.value)}`} /> : null,
             )}
           </div>
           <ul className="kommune-split__legend">
             {split.map((s) => (
               <li key={s.id}>
                 <span className="kommune-split__dot" style={{ background: s.color }} />
-                {s.label} <strong>{formatAmount(s.power, 'MW')}</strong> · {formatPercent(s.share)}
+                {s.label} <strong>{size.format(s.value)}</strong> · {formatPercent(s.share)}
               </li>
             ))}
           </ul>
@@ -276,16 +254,16 @@ function KommunePanel({ scope, row, split, peers, parentRow, parentLabel, nation
 
       {largest && largest.length > 0 && (
         <div className="kommune-largest">
-          <h3 className="kommune-panel__subtitle">Größte Gemeinden nach Leistung</h3>
+          <h3 className="kommune-panel__subtitle">Größte Gemeinden nach {profile.figures[0].label}</h3>
           <ol>
             {largest.map((g) => (
               <li key={g.ags}>
                 <button type="button" onClick={() => onSelect(g.ags)}>
                   <span className="kommune-largest__name">{g.name}</span>
                   <span className="kommune-largest__bar" aria-hidden="true">
-                    <span style={{ width: `${(g.total_power / largest[0].total_power) * 100}%` }} />
+                    <span style={{ width: `${((g[size.field] ?? 0) / (largest[0][size.field] || 1)) * 100}%` }} />
                   </span>
-                  <span className="kommune-largest__value">{formatAmount(g.total_power, 'MW')}</span>
+                  <span className="kommune-largest__value">{size.format(g[size.field] ?? 0)}</span>
                 </button>
               </li>
             ))}
@@ -298,7 +276,7 @@ function KommunePanel({ scope, row, split, peers, parentRow, parentLabel, nation
 
 // ----------------------------------------------------------------------------------------------------------- timeline
 
-const MEASURES = [
+const VIEWS = [
   { id: 'zubau', label: 'Zubau' },
   { id: 'bestand', label: 'Bestand' },
 ];
@@ -306,25 +284,32 @@ const STYLES = [
   { id: 'balken', label: 'Balken' },
   { id: 'kurve', label: 'Kurve' },
 ];
+// Small areas in the next smaller unit: "350 kW" reads better than "0,35 MW"
+const SMALLER = { MW: 'kW', MWh: 'kWh' };
 
-// Zubau and Bestand per year in the Kreis or Gemeinde, Gebäude and Freifläche stacked (mrt.solar_zubau_regions)
-function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel }) {
-  const data = useJson(`${API_BASE_URL}/solar/zubau?region=${scopeKey}${query ? `&${query}` : ''}`);
-  const [measure, setMeasure] = useState('zubau');
+/**
+ * Zubau and Bestand per year in the Kreis or Gemeinde, the profile's series stacked (Solar: Gebäude and Freifläche,
+ * mrt.solar_zubau_regions; batteries: the size classes, mrt.battery_zubau_regions), in one of its measures.
+ * query: the page's selection, for a timeline withSelection; series: the ones to show
+ */
+function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectionLabel }) {
+  const data = useJson(`${API_BASE_URL}${timeline.path}?region=${scopeKey}${timeline.withSelection && query ? `&${query}` : ''}`);
+  const [view, setView] = useState('zubau');
   const [style, setStyle] = useState('kurve');
-  const bestand = measure === 'bestand';
-  const series = ANLAGENARTEN.filter((a) => subtypes.includes(a.id));
+  const [measureId, setMeasureId] = useState(timeline.measures[0].id);
+  const measure = timeline.measures.find((m) => m.id === measureId) ?? timeline.measures[0];
+  const bestand = view === 'bestand';
 
-  // Small Gemeinden in kW: "350 kW" reads better than "0,35 MW"
   const { periods, unit } = useMemo(() => {
-    if (!data.data?.length) return { periods: [], unit: 'MW' };
-    const field = bestand ? 'installed' : 'added';
+    if (!data.data?.length) return { periods: [], unit: measure.unit };
+    const field = bestand ? measure.installed : measure.added;
+    const ids = series.map((s) => s.id);
     const years = [...new Set(data.data.map((row) => row.year))].sort((a, b) => a - b);
-    const totals = years.map((year) => data.data.filter((row) => row.year === year && subtypesOf(series).includes(row.anlagenart)).reduce((t, row) => t + row[field], 0));
-    const factor = Math.max(...totals) < 1 ? 1000 : 1;
+    const totals = years.map((year) => data.data.filter((row) => row.year === year && ids.includes(row[timeline.key])).reduce((t, row) => t + row[field], 0));
+    const factor = Math.max(...totals) < 1 && SMALLER[measure.unit] ? 1000 : 1;
     const last = years.at(-1);
     return {
-      unit: factor === 1000 ? 'kW' : 'MW',
+      unit: factor === 1000 ? SMALLER[measure.unit] : measure.unit,
       periods: years.map((year) => {
         const rows = data.data.filter((row) => row.year === year);
         const current = year === last;
@@ -333,22 +318,23 @@ function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel })
           tick: String(year),
           label: bestand ? (current ? `${year} (aktueller Stand)` : `Ende ${year}`) : current ? `${year} (laufendes Jahr)` : String(year),
           partial: current,
-          values: Object.fromEntries(series.map((s) => [s.id, (rows.find((row) => row.anlagenart === s.id)?.[field] ?? 0) * factor])),
+          values: Object.fromEntries(series.map((s) => [s.id, (rows.find((row) => row[timeline.key] === s.id)?.[field] ?? 0) * factor])),
         };
       }),
     };
-  }, [data.data, bestand, series]);
+  }, [data.data, bestand, series, measure, timeline.key]);
 
+  const what = `${measure.quantity}${selectionLabel ? ` · ${selectionLabel}` : ''}`;
   return (
     <AnalysisPanel
       id="analyse-zeitverlauf"
       icon={ChartColumnIncreasing}
       title={`Zubau und Bestand · ${scopeName}`}
-      lead={bestand ? `Installierte Solarleistung am Jahresende · ${leistungLabel}` : `Neu in Betrieb genommene Solarleistung je Jahr · ${leistungLabel}`}
+      lead={bestand ? `Installierte ${what} am Jahresende` : `Neu in Betrieb genommene ${what} je Jahr`}
       className="timeline-card"
     >
       <div className="timeline__controls">
-        <SegmentedControl label="Größe" options={MEASURES} value={measure} onChange={setMeasure} />
+        <SegmentedControl label="Größe" options={VIEWS} value={view} onChange={setView} />
         <SegmentedControl
           label="Darstellung"
           options={STYLES}
@@ -357,6 +343,9 @@ function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel })
           disabled={!bestand}
           hint="Als Kurve: der Bestand"
         />
+        {timeline.measures.length > 1 && (
+          <SegmentedControl label="Messgröße" options={timeline.measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
+        )}
       </div>
       {data.status === 'error' ? (
         <ChartPlaceholder variant="bars" title="Keine Daten" note="Der Zeitverlauf konnte nicht geladen werden." />
@@ -368,7 +357,7 @@ function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel })
           series={series}
           kind={bestand && style === 'kurve' ? 'area' : 'bars'}
           unit={unit}
-          label={`Solar in ${scopeName}: ${bestand ? 'Bestand am Jahresende' : 'Zubau je Jahr'}`}
+          label={`${measure.quantity} in ${scopeName}: ${bestand ? 'Bestand am Jahresende' : 'Zubau je Jahr'}`}
         />
       )}
       <div className="timeline-legend" aria-hidden="true">
@@ -380,9 +369,8 @@ function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel })
         ))}
       </div>
       <p className="timeline__note">
-        Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister. Bestand: in Betrieb am Jahresende, endgültig stillgelegte
-        Anlagen abgezogen; Anlagen vor 2000 zählen in den Bestand. Hell: laufendes Jahr, das noch wächst, auch weil Anlagen oft
-        erst Wochen nach der Inbetriebnahme registriert werden.
+        Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister. {timeline.note} Hell: laufendes Jahr, das noch wächst, auch
+        weil Einheiten oft erst Wochen nach der Inbetriebnahme registriert werden.
       </p>
     </AnalysisPanel>
   );
@@ -390,28 +378,19 @@ function RegionTimeline({ scopeKey, scopeName, query, subtypes, leistungLabel })
 
 // -------------------------------------------------------------------------------------------------------------- table
 
-const COLUMNS = [
-  { id: 'name', label: 'Gemeinde', text: true },
-  { id: 'einwohner', label: 'Einwohner', format: (v) => formatNumber(v) },
-  { id: 'total_units', label: 'Anlagen', format: (v) => formatNumber(v) },
-  { id: 'total_power', label: 'Leistung (MW)', format: (v) => formatFixed(v, 1), bar: true },
-  { id: 'relative_population_power', label: 'je Einw. (kW)', format: (v) => formatFixed(v, 2) },
-  { id: 'relative_area_power', label: 'je km² (kW)', format: (v) => formatNumber(v, 0) },
-  { id: 'added_12m_power', label: 'Zubau 12 Mon. (MW)', format: (v) => formatFixed(v, 1) },
-  { id: 'share', label: 'Anteil am Kreis', format: (v) => formatPercent(v) },
-];
-
 // Every Gemeinde of the Kreis, sortable by each column; a row picks its Gemeinde
-function GemeindenTable({ rows, kreisName, selected, onSelect, fileBase }) {
-  const [sort, setSort] = useState({ id: 'total_power', desc: true });
+function GemeindenTable({ profile, rows, kreisName, selected, onSelect, fileBase }) {
+  const columns = useMemo(() => [{ id: 'name', label: 'Gemeinde', text: true }, ...profile.table], [profile.table]);
+  const barField = profile.size.field;
+  const [sort, setSort] = useState({ id: barField, desc: true });
   const sorted = useMemo(() => {
-    const column = COLUMNS.find((c) => c.id === sort.id);
+    const column = columns.find((c) => c.id === sort.id) ?? columns[0];
     const dir = sort.desc ? -1 : 1;
     return [...rows].sort((a, b) =>
-      column.text ? dir * a.name.localeCompare(b.name, 'de') : dir * ((a[sort.id] ?? -Infinity) - (b[sort.id] ?? -Infinity)),
+      column.text ? dir * a.name.localeCompare(b.name, 'de') : dir * ((a[column.id] ?? -Infinity) - (b[column.id] ?? -Infinity)),
     );
-  }, [rows, sort]);
-  const maxPower = Math.max(...rows.map((r) => r.total_power ?? 0), 0);
+  }, [rows, sort, columns]);
+  const maxSize = Math.max(...rows.map((r) => r[barField] ?? 0), 0);
 
   return (
     <AnalysisPanel
@@ -420,25 +399,7 @@ function GemeindenTable({ rows, kreisName, selected, onSelect, fileBase }) {
       title={`Gemeinden in ${kreisName}`}
       lead={`${rows.length} Gemeinden · Klick auf eine Zeile zeigt sie auf der Karte und im Steckbrief`}
       tools={
-        <button
-          type="button"
-          className="btn btn--secondary btn--sm"
-          onClick={() =>
-            exportCsv(
-              sorted.map((r) => ({
-                gemeindeschluessel: r.ags,
-                gemeinde: r.name,
-                einwohner: r.einwohner,
-                anlagen: r.total_units,
-                leistung_mw: r.total_power,
-                leistung_je_einwohner_kw: r.relative_population_power,
-                leistung_je_km2_kw: r.relative_area_power,
-                zubau_12_monate_mw: r.added_12m_power,
-              })),
-              fileBase,
-            )
-          }
-        >
+        <button type="button" className="btn btn--secondary btn--sm" onClick={() => exportCsv(sorted.map(profile.csv), fileBase)}>
           <Download size={14} aria-hidden="true" /> CSV
         </button>
       }
@@ -447,7 +408,7 @@ function GemeindenTable({ rows, kreisName, selected, onSelect, fileBase }) {
         <table className="kommune-table">
           <thead>
             <tr>
-              {COLUMNS.map((c) => {
+              {columns.map((c) => {
                 const active = sort.id === c.id;
                 return (
                   <th key={c.id} scope="col" aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined} className={c.text ? 'is-text' : undefined}>
@@ -463,20 +424,24 @@ function GemeindenTable({ rows, kreisName, selected, onSelect, fileBase }) {
           <tbody>
             {sorted.map((r) => (
               <tr key={r.ags} className={r.ags === selected ? 'is-selected' : undefined} onClick={() => onSelect(r.ags === selected ? null : r.ags)}>
-                {COLUMNS.map((c) =>
+                {columns.map((c) =>
                   c.text ? (
                     <th key={c.id} scope="row">
-                      <button type="button" className="kommune-table__name" onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect(r.ags === selected ? null : r.ags);
-                      }}>
+                      <button
+                        type="button"
+                        className="kommune-table__name"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect(r.ags === selected ? null : r.ags);
+                        }}
+                      >
                         {r.name}
                       </button>
                     </th>
                   ) : (
                     <td key={c.id}>
-                      {c.bar && maxPower > 0 && (
-                        <span className="kommune-table__bar" aria-hidden="true" style={{ width: `${((r.total_power ?? 0) / maxPower) * 100}%` }} />
+                      {c.bar && maxSize > 0 && (
+                        <span className="kommune-table__bar" aria-hidden="true" style={{ width: `${((r[barField] ?? 0) / maxSize) * 100}%` }} />
                       )}
                       <span className="kommune-table__value">{r[c.id] == null ? '—' : c.format(r[c.id])}</span>
                     </td>
@@ -493,25 +458,31 @@ function GemeindenTable({ rows, kreisName, selected, onSelect, fileBase }) {
 
 // --------------------------------------------------------------------------------------------------------------- page
 
+const CHARTS = { ausrichtung: OrientationRose, groesse: SizeDistribution };
+
 /**
- * The page "Landkreis/Gemeinde" of the Erzeuger: one Landkreis and its Gemeinden in depth, for now for solar – on a
- * detailed map with a background map, in figures with rank and comparison, Zubau and Bestand per year, orientation and
- * size classes, and every Gemeinde in a table. Picking a Gemeinde (map, table, list, scope bar) narrows everything to it.
+ * The page "Landkreis/Gemeinde" of a dashboard: one Landkreis and its Gemeinden in depth for the dashboard's technology
+ * (config/kommune.js: Solar for the Erzeuger, batteries for the Speicher) – on a detailed map with a background map, in
+ * figures with rank and comparison, against targets or comparisons, Zubau and Bestand per year, its analyses, and every
+ * Gemeinde in a table. Picking a Gemeinde (map, table, list, scope bar) narrows everything to it.
  */
 export default function KommuneView({ config, state }) {
   const { region, kreisAgs, kreisFeature, kreisName, gemeindeAgs, kreise, searchParams, setParam } = state;
-  const solar = config.technologies.find((t) => t.id === 'solar');
-  const selection = selectionOf(solar, searchParams);
-  const { query } = selection;
-  const leistungLabel = selection.leistung.label;
-  const both = selection.subtypes.length === solar.subtypes.options.length;
-  // The Freifläche alone, in the chosen Leistung: Gebäude is the rest
-  const freiflaecheQuery = ['anlagenart=freiflaeche', selection.leistung.id !== solar.leistung.options[0].id && `leistung=${selection.leistung.id}`]
-    .filter(Boolean)
-    .join('&');
+  const profile = KOMMUNE[config.id];
+  const technology = config.technologies.find((t) => t.id === profile.technology);
+  const selection = selectionOf(technology, searchParams);
+  const query = profile.filters ? selection.query : '';
+  const leistungLabel = selection.leistung?.label ?? null;
+  const what = [technology.label, leistungLabel].filter(Boolean).join(' · ');
+  const subtypes = selection.subtypes;
+  const allSubtypes = !subtypes || subtypes.length === technology.subtypes.options.length;
+  // Solar's split: the Freifläche alone, in the chosen Leistung (Gebäude is the rest); only while both are chosen
+  const freiflaecheQuery = selection.leistung
+    ? ['anlagenart=freiflaeche', selection.leistung.id !== technology.leistung.options[0].id && `leistung=${selection.leistung.id}`].filter(Boolean).join('&')
+    : '';
 
-  const [metricId, setMetricId] = useState('total_power');
-  const metric = METRICS.find((m) => m.id === metricId);
+  const [metricId, setMetricId] = useState(profile.metrics[0].id);
+  const metric = profile.metrics.find((m) => m.id === metricId) ?? profile.metrics[0];
   // The background map, and how strongly the shading covers it: each map comes with its own, the slider changes it
   const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [opacity, setOpacity] = useState(() => BASEMAPS.find((b) => b.id === DEFAULT_BASEMAP).fillOpacity);
@@ -521,11 +492,14 @@ export default function KommuneView({ config, state }) {
   };
 
   // ------------------------------------------------------------------------------------------------------- data
-  const gemeindeStats = useStats(kreisAgs ? statsUrl(solar.statsPath, 'gemeinde', query) : null);
-  const kreisStats = useStats(kreisAgs ? statsUrl(solar.statsPath, 'landkreis', query) : null);
-  const landStats = useStats(kreisAgs ? statsUrl(solar.statsPath, 'bundesland', query) : null);
-  const gemeindeFF = useStats(kreisAgs && both ? statsUrl(solar.statsPath, 'gemeinde', freiflaecheQuery) : null);
-  const kreisFF = useStats(kreisAgs && both ? statsUrl(solar.statsPath, 'landkreis', freiflaecheQuery) : null);
+  const statsPath = technology.statsPath;
+  const gemeindeStats = useStats(kreisAgs ? statsUrl(statsPath, 'gemeinde', query) : null);
+  const kreisStats = useStats(kreisAgs ? statsUrl(statsPath, 'landkreis', query) : null);
+  const landStats = useStats(kreisAgs ? statsUrl(statsPath, 'bundesland', query) : null);
+  const splitByFreiflaeche = profile.split.kind === 'freiflaeche' && allSubtypes;
+  const gemeindeFF = useStats(kreisAgs && splitByFreiflaeche ? statsUrl(statsPath, 'gemeinde', freiflaecheQuery) : null);
+  const kreisFF = useStats(kreisAgs && splitByFreiflaeche ? statsUrl(statsPath, 'landkreis', freiflaecheQuery) : null);
+  const splitZubau = useJson(kreisAgs && profile.split.kind === 'zubau' ? `${API_BASE_URL}${profile.timeline.path}?region=${state.scopeKey}` : null);
   const areas = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=gemeinde&within=${kreisAgs}` : null);
   const areasLand = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=bundesland` : null);
   const areasKreise = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=landkreis&within=${region.ags}` : null);
@@ -587,26 +561,26 @@ export default function KommuneView({ config, state }) {
   }, [gemeinden, metric.id, config.ramp]);
 
   // The rows of the table and the panel: one per Gemeinde, with its share of the Kreis
+  const sizeField = profile.size.field;
   const kreisRow = kreisStats.data?.find((row) => row.landkreis === kreisAgs) ?? null;
   const gemeindeRows = useMemo(
     () =>
       gemeinden?.features.map((f) => ({
         ...f.properties,
-        share: kreisRow?.total_power ? (f.properties.total_power ?? 0) / kreisRow.total_power : null,
+        share: kreisRow?.[sizeField] ? (f.properties[sizeField] ?? 0) / kreisRow[sizeField] : null,
       })) ?? [],
-    [gemeinden, kreisRow],
+    [gemeinden, kreisRow, sizeField],
   );
 
-  // Averages of the Land and of Germany, per inhabitant and per km² (the Länder's sums over their areas)
+  // The averages of Germany for the compared figures: the Länder's sums over their areas (kW or kWh per unit)
   const landRow = landStats.data?.find((row) => row.bundesland === region?.ags) ?? null;
   const nationalRow = useMemo(() => {
     if (!landStats.data || !areasLand.data) return null;
     const lands = landStats.data.filter((row) => findBundeslandByAgs(row.bundesland));
-    const power = sum(lands, 'total_power');
-    const einwohner = sum(areasLand.data, 'einwohner');
-    const qkm = sum(areasLand.data, 'qkm');
-    return { total_power: power, relative_population_power: (1000 * power) / einwohner, relative_area_power: (1000 * power) / qkm };
-  }, [landStats.data, areasLand.data]);
+    return Object.fromEntries(
+      profile.figures.filter((f) => f.compare).map((f) => [f.field, (1000 * sum(lands, f.compare.of)) / sum(areasLand.data, f.compare.per)]),
+    );
+  }, [landStats.data, areasLand.data, profile.figures]);
 
   const selectGemeinde = state.selectGemeinde;
   const gemeinde = gemeindeAgs ? gemeindeRows.find((r) => r.ags === gemeindeAgs) ?? null : null;
@@ -633,37 +607,50 @@ export default function KommuneView({ config, state }) {
         peers: peersInLand && { rows: peersInLand, label: `in ${region.name}` },
         parentRow: landRow,
         parentLabel: 'Landesschnitt',
-        largest: [...withData].sort((a, b) => (b.total_power ?? 0) - (a.total_power ?? 0)).slice(0, 6),
+        largest: [...withData].sort((a, b) => (b[sizeField] ?? 0) - (a[sizeField] ?? 0)).slice(0, 6),
       };
 
-  // Gebäude and Freifläche of the panel's area, where both are chosen
+  // How the panel's area splits into its kinds
   const split = useMemo(() => {
     const row = panel.row;
-    if (!both || !row) return null;
-    const ffRows = gemeindeAgs ? gemeindeFF.data : kreisFF.data;
-    if (!ffRows) return null;
-    const ff = ffRows.find((r) => (gemeindeAgs ? r.gemeinde === gemeindeAgs : r.landkreis === kreisAgs))?.total_power ?? 0;
-    const total = row.total_power || 0;
-    if (!total) return null;
-    return [
-      { ...ANLAGENARTEN[0], power: total - ff, share: (total - ff) / total },
-      { ...ANLAGENARTEN[1], power: ff, share: ff / total },
-    ];
-  }, [panel.row, both, gemeindeAgs, gemeindeFF.data, kreisFF.data, kreisAgs]);
+    if (!row) return null;
+    const kinds = profile.split.series;
+    if (profile.split.kind === 'freiflaeche') {
+      if (!splitByFreiflaeche) return null;
+      const ffRows = gemeindeAgs ? gemeindeFF.data : kreisFF.data;
+      if (!ffRows) return null;
+      const ff = ffRows.find((r) => (gemeindeAgs ? r.gemeinde === gemeindeAgs : r.landkreis === kreisAgs))?.[sizeField] ?? 0;
+      const total = row[sizeField] || 0;
+      if (!total) return null;
+      return [
+        { ...kinds[0], value: total - ff, share: (total - ff) / total },
+        { ...kinds[1], value: ff, share: ff / total },
+      ];
+    }
+    // From the Bestand of the latest year of the area's timeline
+    if (!splitZubau.data?.length) return null;
+    const latest = Math.max(...splitZubau.data.map((r) => r.year));
+    const now = splitZubau.data.filter((r) => r.year === latest);
+    const values = kinds.map((k) => ({ ...k, value: now.find((r) => r[profile.timeline.key] === k.id)?.[profile.split.field] ?? 0 }));
+    const total = values.reduce((t, v) => t + v.value, 0);
+    return total ? values.map((v) => ({ ...v, share: v.value / total })) : null;
+  }, [panel.row, profile, splitByFreiflaeche, gemeindeAgs, gemeindeFF.data, kreisFF.data, kreisAgs, sizeField, splitZubau.data]);
 
   const tooltipFor = useCallback(
     (f) => {
       const p = f.properties;
       const rows = p._hasData
-        ? METRICS.map(
-            (m) =>
-              `<tr${m.id === metric.id ? ' class="is-active"' : ''}><th>${m.label}</th><td>${formatNumber(p[m.id], m.digits)}</td><td>${m.unit === 'Anlagen' ? '' : m.unit}</td></tr>`,
-          ).join('')
-        : '<tr><td class="map-tooltip__empty" colspan="3">Keine Solaranlagen</td></tr>';
+        ? profile.metrics
+            .map(
+              (m) =>
+                `<tr${m.id === metric.id ? ' class="is-active"' : ''}><th>${m.label}</th><td>${formatNumber(p[m.id], m.digits)}</td><td>${m.count ? '' : m.unit}</td></tr>`,
+            )
+            .join('')
+        : `<tr><td class="map-tooltip__empty" colspan="3">Keine ${profile.noun}</td></tr>`;
       const hint = p.ags === gemeindeAgs ? 'Klicken: zurück zum Landkreis' : 'Klicken: Steckbrief der Gemeinde';
       return `<div class="map-tooltip__title">${escapeHtml(p.name)}</div><table>${rows}</table><div class="map-tooltip__hint">${hint}</div>`;
     },
-    [metric.id, gemeindeAgs],
+    [metric.id, gemeindeAgs, profile],
   );
 
   // A Kreis or Gemeinde from the finder: its Land, Kreis and Gemeinde in the address
@@ -691,43 +678,55 @@ export default function KommuneView({ config, state }) {
     return (
       <>
         {scopeBar}
-        <KommuneFinder state={state} onPick={onPick} />
+        <KommuneFinder state={state} onPick={onPick} lead={profile.finderLead} />
       </>
     );
   }
 
   const mapStatus = [shapes, gemeindeStats, areas].some((r) => r.status === 'error') ? 'error' : gemeinden && gemeindeStats.status === 'ready' ? 'ready' : 'loading';
-  const filtersSolar = {
-    subtypes: selection.subtypes,
-    onSubtypes: (ids) => setParam(solar.subtypes.param, ids.join(','), solar.subtypes.options.map((o) => o.id).join(',')),
-    leistung: selection.leistung,
-    onLeistung: (id) => setParam(solar.leistung.param, id, solar.leistung.options[0].id),
-  };
+  const timelineSeries = profile.timeline.series.filter((s) => profile.timeline.key !== 'anlagenart' || !subtypes || subtypes.includes(s.id));
+  const kreisEinwohner = areasKreise.data?.find((row) => row.region === kreisAgs)?.einwohner;
+  const landEinwohner = areasLand.data?.find((row) => row.region === region.ags)?.einwohner;
+  const goalScope = { key: state.scopeKey, name: gemeindeAgs ? gemeinde?.name ?? state.scopeName : kreisName, einwohner: gemeindeAgs ? gemeinde?.einwohner : kreisEinwohner };
+  const goalParent = gemeindeAgs
+    ? { key: kreisAgs, name: kreisName, einwohner: kreisEinwohner }
+    : { key: region.ags, name: region.name, einwohner: landEinwohner };
+  const einwohnerDE = areasLand.data ? sum(areasLand.data, 'einwohner') : null;
 
   return (
     <>
       {scopeBar}
-      <section className="card kommune-toolbar" aria-label="Auswahl">
-        <TechFilters technology={solar} {...filtersSolar} />
-        <p className="kommune-toolbar__note">Bisher für Solaranlagen; Wind, Wasserkraft und Speicher folgen.</p>
-      </section>
+      {profile.filters && (
+        <section className="card kommune-toolbar" aria-label="Auswahl">
+          <TechFilters
+            technology={technology}
+            subtypes={subtypes}
+            onSubtypes={(ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','))}
+            leistung={selection.leistung}
+            onLeistung={(id) => setParam(technology.leistung.param, id, technology.leistung.options[0].id)}
+          />
+        </section>
+      )}
 
       <div className="kommune">
-        <KommunePanel {...panel} split={split} onSelect={selectGemeinde} leistungLabel={leistungLabel} nationalRow={nationalRow} />
+        <KommunePanel {...panel} profile={profile} what={what} split={split} onSelect={selectGemeinde} nationalRow={nationalRow} />
 
         <section className="card kommune-map-card" aria-label={`Karte von ${kreisName}`}>
           <header className="kommune-map-card__head">
             <div>
               <h2 className="card__title">
-                {metric.legend} · {leistungLabel}
+                {metric.legend}
+                {leistungLabel && ` · ${leistungLabel}`}
               </h2>
-              <div className="card__subtitle">Gemeinden in {kreisName}</div>
+              <div className="card__subtitle">
+                {technology.label} · Gemeinden in {kreisName}
+              </div>
             </div>
             <div className="kommune-map-card__tools">
               <label className="kommune-map-card__field">
                 <span>Kennzahl</span>
                 <select className="timeline__select" value={metric.id} onChange={(e) => setMetricId(e.target.value)}>
-                  {METRICS.map((m) => (
+                  {profile.metrics.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.label}
                     </option>
@@ -755,8 +754,9 @@ export default function KommuneView({ config, state }) {
               basemap={basemap}
               opacity={opacity}
               onBasemap={chooseBasemap}
+              kreisColor={config.ramp[config.ramp.length - 1]}
             >
-              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.unit === 'Anlagen' ? '' : metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />}
+              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.count ? '' : metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />}
               {mapStatus === 'loading' && (
                 <div className="map-overlay map-overlay--loading" role="status">
                   <div className="spinner" />
@@ -779,45 +779,48 @@ export default function KommuneView({ config, state }) {
         </section>
       </div>
 
-      <KommuneTargets
-        scope={
-          gemeindeAgs
-            ? { key: gemeindeAgs, name: gemeinde?.name ?? state.scopeName, einwohner: gemeinde?.einwohner }
-            : { key: kreisAgs, name: kreisName, einwohner: areasKreise.data?.find((row) => row.region === kreisAgs)?.einwohner }
-        }
-        parent={gemeindeAgs ? { key: kreisAgs, name: kreisName } : { key: region.ags, name: region.name }}
-        einwohnerDE={areasLand.data ? sum(areasLand.data, 'einwohner') : null}
+      {profile.goals === 'solar' && <KommuneTargets scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
+      {profile.goals === 'storage' && <KommuneStorage scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
+
+      <RegionTimeline
+        timeline={profile.timeline}
+        scopeKey={state.scopeKey}
+        scopeName={state.scopeName}
+        query={query}
+        series={timelineSeries}
+        selectionLabel={leistungLabel}
       />
 
-      <RegionTimeline scopeKey={state.scopeKey} scopeName={state.scopeName} query={query} subtypes={selection.subtypes} leistungLabel={leistungLabel} />
-
-      <div className="analyses-grid analyses-grid--pairs">
-        <article className="card">
-          <header className="card__header">
-            <div>
-              <h3 className="card__title">Ausrichtung · {state.scopeName}</h3>
-              <div className="card__subtitle">Leistung nach Hauptausrichtung der Module</div>
-            </div>
-          </header>
-          <div className="card__body">
-            <OrientationRose key={state.scopeKey} path="/solar/orientation" region={state.scopeKey} query={query} />
-          </div>
-        </article>
-        <article className="card">
-          <header className="card__header">
-            <div>
-              <h3 className="card__title">Anlagengröße · {state.scopeName}</h3>
-              <div className="card__subtitle">Anteile an Leistung und Anlagen je Leistungsklasse</div>
-            </div>
-          </header>
-          <div className="card__body">
-            <SizeDistribution key={state.scopeKey} path={solar.sizesPath} region={state.scopeKey} query={query} />
-          </div>
-        </article>
+      <div className={`analyses-grid ${profile.analyses.length > 1 ? 'analyses-grid--pairs' : 'analyses-grid--single'}`}>
+        {profile.analyses.map((a) => {
+          const Chart = CHARTS[a.id];
+          return (
+            <article key={a.id} className="card">
+              <header className="card__header">
+                <div>
+                  <h3 className="card__title">
+                    {a.title} · {state.scopeName}
+                  </h3>
+                  <div className="card__subtitle">{a.subtitle}</div>
+                </div>
+              </header>
+              <div className="card__body">
+                <Chart key={state.scopeKey} path={a.path} region={state.scopeKey} query={query} measure={a.measure} unitsLabel={profile.unitsLabel} />
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       {gemeindeRows.length > 0 && (
-        <GemeindenTable rows={gemeindeRows} kreisName={kreisName} selected={gemeindeAgs} onSelect={selectGemeinde} fileBase={`mastr_solar_gemeinden_${kreisAgs}`} />
+        <GemeindenTable
+          profile={profile}
+          rows={gemeindeRows}
+          kreisName={kreisName}
+          selected={gemeindeAgs}
+          onSelect={selectGemeinde}
+          fileBase={`mastr_${technology.id}_gemeinden_${kreisAgs}`}
+        />
       )}
     </>
   );
