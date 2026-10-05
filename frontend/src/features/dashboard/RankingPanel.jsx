@@ -8,9 +8,6 @@ const TOP_N = 10;
 export default function RankingPanel({ features, metric, granularity, within, focusKey, status, labelFor, onRowClick }) {
   if (status === 'unavailable') return <ChartPlaceholder variant="rows" note="Sobald Daten vorliegen, erscheint hier die Rangliste." />;
   if (status === 'error') return <ChartPlaceholder variant="rows" title="Keine Daten" note="Die Rangliste konnte nicht geladen werden." />;
-  if (status === 'heatmap') {
-    return <ChartPlaceholder variant="rows" title="Keine Regionen" note="Für eine Rangliste bitte eine flächige Auflösung wählen." />;
-  }
   if (status !== 'ready' || !features) return <ChartPlaceholder variant="rows" title="Wird geladen …" />;
   // Kreise and Gemeinden lie within a scope when their key starts with the scope's.
   if (within && granularity.featureKey !== 'ags') {

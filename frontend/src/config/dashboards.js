@@ -115,7 +115,8 @@ export const ERZEUGER = {
       label: 'Solar',
       icon: Sun,
       statsPath: '/solar/dashboard-stats',
-      heatmapPath: '/plz5_heatmap_image',
+      // The points of the continuous map (mrt.heatmap_points): plants at their coordinates, small ones per postcode
+      heatmapPath: '/solar/heatmap',
       // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution)
       sizesPath: '/solar/size-distribution',
       // Multiple choice in the technology's filters while it is active; no param in the URL = all selected.
@@ -162,7 +163,8 @@ export const ERZEUGER = {
       icon: Wind,
       statsPath: '/wind/dashboard-stats',
       sizesPath: '/wind/size-distribution',
-      granularities: REGION_LEVELS,
+      heatmapPath: '/wind/heatmap',
+      granularities: [...REGION_LEVELS, 'heatmap'],
       // An Land and auf See, like the Anlagenarten of solar: passed as ?lage=… (no param = both, the API sums them)
       subtypes: {
         param: 'lage',
@@ -185,8 +187,17 @@ export const ERZEUGER = {
       granularities: REGION_LEVELS,
     },
   ],
+  // heat: what the continuous map shows of an absolute Kennzahl – its density, the measure of its points (default power),
+  // and its label there if another
   metrics: [
-    { id: 'total_power', label: 'Absolut', legend: 'Installierte Leistung', unit: 'MW', digits: 1 },
+    {
+      id: 'total_power',
+      label: 'Absolut',
+      legend: 'Installierte Leistung',
+      unit: 'MW',
+      digits: 1,
+      heat: { legend: 'Leistungsdichte', unit: 'kW/km²' },
+    },
     { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
     { id: 'relative_population_power', label: 'je Einw.', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
   ],
@@ -258,7 +269,14 @@ export const SPEICHER = {
   ramp: RAMPS.blue,
   defaultGranularity: 'bundesland',
   technologies: [
-    { id: 'batterie', label: 'Batteriespeicher', icon: BatteryCharging, statsPath: '/battery/dashboard-stats', granularities: REGION_LEVELS },
+    {
+      id: 'batterie',
+      label: 'Batteriespeicher',
+      icon: BatteryCharging,
+      statsPath: '/battery/dashboard-stats',
+      heatmapPath: '/battery/heatmap',
+      granularities: [...REGION_LEVELS, 'heatmap'],
+    },
     {
       id: 'pumpspeicher',
       label: 'Pumpspeicher',
@@ -301,10 +319,24 @@ export const SPEICHER = {
   },
   // Power, like the Erzeuger, and the usable capacity (only batteries with a plausible one, aggregate_bat_by_region_power.sql)
   metrics: [
-    { id: 'total_power', label: 'Absolut', legend: 'Speicherleistung', unit: 'MW', digits: 1 },
+    {
+      id: 'total_power',
+      label: 'Absolut',
+      legend: 'Speicherleistung',
+      unit: 'MW',
+      digits: 1,
+      heat: { label: 'Leistung', legend: 'Leistungsdichte', unit: 'kW/km²' },
+    },
     { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
     { id: 'relative_population_power', label: 'je Einw.', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
-    { id: 'total_capacity', label: 'Kapazität', legend: 'Speicherkapazität', unit: 'MWh', digits: 1 },
+    {
+      id: 'total_capacity',
+      label: 'Kapazität',
+      legend: 'Speicherkapazität',
+      unit: 'MWh',
+      digits: 1,
+      heat: { legend: 'Kapazitätsdichte', unit: 'kWh/km²', measure: 'capacity' },
+    },
     { id: 'relative_population_capacity', label: 'kWh je Einw.', legend: 'Kapazität je Einwohner', unit: 'kWh/Einw.', digits: 2 },
   ],
   tooltipRows: [

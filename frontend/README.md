@@ -92,7 +92,7 @@ the same default) – map, KPIs, ranking, analysis cards and the table per regio
 with Brutto and Netto columns; the API sums the chosen Anlagenarten and answers with the usual field names, so nothing
 else changes on the page. Map title, legend and Top 10 name the measure ("· Netto (AC)"), the map subtitle a narrowed
 selection ("· nur Freifläche"). The Zubau im Zeitverlauf follows the Leistung (series with `netto`), not the
-Anlagenart; the heatmap (a static image) neither.
+Anlagenart.
 
 Wind: `subtypes` Lage (`?lage=an_land|auf_see`). Offshore wind is the region `offshore` on every level; the API leaves
 it out without `auf_see` and gives the regions on land zeros without `an_land` (`by_lage` in `routers/wind.py`); the
@@ -187,10 +187,10 @@ Appended to the dashboard's `analyses` of their page while that technology is ac
 | `landkreis` | `public/landkreise_boundaries.topojson` (400 Kreise, key `ags` 5-digit) | `apiLevel: 'landkreis'` |
 | `gemeinde` | `public/gemeinden_boundaries.topojson` (10 956 Gemeinden, key `ags` 8-digit) | `apiLevel: 'gemeinde'` |
 | `plz2`, `plz3`, `plz5` | `public/plz*_boundaries.topojson` | `apiLevel: 'plz…'` (Solar only) |
-| `heatmap` | PNG from the API (`heatmapPath`) | – |
+| `heatmap` | – (drawn in the browser) | points from `heatmapPath` (Solar, Wind, Batterie) |
 
-A technology can restrict the resolutions it has data for (`granularities: [...]`, checked by `isAvailable`); Wind,
-Wasserkraft and Batterie only have the three region levels. Länder, Kreise and Gemeinden also contain the sea (`ags: 'offshore'`), shown
+A technology can restrict the resolutions it has data for (`granularities: [...]`, checked by `isAvailable`); Wind and
+Batterie have the three region levels and the heatmap, Wasserkraft the region levels only. Länder, Kreise and Gemeinden also contain the sea (`ags: 'offshore'`), shown
 only for technologies with `offshore` (Wind, while Auf See is chosen) – the map then also zooms out to include it
 (`GERMANY_SEA_BOUNDS`).
 
@@ -336,10 +336,33 @@ Every "Datenstand" on the site (dashboard header, map footer, site footer, home 
 update (`backend/app/etl/update.py`, table `meta.update_runs`). Until one is noted, or while the API is unreachable, it
 falls back to `SITE.dataStand` in `src/config/site.js`.
 
+## Continuous map (heatmap)
+
+Räumliche Auflösung → Kontinuierlich: the power (Speicher: power or capacity) as a density surface, drawn in the browser
+for every view (`HeatmapLayer.jsx`, the maths in `src/lib/heatmap.js`). The API sends points (`GET /solar/heatmap`,
+`/wind/heatmap`, `/battery/heatmap?measure=capacity`; columns `lon`, `lat`, `sigma`, `value`, from
+`mrt.heatmap_points`):
+
+- **site:** units with coordinates (the register publishes them above 30 kW: 61 % of the solar power, all wind turbines
+  but the smallest, the large batteries), summed per cell of about 1 km at their power-weighted centre, `sigma` 0.35 km.
+  A coordinate far from its unit's postcode counts at the postcode instead (typos, swapped digits).
+- **area:** the units without coordinates (roofs, home batteries) per postcode (PLZ 5) at its centre, `sigma` from its
+  area (0.35 · √km², 0.4–8 km): spread over the postcode.
+
+Each point spreads its value with a Gaussian of its own `sigma` plus a smoothing in pixels (Glättung: fein 4 / mittel 8 /
+grob 16 px, `?glaettung=`; the grid's cells grow with it). Points narrower than half a cell (at the zoom of all Germany:
+almost all) go into the grid directly, and the grid is blurred once; the others get a kernel each. The sum per cell,
+divided by the cell's area on the ground, is a density (kW/km², kWh/km²). The colours run on a logarithmic scale over
+the view: from where its thinnest 2 % of the power lie to the 99.5th percentile of the cells, one to three decades;
+below, they fade out. The legend shows the scale, the smoothing in km and the value under the pointer.
+
+Only the absolute Kennzahlen have a `heat` entry (`config/dashboards.js`): per km² and per inhabitant aren't offered
+there. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
+
 ## Map export
 
 PNG/PDF (`exportMap.js`) contain the map as it is on screen, also after moving and zooming: the layers (canvases, the
-SVG of the focus mask, the heatmap image) are copied first, each at its position on screen and in the order of its
+SVG of the focus mask, the heatmap's canvas) are copied first, each at its position on screen and in the order of its
 pane; html2canvas only adds what lies on top (place names, legend, chips), with the animations switched off. html2canvas
 alone misplaced Leaflet's layers once the map had moved (exports without shading, an offset mask). An SVG layer loses
 its style before it becomes an image: Leaflet places it with a CSS transform, which would move its content twice.

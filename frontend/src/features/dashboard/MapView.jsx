@@ -6,11 +6,12 @@ import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, wi
 import { API_BASE_URL } from '../../config/site';
 import { trackEvent } from '../../lib/usage';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
-import { statsUrl, useDatenstand, useStats, useTopology } from '../../lib/data';
+import { DEFAULT_SMOOTHING, SMOOTHINGS } from '../../lib/heatmap';
+import { statsUrl, useDatenstand, useJson, useStats, useTopology } from '../../lib/data';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import ChoroplethMap from './ChoroplethMap';
 import KpiStrip from './KpiStrip';
-import MapLegend from './MapLegend';
+import MapLegend, { HeatmapLegend } from './MapLegend';
 import RankingPanel from './RankingPanel';
 import MapRail from './MapRail';
 import MapToolbar from './MapToolbar';
@@ -79,12 +80,19 @@ export default function MapView({ config, state }) {
   // as plants within the scope, keyed by their Gemeindeschlüssel.
   const isSites = Boolean(technology.plantsPath);
   const plantsLevel = isSites ? { id: 'standorte', label: technology.site.label, featureKey: 'ags' } : null;
-  const metrics = technology.metrics ?? config.metrics;
-  const metric = metrics.find((m) => m.id === searchParams.get('kennzahl')) ?? metrics[0];
   const defaultGranularity = GRANULARITIES.find((g) => g.id === config.defaultGranularity);
   const requested = GRANULARITIES.find((g) => g.id === searchParams.get('ebene'));
   const granularity = requested && isAvailable(requested, technology) ? requested : defaultGranularity;
   const isHeatmap = granularity.kind === 'heatmap';
+  // The continuous map spreads absolute values (power, capacity) only: per km² and per inhabitant have no place there
+  const allMetrics = technology.metrics ?? config.metrics;
+  const metrics = useMemo(
+    () => (isHeatmap ? allMetrics.filter((m) => m.heat).map((m) => ({ ...m, label: m.heat.label ?? m.label })) : allMetrics),
+    [isHeatmap, allMetrics],
+  );
+  const metric = metrics.find((m) => m.id === searchParams.get('kennzahl')) ?? metrics[0];
+  // The continuous map has no areas of its own: its Rangliste, and the areas picked from it, are the Landkreise
+  const areaGranularity = isHeatmap ? LANDKREIS : granularity;
   // Layers without an apiLevel show their borders only.
   const bordersOnly = !isHeatmap && !isSites && !granularity.apiLevel;
   // The sea is a region of its own, but only for technologies that are built there (offshore wind), while chosen
@@ -93,15 +101,23 @@ export default function MapView({ config, state }) {
   // ------------------------------------------------------------------ data
   const withData = hasData(technology);
   const states = useTopology(STATES_TOPOLOGY);
-  const shapes = useTopology(isHeatmap ? null : withData && !isSites ? granularity.topology : STATES_TOPOLOGY);
-  const mapStats = useStats(isHeatmap || isSites ? null : statsUrl(technology.statsPath, granularity.apiLevel, selectionQuery));
+  const shapes = useTopology(withData && !isSites ? areaGranularity.topology : STATES_TOPOLOGY);
+  const mapStats = useStats(isSites ? null : statsUrl(technology.statsPath, areaGranularity.apiLevel, selectionQuery));
   const kpiStats = useStats(isSites ? null : statsUrl(technology.statsPath, 'bundesland', selectionQuery));
   const kreisStats = useStats(kreisAgs && !isSites ? statsUrl(technology.statsPath, LANDKREIS.apiLevel, selectionQuery) : null);
   const plants = useStats(isSites ? `${API_BASE_URL}${technology.plantsPath}` : null);
+  // The points of the continuous map, for the technology's selection and the measure of the Kennzahl
+  const heatQuery = [selectionQuery, metric.heat?.measure && `measure=${metric.heat.measure}`].filter(Boolean).join('&');
+  const heat = useJson(isHeatmap && technology.heatmapPath ? `${API_BASE_URL}${technology.heatmapPath}${heatQuery && `?${heatQuery}`}` : null);
+  const [heatDrawn, setHeatDrawn] = useState(null);
+  const smoothingId = SMOOTHINGS[searchParams.get('glaettung')] ? searchParams.get('glaettung') : DEFAULT_SMOOTHING;
+  // The density under the pointer goes straight to the legend: the page needn't render for every move of the mouse
+  const heatHover = useRef(null);
+  const onHeatHover = useCallback((value) => heatHover.current?.(value), []);
 
   // The plants lie on the Bundesländer, which are drawn without values. Their subtypes (Gas: Technologie, Speicherart)
   // filter them here and colour them.
-  const activeGranularity = withData && !isSites ? granularity : GRANULARITIES[0];
+  const activeGranularity = withData && !isSites ? areaGranularity : GRANULARITIES[0];
   const subtypeField = isSites ? technology.subtypes?.field : null;
   const subtypeKey = subtypes?.join(',');
   const plantRows = useMemo(() => {
@@ -153,16 +169,19 @@ export default function MapView({ config, state }) {
   }, [merged, metric.id, config.ramp]);
 
   const mapData = isSites ? plants : mapStats;
-  let mapState = 'ready';
+  // The areas (shaded, or the Rangliste beside the continuous map)
+  let areasState = 'ready';
+  if (shapes.status === 'error' || mapData.status === 'error' || focusStatus === 'error') areasState = 'error';
+  else if (shapes.status !== 'ready' || (!bordersOnly && mapData.status !== 'ready') || focusStatus !== 'ready') areasState = 'loading';
+  let mapState = areasState;
   if (!withData) mapState = shapes.status === 'ready' ? 'unavailable' : 'loading';
-  else if (isHeatmap) mapState = 'ready';
-  else if (shapes.status === 'error' || mapData.status === 'error' || focusStatus === 'error') mapState = 'error';
-  else if (shapes.status !== 'ready' || (!bordersOnly && mapData.status !== 'ready') || focusStatus !== 'ready') mapState = 'loading';
+  else if (isHeatmap) mapState = heat.status === 'error' || focusStatus === 'error' ? 'error' : heat.status === 'ready' && focusStatus === 'ready' ? 'ready' : 'loading';
 
   const retry = () => {
     shapes.retry();
     mapStats.retry();
     plants.retry();
+    heat.retry();
     kpiStats.retry();
     kreise.retry();
     kreisStats.retry();
@@ -254,10 +273,14 @@ export default function MapView({ config, state }) {
       };
 
   const mapHints = ['Strg/⌘ + Mausrad zum Zoomen'];
-  if (canDrill && !kreisAgs && activeGranularity.id === (region ? 'landkreis' : 'bundesland')) {
+  // The continuous map takes no clicks on areas: its Landkreise are in the Rangliste
+  if (isHeatmap) {
+    if (canDrill && !kreisAgs) mapHints.push('Klick auf einen Landkreis der Rangliste zum Hineinzoomen');
+    else if (canPick) mapHints.push(`Klick auf einen Landkreis der Rangliste zeigt seine ${scopeAnalysesOf(technology)[0].label}`);
+  } else if (canDrill && !kreisAgs && activeGranularity.id === (region ? 'landkreis' : 'bundesland')) {
     mapHints.push(region ? 'Klick auf einen Landkreis zum Hineinzoomen' : 'Klick auf ein Land zum Hineinzoomen');
   }
-  if (canPick && !canDrill) mapHints.push(`Klick auf ein Gebiet zeigt seine ${scopeAnalysesOf(technology)[0].label}`);
+  if (canPick && !canDrill && !isHeatmap) mapHints.push(`Klick auf ein Gebiet zeigt seine ${scopeAnalysesOf(technology)[0].label}`);
   if (region) mapHints.push(`Klick außerhalb von ${scopeName}: zurück zu ${parentName}`);
 
   const tooltipFor = useCallback(
@@ -313,10 +336,11 @@ export default function MapView({ config, state }) {
   const scopeLabel = scopeName;
   // Solar values say which power they are; the map title points to the footnote that explains it
   const metricLegend = leistung ? `${metric.legend} · ${leistung.label}` : metric.legend;
-  const mapTitle = isSites ? 'Standorte' : isHeatmap ? 'Anlagendichte' : metricLegend;
+  const mapTitle = isSites ? 'Standorte' : isHeatmap ? (leistung ? `${metric.heat.legend} · ${leistung.label}` : metric.heat.legend) : metricLegend;
   const leistungNote = technology.leistung?.note;
-  const layerLabel = isSites ? `${plantsLevel.label}${selectionNote}` : `${granularity.label}${isHeatmap ? '' : selectionNote}`;
-  const exportRows = mapData.data;
+  const layerLabel = isSites ? `${plantsLevel.label}${selectionNote}` : `${granularity.label}${selectionNote}`;
+  // The continuous map has no table: its Landkreise are only its Rangliste
+  const exportRows = isHeatmap ? null : mapData.data;
   const fileBase = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}_${isSites ? plantsLevel.id : granularity.id}`;
   const handleExport = async (kind) => {
     trackEvent('Kartenexport', { format: kind, karte: `${config.id}/${technology.id}` });
@@ -330,7 +354,6 @@ export default function MapView({ config, state }) {
     }
   };
 
-  const heatmapUrl = technology.heatmapPath ? `${API_BASE_URL}${technology.heatmapPath}` : null;
   const focusColor = config.ramp[config.ramp.length - 1];
 
   return (
@@ -344,7 +367,7 @@ export default function MapView({ config, state }) {
           <div>
             <h2 className="card__title">
               {technology.label}: {mapTitle}
-              {leistungNote && !isSites && !isHeatmap && (
+              {leistungNote && !isSites && (
                 <sup className="footnote-ref" aria-hidden="true">
                   1
                 </sup>
@@ -400,6 +423,8 @@ export default function MapView({ config, state }) {
             trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
             setParam('ebene', id, config.defaultGranularity);
           }}
+          smoothing={smoothingId}
+          onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
         />
 
         <div className="map-workspace__body">
@@ -422,7 +447,9 @@ export default function MapView({ config, state }) {
               exitHint={`Klicken für ${parentName}-Ansicht`}
               onRegionClick={onRegionClick}
               highlight={pickedFeature}
-              heatmapUrl={heatmapUrl}
+              heat={
+                isHeatmap ? { data: heat.data, ramp: config.ramp, smoothing: SMOOTHINGS[smoothingId], onDrawn: setHeatDrawn, onHover: onHeatHover } : null
+              }
               onPlainWheel={onPlainWheel}
             >
               {isSites && <SiteMarkers sites={sites} site={technology.site} categoryOf={categoryOf} />}
@@ -430,7 +457,16 @@ export default function MapView({ config, state }) {
             {mapState === 'ready' && !isHeatmap && !bordersOnly && !isSites && (
               <MapLegend title={metricLegend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />
             )}
-            {isHeatmap && <div className="map-chip">Gauß-geglättete Anlagendichte</div>}
+            {isHeatmap && mapState === 'ready' && heatDrawn && (
+              <HeatmapLegend
+                title={metric.heat.legend}
+                unit={metric.heat.unit}
+                ramp={config.ramp}
+                scale={heatDrawn.scale}
+                smoothingKm={heatDrawn.smoothingKm}
+                hoverRef={heatHover}
+              />
+            )}
             {isSites && mapState === 'ready' && (
               <div className="map-chip site-legend">
                 {categoryOf ? (
@@ -478,7 +514,7 @@ export default function MapView({ config, state }) {
                 granularity={isSites ? plantsLevel : activeGranularity}
                 within={rankingWithin}
                 focusKey={rankingFocus}
-                status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? 'heatmap' : mapState}
+                status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? areasState : mapState}
                 labelFor={isSites ? (f) => f.properties.name : labelFor}
                 onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
               />

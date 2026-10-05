@@ -215,7 +215,12 @@ export default function InfoPage() {
             </p>
             <h3>Heatmap</h3>
             <p>
-              Die kontinuierliche Ansicht glättet die Anlagendichte mit einem Gauß-Kern – unabhängig von Verwaltungs- oder PLZ-Grenzen.
+              Die kontinuierliche Ansicht zeigt, wo die Leistung liegt – unabhängig von Verwaltungs- oder PLZ-Grenzen. Anlagen über
+              30 kW stehen im Register mit Koordinaten: Sie zählen an ihrem Standort (zusammengefasst in Zellen von etwa 1 km). Kleinere
+              Anlagen, vor allem Dachanlagen und Heimspeicher, haben nur ihre Postleitzahl: Sie werden über das PLZ-Gebiet verteilt. Jeder
+              Punkt wird mit einem Gauß-Kern geglättet, dessen Breite der Genauigkeit seines Standorts entspricht, plus einer wählbaren
+              Glättung. Das Ergebnis ist eine Dichte (kW je km²) auf einer logarithmischen Farbskala, die sich dem Kartenausschnitt
+              anpasst.
             </p>
             <TodoNote>
               Das PLZ-Rollup (aggregate_pv_by_plz_power.sql) filtert nicht nach <code>EinheitBetriebsstatus</code> – stillgelegte und

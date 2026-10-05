@@ -1,5 +1,6 @@
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { GRANULARITIES, hasData, isAvailable } from '../../config/dashboards';
+import { SMOOTHINGS } from '../../lib/heatmap';
 import TechFilters from './TechFilters';
 
 // One setting of the toolbar: its name above it
@@ -20,7 +21,8 @@ function Group({ label, htmlFor, children, wide = false }) {
 
 /**
  * The settings of the map in a band between its title and the map, like the toolbar of a map app: technology, Kennzahl,
- * resolution in a row, the active technology's filters (Solar: Anlagenart, Leistung) below them.
+ * resolution (for the continuous map its smoothing) in a row, the active technology's filters (Solar: Anlagenart,
+ * Leistung) below them.
  */
 export default function MapToolbar({
   config,
@@ -35,6 +37,8 @@ export default function MapToolbar({
   onMetric,
   granularity,
   onGranularity,
+  smoothing,
+  onSmoothing,
 }) {
   const filtered = Boolean(technology.subtypes || technology.leistung);
   return (
@@ -84,6 +88,17 @@ export default function MapToolbar({
                 </option>
               ))}
             </select>
+          </Group>
+        )}
+
+        {granularity.kind === 'heatmap' && onSmoothing && (
+          <Group label="Glättung">
+            <SegmentedControl
+              label="Glättung"
+              value={smoothing}
+              onChange={onSmoothing}
+              options={Object.entries(SMOOTHINGS).map(([id, s]) => ({ id, label: s.label, title: `Zusätzlich geglättet über ${s.px} Bildpunkte` }))}
+            />
           </Group>
         )}
 

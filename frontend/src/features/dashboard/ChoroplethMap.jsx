@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { GeoJSON, ImageOverlay, MapContainer, Pane, Polygon, Tooltip, useMap } from 'react-leaflet';
+import { GeoJSON, MapContainer, Pane, Polygon, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { EUROPE_BOUNDS, GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
 import { useLayers, useOpenEdge } from '../../lib/data';
+import HeatmapLayer from './HeatmapLayer';
 import PlaceLabels from './PlaceLabels';
-
-// Must match the georeference the backend used when rendering the heatmap PNG.
-const HEATMAP_BOUNDS = [
-  [47.270111, 5.866315],
-  [55.058347, 15.041931],
-];
 
 // Colours as in styles/tokens.css (--map-*): the canvas can't read CSS variables
 const NODATA_FILL = '#d3d8df';
@@ -181,7 +176,7 @@ export default function ChoroplethMap({
   exitHint,
   onRegionClick,
   highlight,
-  heatmapUrl,
+  heat,
   onPlainWheel,
   children,
 }) {
@@ -235,7 +230,8 @@ export default function ChoroplethMap({
         </Pane>
       )}
 
-      {mode === 'heatmap' && heatmapUrl && <ImageOverlay url={heatmapUrl} bounds={HEATMAP_BOUNDS} opacity={0.9} />}
+      {/* heat: { data, ramp, onDrawn, onHover } (HeatmapLayer) */}
+      {mode === 'heatmap' && heat?.data && <HeatmapLayer {...heat} />}
 
       {mode === 'choropleth' && geo && (
         <ChoroplethLayer
