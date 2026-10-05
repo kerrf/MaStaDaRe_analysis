@@ -188,6 +188,57 @@ class SolarZubauRegion(Base):
         )
 
 
+class BatteryZubauRegion(Base):
+    """Battery Zubau and Bestand per year, size class and region since 2013 (aggregate_battery_zubau_regions.sql)."""
+
+    __tablename__ = "battery_zubau_regions"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
+    region = Column(String, primary_key=True)
+    year = Column(Integer, primary_key=True)
+    size_class = Column(String, primary_key=True)  # heimspeicher, gewerbespeicher, grossspeicher
+
+    added_units = Column(Integer)  # went into operation in the year
+    added_power = Column(Float)  # MW
+    added_capacity = Column(Float)  # MWh
+    installed_units = Column(Integer)  # in operation at the end of the year
+    installed_power = Column(Float)
+    installed_capacity = Column(Float)
+
+    @classmethod
+    def of(cls, db: Session, region: str) -> list:
+        """The years of one region, per size class."""
+        return (
+            db.query(cls)
+            .filter(cls.level == level_of(region), cls.region == region)
+            .order_by(cls.year, cls.size_class)
+            .all()
+        )
+
+
+class BatterySizeDistribution(Base):
+    """Battery units in operation per size class of their plant's capacity and region (aggregate_battery_size_distribution.sql)."""
+
+    __tablename__ = "battery_size_distribution"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
+    region = Column(String, primary_key=True)
+    size_class = Column(Integer, primary_key=True)  # 1 = the smallest
+    label = Column(String)  # "5–10 kWh"
+    hint = Column(String)  # "Heimspeicher"
+
+    total_units = Column(Integer)
+    total_power = Column(Float)  # MW
+    total_capacity = Column(Float)  # MWh
+
+    @classmethod
+    def of(cls, db: Session, region: str) -> list:
+        """The classes of one region, the smallest first."""
+        return db.query(cls).filter(cls.level == level_of(region), cls.region == region).order_by(cls.size_class).all()
+
+
 class PvSpeicher(Base):
     """Solar units per Anlagenart, size class and year, and the batteries at their Lokation (aggregate_pv_speicher.sql)."""
 

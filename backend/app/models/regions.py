@@ -73,4 +73,7 @@ class BatteryRegionStats(RegionStats, Base):
     __tablename__ = "battery_region_stats"
     __table_args__ = {"schema": "mrt"}
 
+    total_capacity = Column(Float)  # usable capacity, MWh (only units with a plausible one, like the Zubau)
+    relative_area_capacity = Column(Float)  # kWh per km²
+    relative_population_capacity = Column(Float)  # kWh per inhabitant
     added_12m_capacity = Column(Float)  # usable capacity that went into operation in the last 12 months, MWh

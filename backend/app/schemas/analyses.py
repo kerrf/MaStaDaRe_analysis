@@ -63,6 +63,33 @@ class ZubauYear(BaseModel):
     installed: float  # MW
 
 
+class BatteryZubauYear(BaseModel):
+    """Battery units of one size class in a region: those that went into operation in the year, and those in operation
+    at its end (mrt.battery_zubau_regions)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int
+    size_class: str
+    added_units: int
+    added_power: float  # MW
+    added_capacity: float  # MWh
+    installed_units: int
+    installed_power: float
+    installed_capacity: float
+
+
+class BatterySizeClass(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    size_class: int
+    label: str
+    hint: str | None
+    total_units: int
+    total_power: float  # MW
+    total_capacity: float  # MWh
+
+
 class OrientationShare(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

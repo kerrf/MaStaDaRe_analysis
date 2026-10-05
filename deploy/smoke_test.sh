@@ -44,6 +44,8 @@ ROUTES=(
   "/solar/zubau?region=14524"
   "/solar/orientation?region=14524330"
   "/solar/size-distribution?region=14524330"
+  "/battery/zubau?region=14524"
+  "/battery/size-distribution?region=14524330"
 )
 
 printf 'Smoke test of %s\n' "$API_URL"

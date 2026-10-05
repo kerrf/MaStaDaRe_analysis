@@ -17,6 +17,11 @@ gemeinde_battery_agg AS (
         u."Gemeindeschluessel" AS ags,
         COUNT(u."EinheitMastrNummer") AS total_units,
         SUM(u."Bruttoleistung") AS total_power,
+        -- The usable capacity: the plant's, split between its units by their power, where it is plausible
+        -- (battery-charts.de: full in 6 minutes to 12 hours), like in aggregate_zubau.sql
+        SUM(b.capacity * u."Bruttoleistung" / b.power) FILTER (
+            WHERE b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12
+        ) AS total_capacity,
         -- Zubau: in operation since less than 12 months. The capacity like in aggregate_zubau.sql: the plant's, split
         -- between its units by their power, if plausible (battery-charts.de: full in 6 minutes to 12 hours)
         SUM(u."Bruttoleistung") FILTER (WHERE u."Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power,
@@ -38,6 +43,7 @@ joined AS (
         COALESCE(g.ags, b.ags) AS ags,
         b.total_units,
         b.total_power,
+        b.total_capacity,
         b.added_12m_power,
         b.added_12m_capacity,
         g.qkm,
@@ -54,6 +60,9 @@ SELECT
     CAST(COALESCE(SUM(total_power), 0) / 1000 AS NUMERIC(12,2)) AS total_power,
     CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power,
     CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power,
+    CAST(COALESCE(SUM(total_capacity), 0) / 1000 AS NUMERIC(12,2)) AS total_capacity,  -- MWh
+    CAST(COALESCE(SUM(total_capacity), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_capacity,  -- kWh/km²
+    CAST(COALESCE(SUM(total_capacity), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,3)) AS relative_population_capacity,  -- kWh
     CAST(COALESCE(SUM(added_12m_power), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_power,  -- Zubau of the last 12 months, MW
     CAST(COALESCE(SUM(added_12m_capacity), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_capacity  -- MWh
 FROM joined
