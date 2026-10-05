@@ -20,7 +20,7 @@ has to hold everything (`src/config/views.js`):
 
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
-| Karte | `/erzeuger/:land?/:kreis?` | KPIs, map with its controls, Top 10, Ausrichtung or Anlagengröße of the area in view (or of one clicked on the map) | `MapView.jsx`, `ScopeAnalysisCard.jsx` |
+| Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
 | Landkreis/Gemeinde | `/erzeuger/kommune/:land?/:kreis?` | one Kreis and its Gemeinden in depth, solar only for now (see below) | `KommuneView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau` | Zubau im Zeitverlauf, Registrierungen im MaStR, Zeit bis zur Registrierung – Germany-wide | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), batteries at solar units | `AnlagenView.jsx` |
@@ -262,6 +262,23 @@ timeline has its own Netto/Brutto switch for solar (`leistungOption`, `onLeistun
 - Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage) and, in a second chart, their
   power in MW (`Bruttoleistung`, series `…speicher_leistung`), by size class and with the plausibility check of
   battery-charts.de.
+
+### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
+
+The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, the
+settings in a band below it (technology, Kennzahl, resolution in a row, the technology's filters on a line hanging off
+it), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
+analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
+of `config.todos` show only in `npm run dev`.
+
+### Key figures with bars (`components/ui/FigureBlock.jsx`) and the targets (`config/targets.js`)
+
+`FigureBlock` holds rows of `FigureRow`: a name, a value and a bar of its share of a named whole ("15,4 %"), under a
+head with icon, title, a chip with the gist (`good`/`fair`/`poor`/`neutral`) and an info. Used for the expansion
+targets: the national ones in `config/targets.js` (EEG 2023 § 4, WindSeeG § 1, in Bruttoleistung), on the start page
+(`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace) and on the Landkreis/Gemeinde page
+(`KommuneTargets.jsx`: the area's share of the targets by population, how far it is, the pace it needs).
 
 ### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`)
 
