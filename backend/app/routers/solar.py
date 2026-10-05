@@ -5,11 +5,19 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.analyses import PvSpeicher, SizeDistribution, SolarOrientation, SolarZubauRegion, SpeicherPv
+from app.models.analyses import (
+    HeatmapPoint,
+    PvSpeicher,
+    SizeDistribution,
+    SolarOrientation,
+    SolarZubauRegion,
+    SpeicherPv,
+)
 from app.models.regions import RegionLevel, SolarRegionStats
 from app.models.solar import SolarRollupStats, SolarUnit
 from app.schemas.analyses import (
     CACHE_CONTROL,
+    HeatmapPoints,
     OrientationShare,
     PvSpeicherData,
     Region,
@@ -82,6 +90,14 @@ def get_dashboard_stats(
     key, finer = PLZ_LEVELS[level]
     filters = (getattr(model, key).isnot(None), *((getattr(model, finer).is_(None),) if finer else ()))
     return summed(db, model, keys, filters, selection, measures)
+
+
+@router.get("/heatmap", response_model=HeatmapPoints)
+def get_heatmap(response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection):
+    """Where the solar power lies, for the continuous map: units with coordinates per cell of about 1 km, the others per
+    postcode, in kW (mrt.heatmap_points)."""
+    response.headers["Cache-Control"] = CACHE_CONTROL
+    return HeatmapPoint.of(db, "solar", selection.anlagenarten, "power_net" if selection.netto else "power")
 
 
 @router.get("/size-distribution", response_model=list[SizeClassShare])

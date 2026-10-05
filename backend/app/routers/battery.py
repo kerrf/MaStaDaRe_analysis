@@ -1,12 +1,12 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.analyses import BatterySizeDistribution, BatteryZubauRegion
+from app.models.analyses import BatterySizeDistribution, BatteryZubauRegion, HeatmapPoint
 from app.models.regions import BatteryRegionStats, RegionLevel
-from app.schemas.analyses import CACHE_CONTROL, BatterySizeClass, BatteryZubauYear, Region
+from app.schemas.analyses import CACHE_CONTROL, BatterySizeClass, BatteryZubauYear, HeatmapPoints, Region
 
 router = APIRouter(prefix="/battery", tags=["Battery Storage Data"])
 
@@ -29,3 +29,13 @@ def get_size_distribution(response: Response, db: Annotated[Session, Depends(get
     """Units, power and capacity per size class of the plant's capacity in a region (mrt.battery_size_distribution)."""
     response.headers["Cache-Control"] = CACHE_CONTROL
     return BatterySizeDistribution.of(db, region)
+
+
+@router.get("/heatmap", response_model=HeatmapPoints)
+def get_heatmap(
+    response: Response, db: Annotated[Session, Depends(get_db)], measure: Literal["power", "capacity"] = "power"
+):
+    """Where the batteries lie, for the continuous map: large ones per cell of about 1 km, home batteries per postcode,
+    as power (kW) or usable capacity (kWh, where plausible) (mrt.heatmap_points)."""
+    response.headers["Cache-Control"] = CACHE_CONTROL
+    return HeatmapPoint.of(db, "batterie", measure=measure)

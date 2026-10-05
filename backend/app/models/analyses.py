@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Float, Integer, String, cast, func
+from sqlalchemy import BigInteger, Boolean, Column, Float, Integer, String, cast, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm import Session
 
@@ -237,6 +237,62 @@ class BatterySizeDistribution(Base):
     def of(cls, db: Session, region: str) -> list:
         """The classes of one region, the smallest first."""
         return db.query(cls).filter(cls.level == level_of(region), cls.region == region).order_by(cls.size_class).all()
+
+
+class HeatmapPoint(Base):
+    """Where the power of solar, wind and batteries lies, as points for the continuous map (aggregate_heatmap_points.sql):
+    units with coordinates per cell of about 1 km (site), the others per postcode (area), each with the width of its
+    kernel."""
+
+    __tablename__ = "heatmap_points"
+    __table_args__ = {"schema": "mrt"}
+
+    technology = Column(String, primary_key=True)  # solar, wind, batterie
+    anlagenart = Column(
+        String, primary_key=True
+    )  # solar: gebaeude, freiflaeche; wind: an_land, auf_see; batterie: alle
+    kind = Column(String, primary_key=True)  # site, area
+    point = Column(BigInteger, primary_key=True)  # the cell (column * 100000 + row) or the postcode
+
+    lon = Column(Float)
+    lat = Column(Float)
+    sigma_km = Column(Float)
+    units = Column(Integer)
+    power = Column(Float)  # kW, Brutto
+    power_net = Column(Float)  # kW, Netto
+    capacity = Column(Float)  # kWh, batteries
+
+    @classmethod
+    def of(cls, db: Session, technology: str, anlagenarten=ALL, measure: str = "power") -> dict:
+        """The points of one technology for the chosen Anlagenarten, summed per point, as columns: the centre (weighted by
+        the measure, which matters where a cell holds both Anlagenarten), the kernel's width (km) and the measure."""
+        weight = getattr(cls, measure)
+        total = func.sum(weight)
+        points = (
+            db.query(
+                (func.sum(cls.lon * weight) / total).label("lon"),
+                (func.sum(cls.lat * weight) / total).label("lat"),
+                func.max(cls.sigma_km).label("sigma"),
+                total.label("value"),
+            )
+            .filter(cls.technology == technology, cls.anlagenart.in_(anlagenarten))
+            .group_by(cls.kind, cls.point)
+            .having(total > 0)
+            .subquery()
+        )
+
+        def column(value, digits: int):
+            # Rounded (4 digits of a degree: about 10 m) in floating point, much faster than as NUMERIC, and as one
+            # array: a row per point would cost far more
+            return func.array_agg(func.round(value * 10**digits) / 10**digits)
+
+        row = db.query(
+            column(points.c.lon, 4).label("lon"),
+            column(points.c.lat, 4).label("lat"),
+            func.array_agg(points.c.sigma).label("sigma"),
+            column(points.c.value, 1).label("value"),
+        ).one()
+        return {name: getattr(row, name) or [] for name in ("lon", "lat", "sigma", "value")}
 
 
 class PvSpeicher(Base):

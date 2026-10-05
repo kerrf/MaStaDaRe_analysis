@@ -3,7 +3,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -60,15 +60,6 @@ def get_plz5_data():
 
     with open(file_path, encoding="utf-8") as f:
         return json.load(f)
-
-
-@app.get("/plz5_heatmap_image")
-def get_plz5_heatmap_image():
-    """Serves the pre-calculated Heatmap PNG"""
-    image_path = os.path.join(PROCESSED_DIR, "plz5_heatmap.png")
-
-    # FileResponse is heavily optimized by FastAPI to serve static files instantly
-    return FileResponse(image_path, media_type="image/png")
 
 
 @app.get("/health")

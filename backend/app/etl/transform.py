@@ -71,6 +71,10 @@ if __name__ == "__main__":
     query_path = Path("app/etl/queries/aggregate_battery_size_distribution.sql")
     run_sql_file(engine, query_path)
 
+    # Where the power lies, for the continuous map (heatmap): solar, wind and batteries at their coordinates or postcode
+    query_path = Path("app/etl/queries/aggregate_heatmap_points.sql")
+    run_sql_file(engine, query_path)
+
     # Solar units and batteries at the same Lokation (Germany-wide), needs raw.storage_plants for the capacity
     query_path = Path("app/etl/queries/aggregate_pv_speicher.sql")
     run_sql_file(engine, query_path)

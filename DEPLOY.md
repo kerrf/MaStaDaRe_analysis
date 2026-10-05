@@ -84,8 +84,9 @@ the server — the first time, and whenever you have new data locally. It needs
 the backend running (step 6), since it restarts it for the switch.
 
 
-**Processed GeoJSON/PNG files** (182MB — this is what `/plz5_heatmap_image`
-etc. serve; `data/raw` is not needed at runtime, skip it):
+**Processed GeoJSON files** (what the old `/plz2_solar_brutto` and
+`/plz5_solar_brutto` serve; the website doesn't use them any more; `data/raw` is
+not needed at runtime, skip it):
 
 ```bash
 rsync -av --progress backend/data/processed/ you@152.53.185.75:/opt/mastr/backend/data/processed/
@@ -116,12 +117,11 @@ ACME challenge reach the origin).
 
 ```bash
 curl https://api.mastr-data.de/health
-curl -I https://api.mastr-data.de/plz5_heatmap_image
+./deploy/smoke_test.sh   # every route the website reads, from your machine
 ```
 
-Both should return `200`. Then open `/map3` on the Vercel site and confirm
-the heatmap image layer renders. The stats panel may still error — see the
-"known gaps" note below, that's expected and unrelated to this deploy.
+Both should succeed. Then open the Vercel site and check the map, also with
+Räumliche Auflösung → Kontinuierlich (Heatmap).
 
 ## 9. Vercel env var (Vercel dashboard)
 

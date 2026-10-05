@@ -90,6 +90,16 @@ class BatterySizeClass(BaseModel):
     total_capacity: float  # MWh
 
 
+class HeatmapPoints(BaseModel):
+    """Points for the continuous map as columns, one entry per point (mrt.heatmap_points): the website spreads each value
+    with a Gaussian kernel of width sigma around its centre."""
+
+    lon: list[float]
+    lat: list[float]
+    sigma: list[float]  # km
+    value: list[float]  # kW, or kWh for the capacity of batteries
+
+
 class OrientationShare(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -46,6 +46,10 @@ ROUTES=(
   "/solar/size-distribution?region=14524330"
   "/battery/zubau?region=14524"
   "/battery/size-distribution?region=14524330"
+  # The continuous map (mrt.heatmap_points)
+  /solar/heatmap
+  /wind/heatmap
+  "/battery/heatmap?measure=capacity"
 )
 
 printf 'Smoke test of %s\n' "$API_URL"
@@ -57,8 +61,9 @@ for route in "${ROUTES[@]}"; do
   result=$(curl --silent --output "$body" --write-out '%{http_code} %{time_total}' --max-time 60 \
     --retry 2 --retry-delay 5 --retry-all-errors "$API_URL$route")
   code=${result%% *}
-  # An empty list: the route works, but the database lacks its rows
-  [[ $code == 200 && $(head -c 2 "$body") == '[]' ]] && code='200, but empty'
+  # An empty list, or a map without points: the route works, but the database lacks its rows
+  start=$(head -c 9 "$body")
+  [[ $code == 200 && (${start:0:2} == '[]' || $start == '{"lon":[]') ]] && code='200, but empty'
   if [[ $code == 200 ]]; then
     printf '  \033[32mok\033[0m   %s  %5.2fs  %s\n' "$code" "${result#* }" "$route"
   else

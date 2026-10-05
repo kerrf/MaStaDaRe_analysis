@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.analyses import SizeDistribution
+from app.models.analyses import HeatmapPoint, SizeDistribution
 from app.models.regions import RegionLevel, WindRegionStats
 from app.schemas.analyses import (
     CACHE_CONTROL,
+    HeatmapPoints,
     Region,
     Regions,
     RegionTable,
@@ -41,6 +42,14 @@ async def get_dashboard_stats(level: RegionLevel, lage: Lagen, db: Session = Dep
         for row in db.query(WindRegionStats).filter(*WindRegionStats.at_level(level))
     ]
     return by_lage(rows, lage)
+
+
+@router.get("/heatmap", response_model=HeatmapPoints)
+def get_heatmap(response: Response, db: Annotated[Session, Depends(get_db)], lage: Lagen):
+    """Where the wind power lies, for the continuous map: turbines per cell of about 1 km (offshore at sea), the few
+    without coordinates per postcode, in kW (mrt.heatmap_points)."""
+    response.headers["Cache-Control"] = CACHE_CONTROL
+    return HeatmapPoint.of(db, "wind", lage)
 
 
 @router.get("/size-distribution", response_model=list[SizeClassShare])
