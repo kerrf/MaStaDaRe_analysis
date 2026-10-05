@@ -14,6 +14,7 @@ import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
 import { exportCsv } from './exportMap';
 import KommuneMap from './KommuneMap';
+import KommuneTargets from './KommuneTargets';
 import MapLegend from './MapLegend';
 import OrientationRose from './OrientationRose';
 import ScopeBar from './ScopeBar';
@@ -527,6 +528,7 @@ export default function KommuneView({ config, state }) {
   const kreisFF = useStats(kreisAgs && both ? statsUrl(solar.statsPath, 'landkreis', freiflaecheQuery) : null);
   const areas = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=gemeinde&within=${kreisAgs}` : null);
   const areasLand = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=bundesland` : null);
+  const areasKreise = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=landkreis&within=${region.ags}` : null);
   const shapes = useTopology(kreisAgs ? GEMEINDEN_TOPOLOGY : null);
 
   // The Gemeinden of the Kreis: shape, name, area and population, values
@@ -776,6 +778,16 @@ export default function KommuneView({ config, state }) {
           </footer>
         </section>
       </div>
+
+      <KommuneTargets
+        scope={
+          gemeindeAgs
+            ? { key: gemeindeAgs, name: gemeinde?.name ?? state.scopeName, einwohner: gemeinde?.einwohner }
+            : { key: kreisAgs, name: kreisName, einwohner: areasKreise.data?.find((row) => row.region === kreisAgs)?.einwohner }
+        }
+        parent={gemeindeAgs ? { key: kreisAgs, name: kreisName } : { key: region.ags, name: region.name }}
+        einwohnerDE={areasLand.data ? sum(areasLand.data, 'einwohner') : null}
+      />
 
       <RegionTimeline scopeKey={state.scopeKey} scopeName={state.scopeName} query={query} subtypes={selection.subtypes} leistungLabel={leistungLabel} />
 

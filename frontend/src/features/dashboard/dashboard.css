@@ -2696,6 +2696,11 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   height: clamp(520px, 72vh, 760px);
 }
 
+/* Above the tiles' attribution, which takes the bottom right corner */
+.kommune-map-frame .map-legend {
+  bottom: 30px;
+}
+
 /* The background map's switch, top right: a picture of each, like a map app */
 .basemap-switch {
   position: absolute;
@@ -2899,4 +2904,17 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .basemap-switch__thumb--satellit {
   background: radial-gradient(circle at 30% 35%, #8a8f5a 0 18%, transparent 19%),
     radial-gradient(circle at 72% 62%, #a39b6b 0 20%, transparent 21%), linear-gradient(135deg, #3f5a36, #5d6f43 55%, #7b7f55);
+}
+
+/* Auf dem Weg zum Ausbauziel (KommuneTargets): the blocks two by two */
+.targets__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px 44px;
+}
+
+@media (max-width: 900px) {
+  .targets__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

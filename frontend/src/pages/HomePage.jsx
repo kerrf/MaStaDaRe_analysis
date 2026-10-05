@@ -4,6 +4,7 @@ import Badge from '../components/ui/Badge';
 import Chapters from '../features/home/Chapters';
 import GermanyPreview from '../features/home/GermanyPreview';
 import RegisterFigures from '../features/home/RegisterFigures';
+import TargetsOverview from '../features/home/TargetsOverview';
 import { SITE } from '../config/site';
 import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
@@ -48,6 +49,16 @@ export default function HomePage() {
           </h2>
         </div>
         <RegisterFigures />
+      </section>
+
+      <section className="container home-section" aria-labelledby="ziele-title">
+        <div className="home-intro">
+          <span className="eyebrow">Ausbauziele des Bundes</span>
+          <h2 id="ziele-title" className="home-intro__title">
+            Auf dem Weg zu den Zielen 2030
+          </h2>
+        </div>
+        <TargetsOverview />
       </section>
 
       <section className="container home-section" aria-labelledby="dashboards-title">

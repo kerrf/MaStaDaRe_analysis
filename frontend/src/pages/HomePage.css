@@ -561,3 +561,29 @@
     align-items: flex-start;
   }
 }
+
+/* Auf dem Weg zu den Zielen (TargetsOverview): two blocks of figures side by side on one card */
+.targets-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 48px;
+  padding: 24px 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.targets-overview__more {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-secondary);
+}
+
+@media (max-width: 860px) {
+  .targets-overview {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
+}

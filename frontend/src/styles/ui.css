@@ -614,3 +614,150 @@
 .prose a:hover {
   text-decoration-color: currentColor;
 }
+
+/* ---------------------------------------------------------- Figure block */
+/* Key figures in rows – name, value, a bar of the share of a named whole – under a head with icon, title, a chip with
+   the gist and an info (FigureBlock.jsx). The bars take the block's colour (--figure-color, default the accent). */
+.figure-block {
+  --figure-color: var(--accent);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.figure-block__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.figure-block__icon {
+  flex: 0 0 auto;
+  color: var(--ink-secondary);
+}
+
+.figure-block__title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.figure-block__info {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--ink-muted);
+  cursor: help;
+}
+
+.figure-chip {
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.figure-chip--good {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.figure-chip--fair {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.figure-chip--poor {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.figure-chip--neutral {
+  background: var(--surface-sunken);
+  color: var(--ink-secondary);
+}
+
+.figure-block__rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.figure-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 11px 0;
+}
+
+.figure-row + .figure-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.figure-row__label {
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink-secondary);
+}
+
+.figure-row.is-indented .figure-row__label {
+  padding-left: 14px;
+  font-size: 13.5px;
+}
+
+.figure-row__value {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.figure-row.is-muted .figure-row__value {
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.figure-row__share {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  margin: 0;
+}
+
+.figure-row__pct {
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+
+.figure-row__track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.figure-row__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--figure-color);
+}
+
+@media (max-width: 560px) {
+  .figure-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .figure-row__share {
+    grid-column: 1 / -1;
+  }
+}
