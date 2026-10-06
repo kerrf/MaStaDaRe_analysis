@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import CsvLink from '../../components/ui/CsvLink';
 import { ERZEUGER, STATES_TOPOLOGY } from '../../config/dashboards';
-import { findBundeslandByAgs, withoutOffshore } from '../../config/regions';
+import { findBundeslandByAgs, regionName, withoutOffshore } from '../../config/regions';
 import { makeColorScale, rampGradient } from '../../lib/colorScale';
 import { statsUrl, useStats, useTopology } from '../../lib/data';
+import { round } from '../../lib/files';
 import { formatPower } from '../../lib/format';
 import { toSvg } from '../../lib/svgMap';
 
@@ -70,9 +72,23 @@ export default function GermanyPreview() {
         ) : (
           <span className="preview__note">{stats.status === 'loading' ? 'Lade Daten …' : 'Live-Daten derzeit nicht verfügbar'}</span>
         )}
-        <Link to="/erzeuger" className="btn btn--secondary btn--sm">
-          Zur Karte <ArrowRight size={14} aria-hidden="true" />
-        </Link>
+        <div className="preview__actions">
+          {live && (
+            <CsvLink
+              name="vorschau"
+              filename="mastr_solar_bundeslaender"
+              rows={() =>
+                [...byAgs]
+                  .filter(([ags]) => findBundeslandByAgs(ags))
+                  .map(([ags, power]) => ({ Bundesland: regionName(ags), 'Installierte Leistung netto (MW)': round(power) }))
+                  .sort((a, b) => a.Bundesland.localeCompare(b.Bundesland, 'de'))
+              }
+            />
+          )}
+          <Link to="/erzeuger" className="btn btn--secondary btn--sm">
+            Zur Karte <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </figure>
   );

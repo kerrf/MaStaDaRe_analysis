@@ -1,29 +1,32 @@
 :root {
   color-scheme: light;
 
-  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* A clean grotesque with a touch of the humanist (tabular figures throughout). Its small letters are lower than most
+     at the same size (x-height 0.50 of the size): --font-size-adjust raises them a little (index.css). */
+  --font-sans: 'Hanken Grotesk Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  --font-size-adjust: 0.52;
 
-  /* Brand */
-  --brand-50: #eef4fc;
-  --brand-100: #d9e6f8;
-  --brand-500: #1c64c8;
-  --brand-600: #0b4ea2;
-  --brand-700: #093f84;
+  /* Brand: forest green – buttons, links, the chosen option */
+  --brand-50: #e7efe8;
+  --brand-100: #cfe0d2;
+  --brand-500: #3a6d53;
+  --brand-600: #2c5a43;
+  --brand-700: #1f4332;
 
-  /* Ink */
-  --ink-primary: #101828;
-  --ink-secondary: #475467;
-  --ink-muted: #667085;
+  /* Ink: greys with a hint of the green */
+  --ink-primary: #1d2620;
+  --ink-secondary: #47504a;
+  --ink-muted: #717a70;
 
-  /* Surfaces & borders */
-  --surface-page: #f6f7f9;
-  --surface-card: #ffffff;
-  --surface-sunken: #f2f4f7;
-  --surface-hover: #f4f6f9;
-  --border-subtle: #eaecf0;
-  --border: #dde1e7;
-  --border-strong: #c4cad3;
+  /* Surfaces & borders: warm paper, the content on lighter cards behind clear borders */
+  --surface-page: #f3eee3;
+  --surface-card: #fbf8f1;
+  --surface-sunken: #ece5d6;
+  --surface-hover: #e8e0cf;
+  --border-subtle: #e2d9c7;
+  --border: #d3c7b1;
+  --border-strong: #8f826b;
 
   /* Topic accents: each dashboard gets its own hue (matches its map ramp) */
   --topic-erzeuger: #e28316;
@@ -77,24 +80,25 @@
   --delay-late: #c2453d;
 
   /* Map: Germany's areas on the land and sea of Europe */
-  --map-surface: #fbfbfa;
-  --map-sea: #dde8f2;
+  --map-surface: #f7f3ea;
+  --map-sea: #dfe6e2;
   --map-land: #eceef1;
   --map-nodata: #d3d8df;
   --map-outline: #475467;
 
-  /* Shape */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  --radius-pill: 999px;
+  /* Shape: nearly square corners */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-pill: 3px;
 
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
-  --shadow-lg: 0 16px 40px -8px rgba(16, 24, 40, 0.18);
+  /* Flat: borders set the content apart, not shadows. Only what floats above the page – menus, tooltips – casts one. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px -8px rgba(29, 38, 32, 0.22);
 
   /* Layout */
   --container: 1440px;

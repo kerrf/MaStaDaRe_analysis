@@ -1,7 +1,9 @@
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { API_BASE_URL } from '../../config/site';
 import { RAMPS, inkOn, makeColorScale } from '../../lib/colorScale';
 import { useStats } from '../../lib/data';
+import { fileName, round, selectionSlug } from '../../lib/files';
 import { formatAmount, formatCount, formatShare } from '../../lib/format';
 
 // The compass directions clockwise from north, by the keys of mrt.solar_orientation
@@ -57,8 +59,8 @@ function Values({ x, y, row, share, fill }) {
 }
 
 // Solar power by the main orientation of the modules, in the scope (mrt.solar_orientation): the eight compass
-// directions around the circle, Ost-West and tracking systems in its centre, unknown ones below it.
-export default function OrientationRose({ path, region, query }) {
+// directions around the circle, Ost-West and tracking systems in its centre, unknown ones below it. fileBase: of its CSV
+export default function OrientationRose({ path, region, query, fileBase }) {
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
   if (stats.status === 'error') {
     return <ChartPlaceholder variant="radial" title="Keine Daten" note="Die Ausrichtung konnte nicht geladen werden." />;
@@ -77,6 +79,17 @@ export default function OrientationRose({ path, region, query }) {
   const unknown = rowOf('unbekannt');
   const tooltip = (label, id) =>
     `${label}: ${formatAmount(rowOf(id).total_power, 'MW')} (${formatShare(shareOf(id))}) · ${formatCount(rowOf(id).total_units)} Anlagen`;
+  const csv = {
+    name: 'ausrichtung',
+    filename: fileName(fileBase, 'ausrichtung', region, selectionSlug(query)),
+    rows: () =>
+      [...DIRECTIONS, ...CENTRE, { id: 'unbekannt', label: 'Unbekannt' }].map((o) => ({
+        Ausrichtung: o.label,
+        'Leistung (MW)': round(rowOf(o.id).total_power),
+        'Anteil an der Leistung (%)': round(100 * shareOf(o.id), 2),
+        Anlagen: rowOf(o.id).total_units,
+      })),
+  };
 
   return (
     <div className="rose">
@@ -121,10 +134,12 @@ export default function OrientationRose({ path, region, query }) {
           Gesamt <strong>{formatAmount(total, 'MW')}</strong> · {formatCount(units)} Anlagen
         </span>
       </div>
-      <p className="rose__note">
-        Nach Hauptausrichtung der Module. Unbekannt: keine Angabe im MaStR – meist Balkonkraftwerke, deren vereinfachte
-        Registrierung die Ausrichtung nicht abfragt.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="rose__note">
+          Nach Hauptausrichtung der Module. Unbekannt: keine Angabe im MaStR – meist Balkonkraftwerke, deren vereinfachte
+          Registrierung die Ausrichtung nicht abfragt.
+        </p>
+      </ChartFoot>
     </div>
   );
 }

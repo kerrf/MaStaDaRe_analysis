@@ -1,5 +1,7 @@
 @import './styles/tokens.css';
 @import './styles/ui.css';
+/* The design: tokens and the overrides of components (last, and with "html" in front, so they win) */
+@import './styles/theme.css';
 
 *,
 *::before,
@@ -17,6 +19,7 @@ body {
   min-width: 320px;
   font-family: var(--font-sans);
   font-size: 15px;
+  font-size-adjust: var(--font-size-adjust);
   line-height: 1.55;
   color: var(--ink-primary);
   background: var(--surface-page);

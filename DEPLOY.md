@@ -423,7 +423,7 @@ not (Vercel only keeps a daily hash). The IP addresses of the last 24 hours that
 reached the site are under project → **Firewall → Traffic** (by IP, user agent,
 country, path, network).
 
-Custom events (map and table exports, technology, filters, map settings) need
+Custom events (map, table and chart exports, technology, filters, map settings) need
 the Pro plan. Then set the environment variable `VITE_ANALYTICS_EVENTS=true` in
 the Vercel project (Production) and redeploy; without it they are not sent, so
 on Hobby they don't use up the 50,000 events a month.

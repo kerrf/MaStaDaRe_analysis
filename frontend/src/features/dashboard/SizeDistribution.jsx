@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import GroupedBarChart from '../../components/charts/GroupedBarChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
+import { fileName, round, selectionSlug } from '../../lib/files';
 import { formatAmount, formatCount } from '../../lib/format';
 
 // What the left axis measures: the power, or (batteries) the capacity
@@ -22,8 +24,9 @@ const axesOf = (measure, unitsLabel) => ({
 });
 
 // Units and power per size class of the active technology in the scope (mrt.size_distribution, the batteries'
-// mrt.battery_size_distribution), as columns. measure: 'power' or 'capacity'; unitsLabel: what the units are called
-export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen' }) {
+// mrt.battery_size_distribution), as columns. measure: 'power' or 'capacity'; unitsLabel: what the units are called;
+// fileBase: of its CSV ("mastr_solar")
+export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen', fileBase }) {
   const measure = MEASURES[measureId];
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
 
@@ -66,6 +69,18 @@ export default function SizeDistribution({ path, region, query, measure: measure
         series={series}
         axes={axesOf(measure, unitsLabel)}
         label={`${measure.label} und ${unitsLabel} je Größenklasse`}
+      />
+      <ChartFoot
+        csv={{
+          name: 'groessenklassen',
+          filename: fileName(fileBase, 'groessenklassen', region, selectionSlug(query)),
+          rows: () =>
+            stats.data.map((row) => ({
+              Größenklasse: row.label,
+              [`${measure.label} (${measure.unit})`]: round(row[measure.field]),
+              [unitsLabel]: row.total_units,
+            })),
+        }}
       />
     </div>
   );

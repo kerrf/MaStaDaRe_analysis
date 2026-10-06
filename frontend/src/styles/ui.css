@@ -377,7 +377,7 @@
 /* -------------------------------------------------------------- Skeleton */
 .skeleton {
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--surface-sunken) 0%, #e9ecf1 50%, var(--surface-sunken) 100%);
+  background: linear-gradient(90deg, var(--surface-sunken) 0%, var(--surface-hover) 50%, var(--surface-sunken) 100%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -760,4 +760,44 @@
   .figure-row__share {
     grid-column: 1 / -1;
   }
+}
+
+/* -------------------------------------------------------------- CSV link */
+/* The data of a chart as a file (CsvLink.jsx): small, at the right of the chart's foot, after its note */
+.chart-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 4px 24px;
+}
+
+/* The note or legend takes the room the link leaves (a centred legend stays centred in it) */
+.chart-foot > :not(.csv-link) {
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-foot > .csv-link {
+  margin-left: auto;
+}
+
+.csv-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--brand-600);
+  cursor: pointer;
+}
+
+.csv-link:hover {
+  color: var(--brand-700);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

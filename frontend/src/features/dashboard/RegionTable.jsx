@@ -5,9 +5,9 @@ import { API_BASE_URL } from '../../config/site';
 import { trackEvent } from '../../lib/usage';
 import { inkOn, makeColorScale } from '../../lib/colorScale';
 import { useJson, useTopology } from '../../lib/data';
+import { exportCsv } from '../../lib/files';
 import { formatNumber, formatShare } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
-import { exportCsv } from './exportMap';
 
 // The levels of the table, coarse to fine: the names come with their boundaries, like on the map
 const LEVELS = [

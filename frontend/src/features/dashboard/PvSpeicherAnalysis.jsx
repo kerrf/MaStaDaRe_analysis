@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import { BatteryCharging, Gauge, History, Sun } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import StatTile from '../../components/ui/StatTile';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
+import { fileName, round } from '../../lib/files';
 import { formatCapacity, formatCount, formatNumber, formatPower, formatShare } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -90,6 +92,30 @@ export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, ancho
   const selection = subtypes && subtypes.length === 1 ? ` · nur ${subtypes[0] === 'freiflaeche' ? 'Freifläche' : 'Gebäude'}` : '';
   const perKw = netto ? 'kWh/kW' : 'kWh/kWp';
   const classScale = view ? Math.max(...view.classes.map((c) => share(c.withBattery, c.units))) : 1;
+  // The CSVs of the two charts, in the selection: one Anlagenart, and (for the ratio) Netto or Brutto
+  const only = subtypes?.length === 1 ? subtypes[0] : null;
+  const yearsCsv = view && {
+    name: 'pv-speicher-jahre',
+    filename: fileName('mastr_pv-speicher_anteil-je-jahr', only),
+    rows: () =>
+      view.periods.map((p) => ({
+        'Jahr der Inbetriebnahme': Number(p.key),
+        // Without the label's explanation in brackets: "ohne Anlagen bis 2 kWp (Balkon-PV)" -> "… bis 2 kWp"
+        ...Object.fromEntries(SERIES.map((s) => [`Anteil mit Speicher: ${s.label.replace(/ \(.+\)$/, '')} (%)`, round(p.values[s.id], 2)])),
+      })),
+  };
+  const classesCsv = view && {
+    name: 'pv-speicher-groessen',
+    filename: fileName('mastr_pv-speicher_anteil-je-groesse', only, netto ? 'netto' : 'brutto'),
+    rows: () =>
+      view.classes.map((c) => ({
+        Leistungsklasse: c.label,
+        Solaranlagen: c.units,
+        'mit Speicher': c.withBattery,
+        'Anteil mit Speicher (%)': round(100 * share(c.withBattery, c.units), 2),
+        [`Speicherkapazität je Solarleistung (${perKw})`]: c.withBattery ? round(c.ratio) : null,
+      })),
+  };
 
   return (
     <AnalysisPanel
@@ -145,13 +171,15 @@ export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, ancho
                 formatValue={percent}
                 label="Anteil der Solaranlagen mit Batteriespeicher nach Jahr der Inbetriebnahme"
               />
-              <div className="pv-speicher__legend">
-                {SERIES.map((s) => (
-                  <span key={s.id}>
-                    <i style={{ background: s.color }} /> {s.label}
-                  </span>
-                ))}
-              </div>
+              <ChartFoot csv={yearsCsv}>
+                <div className="pv-speicher__legend">
+                  {SERIES.map((s) => (
+                    <span key={s.id}>
+                      <i style={{ background: s.color }} /> {s.label}
+                    </span>
+                  ))}
+                </div>
+              </ChartFoot>
             </section>
             <section>
               <h4 className="pv-speicher__title">Anteil mit Speicher nach Anlagengröße</h4>
@@ -190,6 +218,7 @@ export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, ancho
                   ))}
                 </tbody>
               </table>
+              <ChartFoot csv={classesCsv} />
             </section>
           </div>
 

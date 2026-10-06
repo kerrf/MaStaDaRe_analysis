@@ -22,15 +22,14 @@ const WORLD_RING = [
   [85, 180],
   [85, -180],
 ];
-// Names of the Gemeinden: 12px, measured once per name
-const LABEL_FONT = '600 12px Inter Variable, Inter, system-ui, sans-serif';
 const OVERLAYS = '.leaflet-control, .map-legend, .basemap-switch, .map-scope';
 
+// Names of the Gemeinden: 12px in the page's font (--font-sans), measured once per name
 const canvas = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
 const widths = new Map();
 function textWidth(text) {
   if (!widths.has(text)) {
-    canvas.font = LABEL_FONT;
+    canvas.font = `600 12px ${getComputedStyle(document.documentElement).getPropertyValue('--font-sans')}`;
     widths.set(text, canvas.measureText(text).width);
   }
   return widths.get(text);

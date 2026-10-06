@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
+import { fileName, round } from '../../lib/files';
 import { formatNumber } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -45,8 +47,25 @@ export default function RegistrationDelayAnalysis({ analysis, initial, anchor })
     const last = complete.at(-1) ?? rows.at(-1);
     const total = rows.reduce((sum, row) => sum + row.units, 0);
     const late = rows.reduce((sum, row) => sum + row.spaeter, 0);
-    return { periods, last, total, late };
+    return { rows, periods, last, total, late };
   }, [data.data, selected.id]);
+  // The CSV: per year of commissioning the units, their median and the shares of the classes, as the chart shows them
+  const csv = view?.periods.length
+    ? {
+        name: 'registrierungsverzug',
+        filename: fileName('mastr_registrierungsverzug', selected.id),
+        rows: () =>
+          view.rows.map((row) => ({
+            'Jahr der Inbetriebnahme': row.year,
+            Einheiten: row.units,
+            'Median (Tage)': row.median_days,
+            // "bis 1 Monat (Frist)" -> "Anteil bis 1 Monat – Frist (%)"
+            ...Object.fromEntries(
+              CLASSES.map((c) => [`Anteil ${c.label.replace(/ \((.+)\)$/, ' – $1')} (%)`, round((100 * row[c.id]) / row.units, 2)]),
+            ),
+          })),
+      }
+    : null;
 
   return (
     <AnalysisPanel
@@ -96,12 +115,14 @@ export default function RegistrationDelayAnalysis({ analysis, initial, anchor })
           </div>
         </>
       )}
-      <p className="timeline__note">
-        Seit dem Start des Registers am 31.01.2019 muss eine Einheit spätestens einen Monat nach ihrer Inbetriebnahme
-        registriert sein (§ 5 MaStRV); fristgerecht ist auch, wer schon vorher registriert. Einheiten, die vor dem Start in
-        Betrieb gingen, hatten bis 31.01.2021 Zeit und fehlen hier. Für die letzten Jahre kommen noch Nachzügler hinzu: Ihr
-        Anteil verspäteter Registrierungen steigt noch. Hell: laufendes Jahr.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="timeline__note">
+          Seit dem Start des Registers am 31.01.2019 muss eine Einheit spätestens einen Monat nach ihrer Inbetriebnahme
+          registriert sein (§ 5 MaStRV); fristgerecht ist auch, wer schon vorher registriert. Einheiten, die vor dem Start in
+          Betrieb gingen, hatten bis 31.01.2021 Zeit und fehlen hier. Für die letzten Jahre kommen noch Nachzügler hinzu:
+          Ihr Anteil verspäteter Registrierungen steigt noch. Hell: laufendes Jahr.
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }

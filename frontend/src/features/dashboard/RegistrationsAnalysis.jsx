@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
+import { fileName } from '../../lib/files';
 import { formatNumber } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -37,6 +39,14 @@ export default function RegistrationsAnalysis({ analysis, initial, anchor }) {
       peak,
     };
   }, [data.data, selected.id]);
+  // The CSV: the units of the technology shown, per year of registration
+  const csv = view?.periods.length
+    ? {
+        name: 'registrierungen',
+        filename: fileName('mastr_registrierungen', selected.id),
+        rows: () => view.periods.map((p) => ({ Jahr: Number(p.key), [`Registrierte Einheiten ${selected.label}`]: p.values[selected.id] })),
+      }
+    : null;
 
   return (
     <AnalysisPanel
@@ -76,11 +86,13 @@ export default function RegistrationsAnalysis({ analysis, initial, anchor }) {
           />
         </>
       )}
-      <p className="timeline__note">
-        Nach Registrierungsdatum, jede Einheit einmal – ob in Betrieb, geplant oder stillgelegt; aus dem Register gelöschte
-        Einheiten fehlen. Das Register startete am 31.01.2019, bestehende Anlagen mussten bis 31.01.2021 nachgemeldet werden:
-        daher die vielen Registrierungen bis 2021. Hell: laufendes Jahr.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="timeline__note">
+          Nach Registrierungsdatum, jede Einheit einmal – ob in Betrieb, geplant oder stillgelegt; aus dem Register gelöschte
+          Einheiten fehlen. Das Register startete am 31.01.2019, bestehende Anlagen mussten bis 31.01.2021 nachgemeldet
+          werden: daher die vielen Registrierungen bis 2021. Hell: laufendes Jahr.
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }

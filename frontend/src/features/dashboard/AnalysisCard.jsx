@@ -35,7 +35,7 @@ export default function AnalysisCard({ analysis, technology, region, scopeName, 
           </Badge>
         )}
       </header>
-      <div className="card__body">{path ? <view.Chart path={path} region={region} query={query} /> : <ChartPlaceholder variant={analysis.variant} />}</div>
+      <div className="card__body">{path ? <view.Chart path={path} region={region} query={query} fileBase={`mastr_${technology.id}`} /> : <ChartPlaceholder variant={analysis.variant} />}</div>
     </article>
   );
 }
