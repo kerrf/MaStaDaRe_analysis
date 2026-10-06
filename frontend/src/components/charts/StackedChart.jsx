@@ -34,9 +34,9 @@ function niceTicks(max, min = 0, target = 5) {
   return Array.from({ length: Math.ceil((max - first) / step - 1e-9) + 1 }, (_, i) => Number((first + i * step).toFixed(9)));
 }
 
-// Where the value axis of a curve starts: at 0, unless the curve stays high up (its lowest point above 30 % of its
-// highest). Then about as far below the lowest point as the curve rises, so the change fills the chart instead of a thin
-// band at its top: 35 → 40 GWh reads from 30 GWh. Bars always start at 0, their length is the value.
+// Where the value axis of lines starts: at 0, unless they stay high up (their lowest point above 30 % of their highest).
+// Then about as far below the lowest point as they rise, so the change fills the chart instead of a thin band at its
+// top: 35 → 40 % reads from 30 %. Bars and stacked areas always start at 0: their height is the value.
 function curveFloor(lowest, highest) {
   if (!(lowest > 0.3 * highest)) return 0;
   const rise = highest - lowest || highest * 0.1;
@@ -108,7 +108,7 @@ export default function StackedChart({
   const clipId = useId();
   const width = useWidth(frameRef);
   const [activeKey, setActiveKey] = useState(null);
-  // Curves: the axis near the curve (the default) or from 0, switchable below the chart
+  // Lines: the axis near the lines (the default) or from 0, switchable below the chart
   const [fromZero, setFromZero] = useState(false);
 
   // Bottom and top of each series' segment, per period
@@ -139,17 +139,13 @@ export default function StackedChart({
   const max = stacked
     ? stacks.reduce((m, _, j) => Math.max(m, totalOf(j)), 0)
     : stacks.reduce((m, segments) => Math.max(m, ...segments.map((seg) => seg.value ?? 0)), 0);
-  // The lowest point of the curve: the top of the stack (areas), the lowest value of any line (lines)
-  const plotted = periods.flatMap((_, j) =>
-    !hasData(j) ? [] : stacked ? [totalOf(j)] : stacks[j].flatMap((seg) => (seg.value == null ? [] : [seg.value])),
-  );
-  const nearFloor = kind === 'bars' || !plotted.length ? 0 : curveFloor(Math.min(...plotted), max);
+  // The lowest value of any line
+  const plotted = kind === 'lines' ? periods.flatMap((_, j) => stacks[j].flatMap((seg) => (seg.value == null ? [] : [seg.value]))) : [];
+  const nearFloor = plotted.length ? curveFloor(Math.min(...plotted), max) : 0;
   const floor = fromZero ? 0 : nearFloor;
   const ticks = niceTicks(max, floor);
   const [domainBottom, domainTop] = [ticks[0], ticks.at(-1)];
   const truncated = domainBottom > 0;
-  // Stacked series that lie wholly below the axis there, so the curve doesn't show them: named below the chart
-  const belowAxis = truncated && stacked ? series.filter((_, i) => periods.every((__, j) => !hasData(j) || stacks[j][i].top <= domainBottom)) : [];
   const y = (value) => MARGIN.top + plotHeight * (1 - (value - domainBottom) / (domainTop - domainBottom));
   const power = /^M/.test(unit);
   const large = power ? domainTop >= 1000 : unit !== '%' && domainTop >= 10000;
@@ -210,7 +206,7 @@ export default function StackedChart({
           onKeyDown={onKeyDown}
           onBlur={() => setActiveKey(null)}
         >
-          {/* Curves on an axis that starts above 0 run below it: cut off at the bottom of the chart */}
+          {/* Lines on an axis that starts above 0 run below it: cut off at the bottom of the chart */}
           <defs>
             <clipPath id={clipId}>
               <rect x={MARGIN.left} y={0} width={plotWidth} height={MARGIN.top + plotHeight} />
@@ -369,10 +365,9 @@ export default function StackedChart({
           {truncated
             ? `Achse ab ${formatNumber(large ? domainBottom / 1000 : domainBottom, tickDigits)} ${axisUnit}`
             : 'Achse ab 0'}
-          {truncated && belowAxis.length > 0 && ` · darunter und daher nicht zu sehen: ${belowAxis.map((s) => s.label).join(', ')}`}
           {' · '}
           <button type="button" className="stacked-chart__axis-toggle" onClick={() => setFromZero((v) => !v)}>
-            {truncated ? 'Achse ab 0 zeigen' : 'Achse an die Kurve anpassen'}
+            {truncated ? 'Achse ab 0 zeigen' : 'Achse an die Linien anpassen'}
           </button>
         </p>
       )}
