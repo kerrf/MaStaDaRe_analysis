@@ -5,7 +5,7 @@ import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { EUROPE_BOUNDS, GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
-import { useLayers, useOpenEdge } from '../../lib/data';
+import { useLayers, useOpenEdge, useOutline } from '../../lib/data';
 import HeatmapLayer from './HeatmapLayer';
 import PlaceLabels from './PlaceLabels';
 
@@ -22,6 +22,8 @@ const BORDER_STYLE = { color: '#ffffff', weight: 1.2, opacity: 1 };
 // along the coast; out at sea, a dashed line marks where it ends. The choropleth only keeps it for tooltip and click.
 const SEA_HIDDEN = { fillOpacity: 0, weight: 0 };
 const SEA_EDGE_STYLE = { fill: false, color: '#3d6fa8', weight: 1.4, opacity: 0.9, dashArray: '5 4' };
+// Germany's border and coast: a thin dark line, so that its lightest areas stay apart from the land around them
+const GERMANY_STYLE = { fill: false, color: '#1d2620', weight: 1, opacity: 0.6 };
 const MIN_ZOOM = 5;
 
 // The hatching of the sea in its colour: diagonal stripes on a light tint of it, the water showing through. A pattern
@@ -189,6 +191,7 @@ export default function ChoroplethMap({
   const seaEdge = useOpenEdge(sea ? STATES_TOPOLOGY : null, OFFSHORE.ags);
   const seaStyle = useMemo(() => seaColor && { stroke: false, fillColor: hatchOf(seaColor), fillOpacity: 1 }, [seaColor]);
   const basemap = useLayers(BASEMAP);
+  const germany = useOutline(STATES_TOPOLOGY);
   // Names of countries and seas; the Land or Kreis in view, whose places the map names
   const areas = useMemo(
     () =>
@@ -249,6 +252,13 @@ export default function ChoroplethMap({
       {outlines && (showOutlines || mode === 'heatmap') && (
         <Pane name="outlines" style={{ zIndex: 420, pointerEvents: 'none' }}>
           <GeoJSON data={outlines} interactive={false} style={{ fill: false, color: '#344054', weight: 1, opacity: 0.55 }} />
+        </Pane>
+      )}
+
+      {/* Over the Länder's outlines, below the focus mask: outside a Land in view it fades with the rest */}
+      {germany.data && (
+        <Pane name="germany" style={{ zIndex: 422, pointerEvents: 'none' }}>
+          <GeoJSON data={germany.data} interactive={false} style={GERMANY_STYLE} />
         </Pane>
       )}
 

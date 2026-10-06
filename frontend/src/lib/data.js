@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { feature, mesh } from 'topojson-client';
 import { API_BASE_URL, SITE } from '../config/site';
 import { NUMERIC_FIELDS } from '../config/dashboards';
+import { OFFSHORE } from '../config/regions';
 
 // Module-level caches: switching views back and forth never refetches.
 const topologyCache = new Map();
@@ -46,6 +47,16 @@ const loadOpenEdge = (key) =>
     const topology = await fetchJson(url);
     const object = topology.objects[Object.keys(topology.objects)[0]];
     return mesh(topology, object, (a, b) => a === b && a.properties.ags === ags);
+  });
+
+// The outline of a topology's areas together, the sea left out: Germany's border and coast, as lines
+const outlineCache = new Map();
+const loadOutline = (url) =>
+  cached(outlineCache, url, async () => {
+    const topology = await fetchJson(url);
+    const object = topology.objects[Object.keys(topology.objects)[0]];
+    const land = { ...object, geometries: object.geometries.filter((g) => g.properties.ags !== OFFSHORE.ags) };
+    return mesh(topology, land, (a, b) => a === b);
   });
 
 const toNumber = (v) => (v == null || v === '' ? null : Number(v));
@@ -95,6 +106,7 @@ function useAsync(key, load) {
 export const useTopology = (url) => useAsync(url, loadTopology);
 export const useLayers = (url) => useAsync(url, loadLayers);
 export const useOpenEdge = (url, ags) => useAsync(url && `${url}#${ags}`, loadOpenEdge);
+export const useOutline = (url) => useAsync(url, loadOutline);
 export const useStats = (url) => useAsync(url, loadStats);
 
 // The day up to which the data includes every change of the register, noted by the last complete nightly update

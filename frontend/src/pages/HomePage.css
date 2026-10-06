@@ -109,6 +109,16 @@
   transition: opacity var(--dur-fast) var(--ease);
 }
 
+/* Germany's border and coast over its areas (useOutline): the lightest ones stay apart from the page */
+.germany-outline {
+  fill: none;
+  stroke: var(--ink-primary);
+  stroke-opacity: 0.55;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .preview__map svg:hover .preview__region {
   opacity: 0.7;
 }

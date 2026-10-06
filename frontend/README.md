@@ -229,6 +229,9 @@ the map. The Analysen section only shows when it has something (Gas: nothing yet
   plain grey on the blue of the sea, white borders between the other countries, below everything (pane `basemap`). The
   map can't be moved beyond it (`EUROPE_BOUNDS`); zooming out stops where Europe still fills the frame. Germany's own
   borders come from the region layers, which lie on top.
+- **Germany's outline**: its border and coast as a thin dark line over the areas (pane `germany`, below the focus mask),
+  so the lightest areas stay apart from the land around them: the edges of the Länder that no other Land shares, the
+  sea left out (`useOutline`). The small maps of the start page draw the same line (`linesToPath`).
 - **The German sea** (offshore wind): hatched in its colour (`hatchOf`, a canvas pattern, so exports keep it), no
   border along the coast, a dashed line where it ends out at sea (the edges it shares with no other area of the states
   topology: `useOpenEdge`). The choropleth keeps the area invisible, for tooltip, hover and click.

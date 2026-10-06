@@ -5,10 +5,10 @@ import StackedChart from '../../components/charts/StackedChart';
 import { ChartFoot } from '../../components/ui/CsvLink';
 import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { withoutOffshore } from '../../config/regions';
-import { useStats, useTopology } from '../../lib/data';
+import { useOutline, useStats, useTopology } from '../../lib/data';
 import { round } from '../../lib/files';
 import { formatAmount } from '../../lib/format';
-import { project, toSvg } from '../../lib/svgMap';
+import { linesToPath, project, toSvg } from '../../lib/svgMap';
 import { ERZEUGER_TIMELINE, SPEICHER_TIMELINE, URLS, sourceOf } from './homeData';
 
 // Zubau per year of a dashboard's timeline, stacked like on the dashboard (the latest year lighter: still running).
@@ -69,6 +69,8 @@ function GasStorageMap() {
   const states = useTopology(STATES_TOPOLOGY);
   const storages = useStats(URLS.gasStorages);
   const svg = useMemo(() => (states.data ? toSvg(withoutOffshore(states.data)) : null), [states.data]);
+  const outline = useOutline(STATES_TOPOLOGY);
+  const outlinePath = useMemo(() => (outline.data ? linesToPath(outline.data) : null), [outline.data]);
   const bubbles = useMemo(() => {
     const running = (storages.data ?? []).filter((s) => s.status === 'in Betrieb' && s.total_capacity > 0);
     const max = Math.max(1, ...running.map((s) => s.total_capacity));
@@ -100,6 +102,7 @@ function GasStorageMap() {
         {svg.shapes.map((shape) => (
           <path key={shape.ags} d={shape.d} className="gas-map__land" />
         ))}
+        {outlinePath && <path d={outlinePath} className="germany-outline" />}
         {bubbles.map((s) => (
           <circle key={s.mastr_nummer} cx={s.x} cy={s.y} r={s.r} className="gas-map__bubble">
             <title>

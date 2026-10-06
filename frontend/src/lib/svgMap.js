@@ -4,6 +4,12 @@ const COS_LAT = Math.cos((51 * Math.PI) / 180);
 
 export const project = ([lng, lat]) => [lng * COS_LAT * 100, -lat * 100];
 
+// GeoJSON lines (a LineString or MultiLineString, e.g. the outline of useOutline) -> one SVG path, projected like toSvg
+export const linesToPath = (geometry) =>
+  (geometry.type === 'LineString' ? [geometry.coordinates] : geometry.coordinates)
+    .map((line) => `M${line.map((point) => project(point).map((v) => v.toFixed(1)).join(',')).join('L')}`)
+    .join('');
+
 // GeoJSON regions -> SVG paths ({ ags, name, d }) and the viewBox that holds them
 export function toSvg(collection) {
   let minX = Infinity;

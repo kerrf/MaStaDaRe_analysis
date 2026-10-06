@@ -5,10 +5,10 @@ import CsvLink from '../../components/ui/CsvLink';
 import { ERZEUGER, STATES_TOPOLOGY } from '../../config/dashboards';
 import { findBundeslandByAgs, regionName, withoutOffshore } from '../../config/regions';
 import { makeColorScale, rampGradient } from '../../lib/colorScale';
-import { statsUrl, useStats, useTopology } from '../../lib/data';
+import { statsUrl, useOutline, useStats, useTopology } from '../../lib/data';
 import { round } from '../../lib/files';
 import { formatPower } from '../../lib/format';
-import { toSvg } from '../../lib/svgMap';
+import { linesToPath, toSvg } from '../../lib/svgMap';
 
 export default function GermanyPreview() {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ export default function GermanyPreview() {
   const stats = useStats(statsUrl(ERZEUGER.technologies[0].statsPath, 'bundesland'));
 
   const svg = useMemo(() => (states.data ? toSvg(withoutOffshore(states.data)) : null), [states.data]);
+  const outline = useOutline(STATES_TOPOLOGY);
+  const outlinePath = useMemo(() => (outline.data ? linesToPath(outline.data) : null), [outline.data]);
   const byAgs = useMemo(
     () => new Map((stats.status === 'ready' ? stats.data : []).map((row) => [row.bundesland, row.total_power])),
     [stats.status, stats.data],
@@ -52,6 +54,7 @@ export default function GermanyPreview() {
                 </path>
               );
             })}
+            {outlinePath && <path d={outlinePath} className="germany-outline" />}
           </svg>
         ) : (
           <div className="skeleton preview__skeleton" />
