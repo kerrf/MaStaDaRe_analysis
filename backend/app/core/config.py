@@ -34,6 +34,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Every connection looks up names in "geo", where PostGIS lives (ST_Centroid & co.). Set here, not on the database role:
+# a role setting doesn't travel with a dump (deploy/push_db.sh), and the server's database never had it.
+DB_CONNECT_ARGS = {"options": "-c search_path=geo"}
+
 RELEVANT_COLUMNS = [
     "EinheitMastrNummer",
     "DatumLetzteAktualisierung",

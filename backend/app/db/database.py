@@ -2,9 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
+from app.core.config import DB_CONNECT_ARGS, settings
 
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL, connect_args=DB_CONNECT_ARGS)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

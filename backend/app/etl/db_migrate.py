@@ -17,7 +17,7 @@ from sqlalchemy import Connection, create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 
-from app.core.config import settings
+from app.core.config import DB_CONNECT_ARGS, settings
 from app.etl.extract import Chunk, find_export_files, parse_files
 from app.services.logger import setup_logging
 
@@ -273,7 +273,7 @@ def raw_table(table_name: str) -> str:
 
 def connect_to_db(max_retries: int = 5, delay: int = 2) -> Engine:
     logger.info("Waiting for database connection...")
-    engine = create_engine(settings.DATABASE_URL)
+    engine = create_engine(settings.DATABASE_URL, connect_args=DB_CONNECT_ARGS)
     for attempt in range(max_retries):
         try:
             # Just test the connection and immediately close it
