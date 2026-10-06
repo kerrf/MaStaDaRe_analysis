@@ -9,6 +9,7 @@ backend/__pycache__
 backend/app.log
 **/__pycache__
 *.pyc
-.env
-.env.*
-!backend/.env.production.example
+# Secrets stay out of the image, in every folder (the Dockerfile copies only backend/app, this guards against a .env in it)
+**/.env
+**/.env.*
+!**/*.example

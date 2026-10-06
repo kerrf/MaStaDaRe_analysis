@@ -1,6 +1,7 @@
-# Checks on `git commit`, before anything reaches GitHub. Ruff is the one from uv.lock, the same as in the pipeline, so a
-# commit that passes here passes there too. If a check changes a file (ruff fixes and formats), the commit stops: look at
-# the change, `git add` it and commit again.
+# Checks on `git commit`, before anything reaches GitHub. Ruff and zizmor are the ones from uv.lock, the same as in the
+# pipeline, so a commit that passes here passes there too. If a check changes a file (ruff fixes and formats), the commit
+# stops: look at the change, `git add` it and commit again. gitleaks and actionlint are built once from their pinned
+# version (needs Go); gitleaks has the same version as in the pipeline: update both together.
 #
 # Set up once per clone:   uv run pre-commit install
 # All files, by hand:      uv run pre-commit run --all-files
@@ -19,6 +20,28 @@ repos:
         language: system
         types_or: [python, pyi]
         require_serial: true
+      # The security of the workflows, which hold the keys to the server and to Vercel: injection through expressions,
+      # too broad permissions, credentials left on disk, unpinned actions
+      - id: zizmor
+        name: zizmor (workflow security)
+        entry: uv run --frozen zizmor --offline .github/
+        language: system
+        files: ^\.github/
+        pass_filenames: false
+
+  # Secrets in what is about to be committed (API keys, tokens, passwords, private keys): the commit stops, the secret
+  # never reaches GitHub. A false alarm: its fingerprint (in the output) into .gitleaksignore.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Mistakes in a workflow before it runs on GitHub: expressions, needs, the shell of each step (with shellcheck, if
+  # installed). It matters most for the steps that rarely run, like the rollback.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -26,7 +49,6 @@ repos:
       # A data file committed by mistake (the map layers in frontend/public are up to 20 MB, so the limit is above that)
       - id: check-added-large-files
         args: [--maxkb=25000]
-      - id: detect-private-key
       - id: check-merge-conflict
       - id: check-yaml
       - id: check-toml

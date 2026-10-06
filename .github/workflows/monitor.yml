@@ -1,0 +1,46 @@
+# The daily check of mastr-data.de (DEPLOY.md, section 10). The pipeline checks every deploy; this checks the days in
+# between, everything a visitor relies on: the API answers every route the website uses, the website renders with its
+# data, and the data is fresh – the nightly update (deploy/mastr-update.timer) ran. When a check fails, GitHub emails
+# you, like for a failed pipeline run.
+name: Monitor
+
+on:
+  schedule:
+    # Every morning at 07:17 UTC (09:17 or 08:17 in Germany): hours after the nightly update at 01:00
+    - cron: "17 7 * * *"
+  # The "Run workflow" button (Actions → Monitor): check right now
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Live site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: API (deploy/smoke_test.sh)
+        run: ./deploy/smoke_test.sh
+
+      - name: Website (deploy/check_website.sh)
+        if: ${{ !cancelled() }}
+        run: ./deploy/check_website.sh
+
+      # The day up to which the data includes every change of the register (GET /meta/datenstand). The nightly update
+      # notes today's date; one missed night passes (a run cut short by the API quota goes on the next night), two in a
+      # row fail: then look at the update on the server (journalctl -u mastr-update.service).
+      - name: Data fresh (Datenstand)
+        if: ${{ !cancelled() }}
+        run: |
+          datenstand=$(curl --fail --silent --show-error --retry 3 https://api.mastr-data.de/meta/datenstand | jq -r .datenstand)
+          yesterday=$(TZ=Europe/Berlin date --date=yesterday +%F)
+          echo "Datenstand $datenstand"
+          if [[ $datenstand == null || $datenstand < $yesterday ]]; then
+            echo "::error::Datenstand $datenstand: the nightly update hasn't completed since then"
+            exit 1
+          fi

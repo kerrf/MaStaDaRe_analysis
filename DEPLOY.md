@@ -143,30 +143,34 @@ green, and the backend always goes live before the frontend that needs it.
 
 ```
 push to main
-  ├─ Backend checks    ruff (lint + format) → pytest
+  ├─ Backend checks    ruff (lint + format, security rules) → pytest
   ├─ Frontend checks   eslint → vite build
+  ├─ Security checks   gitleaks (secrets in any commit) → zizmor (the workflows)
   └─ Backend image     docker build → stored on ghcr.io
          │ all green
          ▼
   Deploy backend       server pulls the image → restart → /health → smoke test
          │ healthy       (else: back to the previous version, run turns red)
          ▼
-  Deploy frontend      Vercel production → the website answers
+  Deploy frontend      Vercel production → the website renders with data from the API
 ```
 
 | Job | Step | What it does |
 |---|---|---|
 | Backend checks | `uv sync --locked` | installs exactly the versions in `uv.lock`; fails if `uv.lock` doesn't match `pyproject.toml` |
-| | `ruff check` | finds bugs without running the code: undefined names, unused variables, likely mistakes (rules in `pyproject.toml`) |
+| | `ruff check` | finds bugs without running the code: undefined names, unused variables, likely mistakes, and security problems (Bandit's rules: SQL built from strings in the API, requests without a timeout, passwords in the code; rules in `pyproject.toml`) |
 | | `ruff format --check` | the code is formatted as `ruff format` would (120 columns) |
 | | `pytest` | the tests in `backend/tests` |
 | Frontend checks | `npm ci`, `npm run lint`, `npm run build` | the same for the frontend: exact versions from `package-lock.json`, ESLint, Vite build |
+| Security checks | gitleaks | searches every commit of the history for secrets: API keys, tokens, passwords, private keys. A finding is on GitHub already: replace that secret (new key, new password), then remove it from the code. A false alarm: its fingerprint (in the log) into `.gitleaksignore` |
+| | zizmor | the security of the workflows themselves, which hold the keys to the server and to Vercel: injection through `${{ }}` expressions, too broad permissions, credentials left on disk, actions not pinned. Online it also checks that each pinned commit belongs to its action and that no action in use has a known vulnerability, also for Dependabot's updates |
 | Backend image | build, store | builds the `Dockerfile` once and stores it on ghcr.io (GitHub's registry), named by the commit: what was checked is exactly what runs. Layers that didn't change come from a cache, so a code change rebuilds in about a minute |
 | Deploy backend | `deploy/deploy_backend.sh` | on the server: notes the running version as the way back, sets the repo files (compose.yml, Caddyfile) to the commit, swaps in the new image and waits until `/health` answers (it checks the database too). Not healthy within 2 minutes: back to the previous version. Caddy holds requests during the swap, so visitors see no errors |
 | | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare. A route also fails when the server's database lacks a view the new code reads. Fails: `deploy/rollback_backend.sh` |
-| Deploy frontend | `vercel deploy --prod` | Vercel builds and publishes the frontend, as it used to on every push; its own deploys of `main` are off (`frontend/vercel.json`), so the website changes only here. Then checks that www.mastr-data.de answers |
+| Deploy frontend | `vercel deploy --prod` | Vercel builds and publishes the frontend, as it used to on every push; its own deploys of `main` are off (`frontend/vercel.json`), so the website changes only here |
+| | `deploy/check_website.sh` | opens www.mastr-data.de in a headless Chrome like a visitor: the app has to render and show the four figures of the start page, which it loads from the API. A blank page (a broken bundle) or a frontend that can't reach the backend fails here; a plain HTTP check would let both pass |
 
-Pull requests (Dependabot's) run only the three checks. `Run workflow` on
+Pull requests (Dependabot's) run only the four checks. `Run workflow` on
 the Actions tab runs it for `main` again, e.g. after pushing the database.
 
 ### Once: secrets (GitHub → repo → Settings → Secrets and variables → Actions)
@@ -208,9 +212,6 @@ ssh-keygen -F 152.53.185.75 | grep -v '^#'
 
 Its output is the value of `NETCUP_KNOWN_HOSTS`.
 
-Also once: Settings → Advanced Security → **Dependabot security updates** on
-(security fixes as pull requests right away, see Dependabot below).
-
 The images on ghcr.io stay private: the server pulls with the run's own token,
 which expires when the run ends. After the first deploy, the old locally built
 image can go: `docker image rm mastr-backend` on the server (the deploy keeps
@@ -223,6 +224,9 @@ GitHub sends an email; the run's page shows which step failed and why.
 - **Checks:** fix it locally, push again. Most of it the pre-commit hook
   catches before (below); `uv run ruff check --fix` and `uv run ruff format`
   fix most lint and format findings.
+- **Security checks:** gitleaks found a secret: it is on GitHub, so replace
+  it first (new key or password where it is used), then remove it from the
+  code. zizmor: its message names the line of the workflow and the fix.
 - **Deploy backend:** the previous version keeps running (or runs again). The
   usual cause: the new code reads a view the server's database doesn't have
   yet. Push the database first (`./deploy/push_db.sh`, §12), then `Run
@@ -257,7 +261,30 @@ uv run pre-commit install
 From then on, `git commit` runs ruff (the same version as the pipeline, from
 `uv.lock`) on the changed Python files, fixes and formats them, and stops the
 commit if it changed something: look at it, `git add`, commit again. It also
-stops files over 25 MB and private keys from being committed.
+stops secrets (gitleaks: API keys, tokens, passwords, private keys) before
+they ever reach GitHub, files over 25 MB, and, when a workflow changed,
+checks it (zizmor for its security, actionlint for mistakes). gitleaks and
+actionlint are built once on first use, which needs Go installed.
+
+### Every morning: the live check (`.github/workflows/monitor.yml`)
+
+At 07:17 UTC GitHub checks the live site the way the pipeline checks a
+deploy: every API route (`deploy/smoke_test.sh`), the website in Chrome
+(`deploy/check_website.sh`), and that the data is fresh: the Datenstand may
+be one day old (a night cut short by the API quota), not two. When something
+fails, GitHub emails you. `Run workflow` on Actions → Monitor checks right
+now.
+
+### Once: in the repository's settings
+
+- Settings → Advanced Security → **Dependabot alerts** and **security
+  updates** on (security fixes as pull requests right away).
+- If the repository is public: **Secret scanning** with **Push protection**
+  on (free there): GitHub then refuses a push that contains a known kind of
+  token, before anyone can see it.
+- Settings → Rules → Rulesets → New branch ruleset for `main`: **Block force
+  pushes** and **Restrict deletions**: the history the deploys come from can't
+  be rewritten or lost by mistake.
 
 ## 11. Nightly update from the MaStR API
 

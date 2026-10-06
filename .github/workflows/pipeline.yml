@@ -1,14 +1,17 @@
 # The pipeline of mastr-data.de (DEPLOY.md, section 10, explains it step by step).
 #
 #   push / pull request
-#     ├─ Backend checks    ruff (lint + format) → pytest
+#     ├─ Backend checks    ruff (lint + format, security rules) → pytest
 #     ├─ Frontend checks   eslint → vite build
+#     ├─ Security checks   gitleaks (secrets in any commit) → zizmor (the workflows)
 #     └─ Backend image     docker build (on main: stored on ghcr.io)
 #            │ all green, and only on main
 #            ▼
 #     Deploy backend       server pulls the image → restart → /health → smoke test (fails: back to the previous version)
 #            ▼
-#     Deploy frontend      Vercel production → the website answers
+#     Deploy frontend      Vercel production → the website renders with data from the API
+#
+# Between deploys, monitor.yml checks the live site every morning.
 #
 # Pull requests (e.g. Dependabot's) only run the checks. Actions are pinned to a commit (a tag can be moved by whoever
 # controls the action); the comment names the version, Dependabot updates both.
@@ -93,6 +96,40 @@ jobs:
       - name: Build (vite build)
         run: npm run build
 
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Every commit: a secret stays readable in the history after the file is fixed
+          fetch-depth: 0
+
+      # API keys, tokens, passwords, private keys (the hook in .pre-commit-config.yaml stops them on `git commit`; this
+      # catches what came another way). A finding is on GitHub already: replace that secret first, then remove it. A
+      # false alarm: its fingerprint into .gitleaksignore. --redact: the log never shows the secret. The version is the
+      # hook's: update both together.
+      - name: Secrets in any commit (gitleaks)
+        run: >-
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/repo:ro"
+          ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --redact --no-banner
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23" # as in the Dockerfile
+          python-version: "3.12" # as in the Dockerfile
+          enable-cache: true
+
+      # zizmor from uv.lock, as in the hook. Beyond the hook it checks online that every pinned commit belongs to its
+      # action and that no action in use has a known vulnerability: also for Dependabot's updates, which no hook sees.
+      - name: Workflow security (zizmor)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run --locked --only-group dev zizmor --format github .github/
+
   image:
     name: Backend image
     runs-on: ubuntu-latest
@@ -128,7 +165,7 @@ jobs:
 
   deploy-backend:
     name: Deploy backend
-    needs: [backend, frontend, image]
+    needs: [backend, frontend, security, image]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -167,7 +204,9 @@ jobs:
         run: printf '%s' "$TOKEN" | ssh server docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
       - name: Deploy (deploy/deploy_backend.sh on the server)
-        run: ssh server "cd '$DEPLOY_PATH' && SHA='$GITHUB_SHA' IMAGE='$IMAGE' bash -s" < deploy/deploy_backend.sh
+        run: |
+          # shellcheck disable=SC2029 # the values are this run's, put into the command here on purpose
+          ssh server "cd '$DEPLOY_PATH' && SHA='$GITHUB_SHA' IMAGE='$IMAGE' bash -s" < deploy/deploy_backend.sh
 
       # Every route the website uses, through Cloudflare as visitors reach it. Also catches a database that lacks a view
       # the new code reads (then push the database and run the pipeline again).
@@ -211,5 +250,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: npx --yes vercel@62.2.0 deploy --prod --yes --token "$VERCEL_TOKEN"
 
-      - name: Check the website
-        run: curl --fail --silent --show-error --retry 3 --retry-delay 5 --output /dev/null https://www.mastr-data.de/
+      # Like a visitor, in Chrome: the page renders and shows the register's figures from the API. A blank page (a
+      # broken bundle) or a frontend that can't reach the backend fails here; a plain HTTP check would let both pass.
+      - name: Check the website (deploy/check_website.sh)
+        run: ./deploy/check_website.sh

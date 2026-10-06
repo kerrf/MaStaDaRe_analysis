@@ -17,7 +17,7 @@ class Downloader_MSDR:
 
     def get_downlad_url(self) -> str | int:
 
-        r = requests.get(url=self.url)
+        r = requests.get(url=self.url, timeout=60)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
 
@@ -37,7 +37,8 @@ class Downloader_MSDR:
 
     def download_zip(self, url: str, name: str, dest: str = "", size: int = 0) -> None:
 
-        with requests.get(url, stream=True) as r:
+        # Connect within 30 s, and at most 5 minutes without a byte: a stalled download fails instead of hanging
+        with requests.get(url, stream=True, timeout=(30, 300)) as r:
             r.raise_for_status()
 
             total = r.headers.get("content-length", size)

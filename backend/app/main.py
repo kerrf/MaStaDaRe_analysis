@@ -77,4 +77,5 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    # Only this machine: the container starts its own server, on all of its interfaces (Dockerfile)
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
