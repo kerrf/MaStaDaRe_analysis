@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Download, Search } from 'lucide-react';
+import AggregateControl from '../../components/charts/AggregateControl';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
@@ -277,14 +278,6 @@ function KommunePanel({ profile, what, scope, row, split, peers, parentRow, pare
 
 // ----------------------------------------------------------------------------------------------------------- timeline
 
-const VIEWS = [
-  { id: 'zubau', label: 'Zubau' },
-  { id: 'bestand', label: 'Bestand' },
-];
-const STYLES = [
-  { id: 'balken', label: 'Balken' },
-  { id: 'kurve', label: 'Kurve' },
-];
 // Small areas in the next smaller unit: "350 kW" reads better than "0,35 MW"
 const SMALLER = { MW: 'kW', MWh: 'kWh' };
 
@@ -295,8 +288,10 @@ const SMALLER = { MW: 'kW', MWh: 'kWh' };
  */
 function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectionLabel, fileBase }) {
   const data = useJson(`${API_BASE_URL}${timeline.path}?region=${scopeKey}${timeline.withSelection && query ? `&${query}` : ''}`);
-  const [view, setView] = useState('zubau');
+  // Aggregiert: the Bestand at each year's end instead of the Zubau per year
+  const [aggregiert, setAggregiert] = useState(false);
   const [style, setStyle] = useState('kurve');
+  const view = aggregiert ? 'bestand' : 'zubau';
   const [measureId, setMeasureId] = useState(timeline.measures[0].id);
   const measure = timeline.measures.find((m) => m.id === measureId) ?? timeline.measures[0];
   const bestand = view === 'bestand';
@@ -347,15 +342,7 @@ function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectio
       className="timeline-card"
     >
       <div className="timeline__controls">
-        <SegmentedControl label="Größe" options={VIEWS} value={view} onChange={setView} />
-        <SegmentedControl
-          label="Darstellung"
-          options={STYLES}
-          value={bestand ? style : 'balken'}
-          onChange={setStyle}
-          disabled={!bestand}
-          hint="Als Kurve: der Bestand"
-        />
+        <AggregateControl aggregiert={aggregiert} onAggregiert={setAggregiert} style={style} onStyle={setStyle} />
         {timeline.measures.length > 1 && (
           <SegmentedControl label="Messgröße" options={timeline.measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
         )}

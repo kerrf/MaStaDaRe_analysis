@@ -1500,7 +1500,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .timeline__controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -1511,6 +1511,59 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .timeline__controls .segmented__option {
   flex: none;
   padding: 0 14px;
+}
+
+/* "aggregiert" and, once on, Balken or Kurve below it: one box at the start of the controls */
+.aggregate {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.aggregate .switch {
+  border: 0;
+  background: transparent;
+}
+
+.aggregate__style {
+  display: flex;
+  gap: 2px;
+  margin: 0 6px 6px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+}
+
+.aggregate__option {
+  flex: 1 1 0;
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.aggregate__option:hover:not(.is-active) {
+  color: var(--ink-primary);
+  background: var(--surface-hover);
+}
+
+.aggregate__option.is-active {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.aggregate__option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .timeline__select {

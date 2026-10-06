@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
+import AggregateControl from '../../components/charts/AggregateControl';
 import StackedChart from '../../components/charts/StackedChart';
 import { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
@@ -13,17 +14,6 @@ const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'A
 const VIEWS = [
   { id: 'jahr', label: 'Jährlich' },
   { id: 'monat', label: 'Monatlich' },
-];
-// Zubau: what went into operation in each year or month; Bestand: what was in operation at its end, added up over the
-// years (minus what was finally decommissioned)
-const MEASURES = [
-  { id: 'zubau', label: 'Zubau' },
-  { id: 'bestand', label: 'Bestand' },
-];
-// The Bestand as bars or as a curve; the Zubau of each period is always a bar
-const STYLES = [
-  { id: 'balken', label: 'Balken' },
-  { id: 'kurve', label: 'Kurve' },
 ];
 const LAST_12 = 'letzte-12';
 const ALL = 'alle';
@@ -108,8 +98,11 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
 
   const [view, setView] = useState('jahr');
   const [range, setRange] = useState(LAST_12);
-  const [measure, setMeasure] = useState('zubau');
+  // Not aggregiert: the Zubau, what went into operation in each year or month. Aggregiert: the Bestand, what was in
+  // operation at its end, added up over the years (minus what was finally decommissioned), as bars or a curve.
+  const [aggregiert, setAggregiert] = useState(false);
   const [style, setStyle] = useState('kurve');
+  const measure = aggregiert ? 'bestand' : 'zubau';
   const [hidden, setHidden] = useState(() => new Set());
 
   const visible = useMemo(() => series.filter((s) => !hidden.has(s.id)), [series, hidden]);
@@ -119,7 +112,7 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
   );
   const years = table ? Array.from({ length: table.latest.year - since + 1 }, (_, i) => String(table.latest.year - i)) : [];
 
-  const bestand = measure === 'bestand';
+  const bestand = aggregiert;
   const isCurve = bestand && style === 'kurve';
   const solar = hasNetto ? ` · Solar ${netto ? 'Netto (AC)' : 'Brutto (DC)'}` : '';
   const subtitle = bestand
@@ -127,7 +120,7 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
     : `Deutschland · neu in Betrieb genommene ${quantity} je ${view === 'jahr' ? 'Jahr' : 'Monat'}${solar}`;
 
   // The CSV: what the chart shows, a row per year or month and a column per series shown
-  const measureLabel = MEASURES.find((m) => m.id === measure).label;
+  const measureLabel = bestand ? 'Bestand' : 'Zubau';
   const columnOf = (s) => `${measureLabel} ${s.label}${s.netto ? (netto ? ' netto' : ' brutto') : ''} (${unit})`;
   const csv = {
     name: 'zeitverlauf',
@@ -161,15 +154,7 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
     <AnalysisPanel id={anchor} icon={analysis.icon} title={title} lead={subtitle} className="timeline-card">
       {/* Every control always in its place: only the Zeitraum of the months comes and goes, at the end */}
       <div className="timeline__controls">
-        <SegmentedControl label="Größe" options={MEASURES} value={measure} onChange={setMeasure} />
-        <SegmentedControl
-          label="Darstellung"
-          options={STYLES}
-          value={bestand ? style : 'balken'}
-          onChange={setStyle}
-          disabled={!bestand}
-          hint="Als Kurve: der Bestand"
-        />
+        <AggregateControl aggregiert={aggregiert} onAggregiert={setAggregiert} style={style} onStyle={setStyle} />
         <SegmentedControl label="Zeitraster" options={VIEWS} value={view} onChange={setView} />
         {view === 'monat' && (
           <>

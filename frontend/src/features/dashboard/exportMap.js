@@ -2,9 +2,10 @@ import { SITE } from '../../config/site';
 import { saveFile } from '../../lib/files';
 import { formatDate } from '../../lib/format';
 
+// The site first, then the data it builds on
 const sourceLine = (datenstand) =>
-  `Quelle: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · Datenstand ${formatDate(datenstand)} · ` +
-  `Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth · ${SITE.url.replace('https://', '')}`;
+  `Quelle: ${SITE.url.replace('https://', '')} · Daten: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · ` +
+  `Datenstand ${formatDate(datenstand)} · Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth`;
 
 const SCALE = 2;
 // The layers Leaflet draws: a canvas or SVG per renderer, an image per overlay (heatmap), each right inside its pane

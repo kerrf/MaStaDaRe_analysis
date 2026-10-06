@@ -241,6 +241,7 @@ test.ipynb
 *.shp
 data
 TODO.md
+docs/ROLLOUT_PLAN.md
 .vscode
 *tempCodeRunnerFile.py
 commit_names.md
