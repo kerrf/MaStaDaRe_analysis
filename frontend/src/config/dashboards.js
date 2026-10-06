@@ -249,10 +249,6 @@ export const ERZEUGER = {
       view: 'anlagen',
     },
   ],
-  todos: [
-    'Backend: Bundesland-Spalte in die PLZ-Rollups aufnehmen, damit die Rangliste im Bundesland-Modus auch PLZ-Regionen filtern kann (Landkreise/Gemeinden filtern schon über den Gemeindeschlüssel).',
-    'Weitere Technologien: statsPath in src/config/dashboards.js setzen, sobald die Endpoints existieren.',
-  ],
 };
 
 // The size classes of the battery timelines (aggregate_zubau.sql)
