@@ -627,9 +627,11 @@
   box-sizing: content-box;
 }
 
+/* Measured on a canvas to place them (PlaceLabels.jsx), which knows no font-size-adjust: drawn as measured */
 .place__name {
   position: absolute;
   font-family: var(--font-sans);
+  font-size-adjust: none;
   line-height: 1;
   white-space: nowrap;
   color: var(--ink-primary);
@@ -2795,12 +2797,14 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-primary);
 }
 
-/* The names of the Gemeinden on the map: dark with a light halo, readable on every background */
+/* The names of the Gemeinden on the map: dark with a light halo, readable on every background. Measured on a canvas
+   (KommuneMap.jsx), which knows no font-size-adjust: drawn as measured */
 .gemeinde-label span {
   position: absolute;
   transform: translate(-50%, -50%);
   white-space: nowrap;
   font-size: 12px;
+  font-size-adjust: none;
   font-weight: 600;
   color: #101828;
   text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 6px rgba(255, 255, 255, 0.9);

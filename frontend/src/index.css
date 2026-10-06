@@ -19,6 +19,7 @@ body {
   min-width: 320px;
   font-family: var(--font-sans);
   font-size: 15px;
+  font-size-adjust: var(--font-size-adjust);
   line-height: 1.55;
   color: var(--ink-primary);
   background: var(--surface-page);
