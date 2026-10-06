@@ -126,6 +126,12 @@
   gap: 16px;
 }
 
+.preview__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .preview__legend {
   flex: 1;
   max-width: 220px;
@@ -572,6 +578,10 @@
   border-radius: var(--radius-lg);
   background: var(--surface-card);
   box-shadow: var(--shadow-sm);
+}
+
+.targets-overview__foot {
+  grid-column: 1 / -1;
 }
 
 .targets-overview__more {

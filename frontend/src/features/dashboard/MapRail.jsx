@@ -10,9 +10,10 @@ const RANKING = 'rangliste';
  * technology's analyses of one area (config scopeAnalysesOf: Ausrichtung, Anlagengröße) of the area in view, or of the
  * one clicked on the map (picked: { key, name }, let go by onClearPick).
  *
- * ranking: the Rangliste (RankingPanel), with its title and subtitle; query: the technology's selection for the API
+ * ranking: the Rangliste (RankingPanel), with its title and subtitle; query: the technology's selection for the API;
+ * fileBase: of the analyses' CSV ("mastr_solar")
  */
-export default function MapRail({ analyses, tab, onTab, ranking, rankingTitle, rankingSubtitle, scopeKey, scopeName, picked, onClearPick, query }) {
+export default function MapRail({ analyses, tab, onTab, ranking, rankingTitle, rankingSubtitle, scopeKey, scopeName, picked, onClearPick, query, fileBase }) {
   const tabs = [{ id: RANKING, label: 'Rangliste' }, ...analyses.map(({ id, label }) => ({ id, label }))];
   const current = tabs.find((t) => t.id === tab) ?? tabs[0];
   const analysis = analyses.find((a) => a.id === current.id);
@@ -58,7 +59,7 @@ export default function MapRail({ analyses, tab, onTab, ranking, rankingTitle, r
             </button>
           </div>
         )}
-        {analysis ? <Chart key={`${analysis.id}-${region}`} path={analysis.path} region={region} query={query} /> : ranking}
+        {analysis ? <Chart key={`${analysis.id}-${region}`} path={analysis.path} region={region} query={query} fileBase={fileBase} /> : ranking}
       </div>
     </aside>
   );

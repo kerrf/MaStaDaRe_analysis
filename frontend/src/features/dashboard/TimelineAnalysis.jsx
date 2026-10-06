@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
+import { fileName, round } from '../../lib/files';
 import AnalysisPanel from './AnalysisPanel';
 
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -86,8 +88,8 @@ function buildPeriods({ byPeriod, latest }, { view, range, measure }, series, si
 
 // "Zubau im Zeitverlauf": Germany-wide, per year or month, with the series stacked (etl/queries/aggregate_zubau.sql).
 // leistung: the solar Leistung chosen (null: the default, Netto); leistungOption and onLeistung: the choice of it (the
-// solar technology's leistung config), switchable right here. anchor: its id.
-export default function TimelineAnalysis({ analysis, leistung, leistungOption, onLeistung, anchor }) {
+// solar technology's leistung config), switchable right here. anchor: its id; fileBase: of its CSV ("mastr_erzeuger").
+export default function TimelineAnalysis({ analysis, leistung, leistungOption, onLeistung, anchor, fileBase }) {
   const { title, timeline } = analysis;
   const { series, since, unit, quantity } = timeline;
   const netto = leistung?.id !== 'brutto';
@@ -123,6 +125,29 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
   const subtitle = bestand
     ? `Deutschland · installierte ${quantity} am ${view === 'jahr' ? 'Jahresende' : 'Monatsende'}${solar}`
     : `Deutschland · neu in Betrieb genommene ${quantity} je ${view === 'jahr' ? 'Jahr' : 'Monat'}${solar}`;
+
+  // The CSV: what the chart shows, a row per year or month and a column per series shown
+  const measureLabel = MEASURES.find((m) => m.id === measure).label;
+  const columnOf = (s) => `${measureLabel} ${s.label}${s.netto ? (netto ? ' netto' : ' brutto') : ''} (${unit})`;
+  const csv = {
+    name: 'zeitverlauf',
+    filename: fileName(
+      fileBase,
+      analysis.id.replace('timeline', 'zeitverlauf'),
+      measure,
+      view === 'jahr' ? 'jaehrlich' : `monatlich-${range}`,
+      hasNetto && (netto ? 'netto' : 'brutto'),
+    ),
+    rows: () =>
+      periods.map((period) => {
+        const [year, month] = period.key.split('-').map(Number);
+        return {
+          Jahr: year,
+          ...(month ? { Monat: month } : {}),
+          ...Object.fromEntries(visible.map((s) => [columnOf(s), round(period.values[s.id])])),
+        };
+      }),
+  };
 
   const toggle = (id) =>
     setHidden((prev) => {
@@ -218,12 +243,14 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
         })}
       </div>
 
-      <p className="timeline__note">
-        Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister.{' '}
-        {isCurve ? '' : 'Hell: laufendes Jahr bzw. laufender Monat. '}
-        Die letzten zwei bis drei Monate steigen noch, weil viele Anlagen erst Wochen nach der Inbetriebnahme
-        registriert werden.{timeline.note && ` ${timeline.note}`}
-      </p>
+      <ChartFoot csv={table && visible.length ? csv : null}>
+        <p className="timeline__note">
+          Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister.{' '}
+          {isCurve ? '' : 'Hell: laufendes Jahr bzw. laufender Monat. '}
+          Die letzten zwei bis drei Monate steigen noch, weil viele Anlagen erst Wochen nach der Inbetriebnahme
+          registriert werden.{timeline.note && ` ${timeline.note}`}
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }

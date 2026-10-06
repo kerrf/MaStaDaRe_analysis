@@ -1,9 +1,11 @@
 import { Flag, Gauge, Sun, Target } from 'lucide-react';
 import { FigureBlock, FigureRow } from '../../components/ui/FigureBlock';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { API_BASE_URL } from '../../config/site';
 import { TARGETS, neededPerYear, yearsLeft } from '../../config/targets';
 import { useDatenstand, useJson } from '../../lib/data';
+import { fileName, round } from '../../lib/files';
 import { formatAmountFine, formatDate, formatNumber, formatPercent } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -89,6 +91,42 @@ export default function KommuneTargets({ scope, parent, einwohnerDE }) {
   const g2040 = goal(2040);
   const pace = g2030.needed ? h.added / g2030.needed : 1;
   const paceDE = g2030.neededDE ? de.added / g2030.neededDE : 1;
+  // The CSV: every figure of the blocks, as a number with its unit
+  const csv = {
+    name: 'ausbauziel',
+    filename: fileName('mastr_solar_ausbauziel', scope.key),
+    rows: () =>
+      [
+        ['Installierte Leistung', parent.name, p.installed, 'MW'],
+        ['Installierte Leistung', scope.name, h.installed, 'MW'],
+        ['davon Gebäude', scope.name, h.gebaeude, 'MW'],
+        ['davon Freifläche', scope.name, h.freiflaeche, 'MW'],
+        [`Anteil an ${parent.name}`, scope.name, (100 * h.installed) / p.installed, '%'],
+        ['Einwohner', scope.name, scope.einwohner, 'Anzahl'],
+        ['Anteil an den Einwohnern Deutschlands', scope.name, 100 * populationShare, '%'],
+        ['Bundesziel 2030 (EEG)', 'Deutschland', g2030.target, 'MW'],
+        ['Bundesziel 2030 erreicht', 'Deutschland', 100 * g2030.reachedDE, '%'],
+        ['Anteil am Ziel 2030 nach Einwohnern', scope.name, g2030.fair, 'MW'],
+        ['Anteil am Ziel 2030 erreicht', scope.name, 100 * g2030.reached, '%'],
+        ['Beitrag zum Bundesziel 2030', scope.name, (100 * h.installed) / g2030.target, '%'],
+        [`Zubau ${h.fullYear}`, scope.name, h.added, 'MW'],
+        ['Nötig je Jahr bis Ende 2030', scope.name, g2030.needed, 'MW/Jahr'],
+        ['Tempo: Zubau gegenüber dem nötigen', scope.name, 100 * pace, '%'],
+        [`Zubau ${de.fullYear}`, 'Deutschland', de.added, 'MW'],
+        ['Nötig je Jahr bis Ende 2030', 'Deutschland', g2030.neededDE, 'MW/Jahr'],
+        ['Tempo: Zubau gegenüber dem nötigen', 'Deutschland', 100 * paceDE, '%'],
+        ['Bundesziel 2040 (EEG)', 'Deutschland', g2040.target, 'MW'],
+        ['Bundesziel 2040 erreicht', 'Deutschland', 100 * g2040.reachedDE, '%'],
+        ['Anteil am Ziel 2040 nach Einwohnern', scope.name, g2040.fair, 'MW'],
+        ['Anteil am Ziel 2040 erreicht', scope.name, 100 * g2040.reached, '%'],
+        ['Nötig je Jahr bis Ende 2040', scope.name, g2040.needed, 'MW/Jahr'],
+      ].map(([kennzahl, gebiet, wert, einheit]) => ({
+        Kennzahl: kennzahl,
+        Gebiet: gebiet,
+        Wert: round(wert, einheit === '%' ? 2 : 3),
+        Einheit: einheit,
+      })),
+  };
 
   return (
     <AnalysisPanel id="analyse-ziele" icon={Target} title={`Auf dem Weg zum Ausbauziel · ${scope.name}`} lead={lead} className="targets">
@@ -151,10 +189,12 @@ export default function KommuneTargets({ scope, parent, einwohnerDE }) {
           <FigureRow label="Nötig je Jahr bis Ende 2040" value={`${mw(g2040.needed)} / Jahr`} muted />
         </FigureBlock>
       </div>
-      <p className="timeline__note">
-        Der Anteil am Bundesziel nach Einwohnern ist ein rechnerischer Vergleich, kein amtliches Ziel: Freiflächen entstehen
-        eher auf dem Land, Dachanlagen eher dort, wo viele Menschen wohnen. Die Länder setzen teils eigene Ziele.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="timeline__note">
+          Der Anteil am Bundesziel nach Einwohnern ist ein rechnerischer Vergleich, kein amtliches Ziel: Freiflächen entstehen
+          eher auf dem Land, Dachanlagen eher dort, wo viele Menschen wohnen. Die Länder setzen teils eigene Ziele.
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }

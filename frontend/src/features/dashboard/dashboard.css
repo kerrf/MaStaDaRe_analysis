@@ -2165,6 +2165,10 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   font-size: 13.5px;
 }
 
+.ranking + .chart-foot {
+  margin-top: 10px;
+}
+
 .ranking tr + tr {
   border-top: 1px solid var(--border-subtle);
 }

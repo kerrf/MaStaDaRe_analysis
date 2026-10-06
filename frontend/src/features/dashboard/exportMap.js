@@ -1,16 +1,10 @@
 import { SITE } from '../../config/site';
+import { saveFile } from '../../lib/files';
 import { formatDate } from '../../lib/format';
 
 const sourceLine = (datenstand) =>
   `Quelle: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · Datenstand ${formatDate(datenstand)} · ` +
   `Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth · ${SITE.url.replace('https://', '')}`;
-
-function download(href, filename) {
-  const link = document.createElement('a');
-  link.href = href;
-  link.download = filename;
-  link.click();
-}
 
 const SCALE = 2;
 // The layers Leaflet draws: a canvas or SVG per renderer, an image per overlay (heatmap), each right inside its pane
@@ -78,7 +72,7 @@ async function capture(node) {
 
 export async function exportPng(node, filename) {
   const canvas = await capture(node);
-  download(canvas.toDataURL('image/png'), `${filename}.png`);
+  saveFile(canvas.toDataURL('image/png'), `${filename}.png`);
 }
 
 export async function exportPdf(node, filename, title, datenstand) {
@@ -102,19 +96,4 @@ export async function exportPdf(node, filename, title, datenstand) {
   pdf.setTextColor(102, 112, 133);
   pdf.text(sourceLine(datenstand), margin, pageH - margin + 4);
   pdf.save(`${filename}.pdf`);
-}
-
-const csvCell = (value) => {
-  const text = value == null ? '' : String(value);
-  return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-export function exportCsv(rows, filename) {
-  if (!rows?.length) return;
-  const headers = Object.keys(rows[0]);
-  const lines = [headers.map(csvCell).join(','), ...rows.map((row) => headers.map((h) => csvCell(row[h])).join(','))];
-  const blob = new Blob([`\uFEFF${lines.join('\n')}\n`], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  download(url, `${filename}.csv`);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

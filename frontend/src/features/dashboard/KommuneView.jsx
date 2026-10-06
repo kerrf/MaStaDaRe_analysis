@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Download, Search } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
 import { GRANULARITIES } from '../../config/dashboards';
@@ -10,10 +11,10 @@ import { BUNDESLAENDER, findBundeslandByAgs, isKreisKey } from '../../config/reg
 import { API_BASE_URL } from '../../config/site';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useJson, useStats, useTopology } from '../../lib/data';
+import { exportCsv, fileName, round, selectionSlug } from '../../lib/files';
 import { escapeHtml, formatFixed, formatNumber, formatPercent } from '../../lib/format';
 import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
-import { exportCsv } from './exportMap';
 import KommuneMap from './KommuneMap';
 import KommuneStorage from './KommuneStorage';
 import KommuneTargets from './KommuneTargets';
@@ -290,9 +291,9 @@ const SMALLER = { MW: 'kW', MWh: 'kWh' };
 /**
  * Zubau and Bestand per year in the Kreis or Gemeinde, the profile's series stacked (Solar: Gebäude and Freifläche,
  * mrt.solar_zubau_regions; batteries: the size classes, mrt.battery_zubau_regions), in one of its measures.
- * query: the page's selection, for a timeline withSelection; series: the ones to show
+ * query: the page's selection, for a timeline withSelection; series: the ones to show; fileBase: of its CSV
  */
-function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectionLabel }) {
+function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectionLabel, fileBase }) {
   const data = useJson(`${API_BASE_URL}${timeline.path}?region=${scopeKey}${timeline.withSelection && query ? `&${query}` : ''}`);
   const [view, setView] = useState('zubau');
   const [style, setStyle] = useState('kurve');
@@ -325,6 +326,18 @@ function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectio
   }, [data.data, bestand, series, measure, timeline.key]);
 
   const what = `${measure.quantity}${selectionLabel ? ` · ${selectionLabel}` : ''}`;
+  // The CSV: what the chart shows, a row per year, a column per series (in its unit: kW where MW would be too large)
+  const csv = periods.length
+    ? {
+        name: 'zubau-region',
+        filename: fileName(fileBase, view, measure.id, scopeKey, timeline.withSelection && selectionSlug(query)),
+        rows: () =>
+          periods.map((p) => ({
+            Jahr: Number(p.key),
+            ...Object.fromEntries(series.map((s) => [`${view === 'bestand' ? 'Bestand' : 'Zubau'} ${s.label} (${unit})`, round(p.values[s.id])])),
+          })),
+      }
+    : null;
   return (
     <AnalysisPanel
       id="analyse-zeitverlauf"
@@ -368,10 +381,12 @@ function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectio
           </span>
         ))}
       </div>
-      <p className="timeline__note">
-        Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister. {timeline.note} Hell: laufendes Jahr, das noch wächst, auch
-        weil Einheiten oft erst Wochen nach der Inbetriebnahme registriert werden.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="timeline__note">
+          Nach Inbetriebnahmedatum, Quelle: Marktstammdatenregister. {timeline.note} Hell: laufendes Jahr, das noch wächst,
+          auch weil Einheiten oft erst Wochen nach der Inbetriebnahme registriert werden.
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }
@@ -774,6 +789,13 @@ export default function KommuneView({ config, state }) {
           </div>
           <footer className="map-card__footer">
             <span>Quelle: Marktstammdatenregister (BNetzA) · Strg/⌘ + Mausrad zum Zoomen · Klick auf eine Gemeinde: ihr Steckbrief</span>
+            {mapStatus === 'ready' && (
+              <CsvLink
+                name="gemeinden-karte"
+                filename={fileName(`mastr_${technology.id}_gemeinden`, kreisAgs, selectionSlug(query))}
+                rows={() => [...gemeindeRows].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(profile.csv)}
+              />
+            )}
             <span className="map-card__credit">Grenzen und Einwohner: © GeoBasis-DE / BKG (2025), dl-de/by-2-0, Daten verändert</span>
           </footer>
         </section>
@@ -789,6 +811,7 @@ export default function KommuneView({ config, state }) {
         query={query}
         series={timelineSeries}
         selectionLabel={leistungLabel}
+        fileBase={`mastr_${technology.id}_zeitverlauf`}
       />
 
       <div className={`analyses-grid ${profile.analyses.length > 1 ? 'analyses-grid--pairs' : 'analyses-grid--single'}`}>
@@ -805,7 +828,15 @@ export default function KommuneView({ config, state }) {
                 </div>
               </header>
               <div className="card__body">
-                <Chart key={state.scopeKey} path={a.path} region={state.scopeKey} query={query} measure={a.measure} unitsLabel={profile.unitsLabel} />
+                <Chart
+                  key={state.scopeKey}
+                  path={a.path}
+                  region={state.scopeKey}
+                  query={query}
+                  measure={a.measure}
+                  unitsLabel={profile.unitsLabel}
+                  fileBase={`mastr_${technology.id}`}
+                />
               </div>
             </article>
           );

@@ -8,6 +8,7 @@ import { trackEvent } from '../../lib/usage';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { DEFAULT_SMOOTHING, SMOOTHINGS } from '../../lib/heatmap';
 import { statsUrl, useDatenstand, useJson, useStats, useTopology } from '../../lib/data';
+import { exportCsv } from '../../lib/files';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import ChoroplethMap from './ChoroplethMap';
 import KpiStrip from './KpiStrip';
@@ -18,7 +19,7 @@ import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
-import { exportCsv, exportPdf, exportPng } from './exportMap';
+import { exportPdf, exportPng } from './exportMap';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -339,16 +340,23 @@ export default function MapView({ config, state }) {
   const mapTitle = isSites ? 'Standorte' : isHeatmap ? (leistung ? `${metric.heat.legend} · ${leistung.label}` : metric.heat.legend) : metricLegend;
   const leistungNote = technology.leistung?.note;
   const layerLabel = isSites ? `${plantsLevel.label}${selectionNote}` : `${granularity.label}${selectionNote}`;
-  // The continuous map has no table: its Landkreise are only its Rangliste
-  const exportRows = isHeatmap ? null : mapData.data;
-  const fileBase = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}_${isSites ? plantsLevel.id : granularity.id}`;
+  // The table of the map: its areas or plants, or the points the continuous map spreads (kW or kWh, each with the width
+  // of its kernel)
+  const heatRows = () => {
+    const { lon, lat, sigma, value } = heat.data;
+    const measure = metric.heat.measure === 'capacity' ? 'Kapazität (kWh)' : 'Leistung (kW)';
+    return value.map((v, i) => ({ Längengrad: lon[i], Breitengrad: lat[i], [measure]: v, 'Kernbreite (km)': sigma[i] }));
+  };
+  const hasTable = isHeatmap ? Boolean(heat.data?.value.length) : Boolean(mapData.data);
+  const filePrefix = `mastr_${config.id}_${technology.id}_${kreisAgs ?? region?.code ?? 'de'}`;
+  const fileBase = `${filePrefix}_${isSites ? plantsLevel.id : granularity.id}`;
   const handleExport = async (kind) => {
     trackEvent('Kartenexport', { format: kind, karte: `${config.id}/${technology.id}` });
     setExporting(kind);
     try {
       if (kind === 'png') await exportPng(frameRef.current, fileBase);
       if (kind === 'pdf') await exportPdf(frameRef.current, fileBase, `${technology.label}: ${mapTitle} – ${scopeLabel} (${layerLabel})`, datenstand);
-      if (kind === 'csv') exportCsv(exportRows, fileBase);
+      if (kind === 'csv') exportCsv(isHeatmap ? heatRows() : mapData.data, fileBase);
     } finally {
       setExporting(null);
     }
@@ -385,7 +393,7 @@ export default function MapView({ config, state }) {
                   key={kind}
                   type="button"
                   className="export-group__btn"
-                  disabled={Boolean(exporting) || mapState !== 'ready' || (kind === 'csv' && !exportRows)}
+                  disabled={Boolean(exporting) || mapState !== 'ready' || (kind === 'csv' && !hasTable)}
                   onClick={() => handleExport(kind)}
                 >
                   {exporting === kind ? '…' : kind.toUpperCase()}
@@ -517,6 +525,7 @@ export default function MapView({ config, state }) {
                 status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? areasState : mapState}
                 labelFor={isSites ? (f) => f.properties.name : labelFor}
                 onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
+                fileBase={`${filePrefix}_${isSites ? plantsLevel.id : activeGranularity.id}_rangliste_${metric.id}`}
               />
             }
             scopeKey={state.scopeKey}
@@ -524,6 +533,7 @@ export default function MapView({ config, state }) {
             picked={picked}
             onClearPick={() => setPicked(null)}
             query={selectionQuery}
+            fileBase={`mastr_${technology.id}`}
           />
         </div>
 

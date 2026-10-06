@@ -2,15 +2,18 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { withoutOffshore } from '../../config/regions';
 import { useStats, useTopology } from '../../lib/data';
+import { round } from '../../lib/files';
 import { formatAmount } from '../../lib/format';
 import { project, toSvg } from '../../lib/svgMap';
 import { ERZEUGER_TIMELINE, SPEICHER_TIMELINE, URLS, sourceOf } from './homeData';
 
-// Zubau per year of a dashboard's timeline, stacked like on the dashboard (the latest year lighter: still running)
-function ZubauChart({ timeline, label }) {
+// Zubau per year of a dashboard's timeline, stacked like on the dashboard (the latest year lighter: still running).
+// filename: of its CSV
+function ZubauChart({ timeline, label, filename }) {
   const zubau = useStats(URLS.zubau);
   const periods = useMemo(() => {
     if (zubau.status !== 'ready') return null;
@@ -36,13 +39,27 @@ function ZubauChart({ timeline, label }) {
   return (
     <>
       <StackedChart periods={periods} series={timeline.series} kind="bars" unit={timeline.unit} label={label} />
-      <div className="chapter__legend">
-        {[...timeline.series].reverse().map((s) => (
-          <span key={s.id}>
-            <i style={{ background: s.color }} /> {s.label}
-          </span>
-        ))}
-      </div>
+      <ChartFoot
+        csv={{
+          name: 'zubau-start',
+          filename,
+          rows: () =>
+            periods.map((p) => ({
+              Jahr: Number(p.key),
+              ...Object.fromEntries(
+                timeline.series.map((s) => [`Zubau ${s.label}${s.netto ? ' netto' : ''} (${timeline.unit})`, round(p.values[s.id])]),
+              ),
+            })),
+        }}
+      >
+        <div className="chapter__legend">
+          {[...timeline.series].reverse().map((s) => (
+            <span key={s.id}>
+              <i style={{ background: s.color }} /> {s.label}
+            </span>
+          ))}
+        </div>
+      </ChartFoot>
     </>
   );
 }
@@ -65,24 +82,39 @@ function GasStorageMap() {
 
   if (!svg || storages.status !== 'ready') return <div className="chapter__loading skeleton" />;
   const largest = bubbles[0];
+  const csv = {
+    name: 'gasspeicher-start',
+    filename: 'mastr_gasspeicher_in_betrieb',
+    rows: () =>
+      bubbles.map((s) => ({
+        Name: s.name,
+        'Arbeitsgas (GWh)': round(s.total_capacity),
+        Breitengrad: s.lat,
+        Längengrad: s.lon,
+        'MaStR-Nummer': s.mastr_nummer,
+      })),
+  };
   return (
-    <svg viewBox={svg.viewBox} className="gas-map" role="img" aria-label="Gasspeicher in Deutschland, Kreisfläche nach Arbeitsgas">
-      {svg.shapes.map((shape) => (
-        <path key={shape.ags} d={shape.d} className="gas-map__land" />
-      ))}
-      {bubbles.map((s) => (
-        <circle key={s.mastr_nummer} cx={s.x} cy={s.y} r={s.r} className="gas-map__bubble">
-          <title>
-            {s.name}: {formatAmount(s.total_capacity, 'GWh')}
-          </title>
-        </circle>
-      ))}
-      {largest && (
-        <text className="gas-map__label" x={largest.x + largest.r + 8} y={largest.y} dy="0.35em">
-          {largest.name} · {formatAmount(largest.total_capacity, 'GWh')}
-        </text>
-      )}
-    </svg>
+    <>
+      <svg viewBox={svg.viewBox} className="gas-map" role="img" aria-label="Gasspeicher in Deutschland, Kreisfläche nach Arbeitsgas">
+        {svg.shapes.map((shape) => (
+          <path key={shape.ags} d={shape.d} className="gas-map__land" />
+        ))}
+        {bubbles.map((s) => (
+          <circle key={s.mastr_nummer} cx={s.x} cy={s.y} r={s.r} className="gas-map__bubble">
+            <title>
+              {s.name}: {formatAmount(s.total_capacity, 'GWh')}
+            </title>
+          </circle>
+        ))}
+        {largest && (
+          <text className="gas-map__label" x={largest.x + largest.r + 8} y={largest.y} dy="0.35em">
+            {largest.name} · {formatAmount(largest.total_capacity, 'GWh')}
+          </text>
+        )}
+      </svg>
+      <ChartFoot csv={csv} />
+    </>
   );
 }
 
@@ -98,7 +130,9 @@ const CHAPTERS = [
       'Wo in Deutschland Strom aus Sonne, Wind und Wasser entsteht – je Bundesland, Landkreis, Gemeinde und Postleitzahl, ' +
       'absolut, je km² oder je Einwohner. Dazu der Zubau seit 2000, die Ausrichtung der Module und die Größe der Anlagen.',
     caption: 'Neu in Betrieb genommene Leistung je Jahr',
-    visual: <ZubauChart timeline={ERZEUGER_TIMELINE} label="Zubau von Solar- und Windleistung je Jahr seit 2000" />,
+    visual: (
+      <ZubauChart timeline={ERZEUGER_TIMELINE} label="Zubau von Solar- und Windleistung je Jahr seit 2000" filename="mastr_erzeuger_zubau_jaehrlich" />
+    ),
   },
   {
     topic: 'speicher',
@@ -111,7 +145,9 @@ const CHAPTERS = [
       'Batteriespeicher vom Heimspeicher im Keller bis zum Großspeicher am Umspannwerk, dazu jedes Pumpspeicherkraftwerk ' +
       'mit Turbinen- und Pumpleistung – und wie viele Solaranlagen ihren Strom schon selbst speichern.',
     caption: 'Neue Batteriekapazität je Jahr, nach Größenklasse',
-    visual: <ZubauChart timeline={SPEICHER_TIMELINE} label="Zubau von Batteriekapazität je Jahr seit 2013" />,
+    visual: (
+      <ZubauChart timeline={SPEICHER_TIMELINE} label="Zubau von Batteriekapazität je Jahr seit 2013" filename="mastr_speicher_zubau_jaehrlich" />
+    ),
   },
   {
     topic: 'gas',

@@ -321,8 +321,8 @@ from. What it requests is in `homeData.js`.
   a dashboard as `[land]`, `[kreis]`, so the panel "Routes" adds up e.g. every Kreis map). A new choice in the query
   (technology, filters) is no page view. Cookieless; visitors are a daily hash, no IP addresses.
 - **Vercel Speed Insights** (`<SpeedInsights />`): loading times of real visitors per route.
-- **Custom events** (`trackEvent`): `Kartenexport` (format, map), `Tabellenexport` (analysis, level), `Technologie`
-  (dashboard, technology), `Filter` (parameter, choice), `Kartenansicht` (Kennzahl or Ebene). They need the Pro plan
+- **Custom events** (`trackEvent`): `Kartenexport` (format, map), `Tabellenexport` (analysis, level), `Grafikexport`
+  (chart), `Technologie` (dashboard, technology), `Filter` (parameter, choice), `Kartenansicht` (Kennzahl or Ebene). They need the Pro plan
   and are only sent with `VITE_ANALYTICS_EVENTS=true` (Vercel env); the Datenschutzerklärung mentions them only then.
   At most 2 properties each (Pro).
 
@@ -366,3 +366,14 @@ SVG of the focus mask, the heatmap's canvas) are copied first, each at its posit
 pane; html2canvas only adds what lies on top (place names, legend, chips), with the animations switched off. html2canvas
 alone misplaced Leaflet's layers once the map had moved (exports without shading, an offset mask). An SVG layer loses
 its style before it becomes an image: Leaflet places it with a CSS transform, which would move its content twice.
+
+The map's CSV holds its areas or plants with every value; on the continuous map, the points it spreads (position, kW
+or kWh, the width of each point's kernel).
+
+## CSV of every chart
+
+Each chart, the Rangliste and the Kreis map have their data as a CSV file: a small link at the right of the chart's
+foot (`components/ui/CsvLink.jsx`, `ChartFoot` beside its note or legend). The file holds what the chart shows, in
+its current settings (Zubau or Bestand, years or months, the series shown, the scope and the selection, which also
+name the file): numbers unformatted with a decimal point, units in the column names (`lib/files.js`, UTF-8 with a byte
+order mark for Excel). The Rangliste's file ranks all areas of the scope, not only the ten shown.

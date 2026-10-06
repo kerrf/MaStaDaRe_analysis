@@ -1,8 +1,10 @@
 import { BatteryCharging, Scale, Sun, TrendingUp, Users } from 'lucide-react';
 import { FigureBlock, FigureRow } from '../../components/ui/FigureBlock';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
+import { fileName, round } from '../../lib/files';
 import { formatAmountFine, formatFixed, formatNumber, formatPercent } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -95,6 +97,34 @@ export default function KommuneStorage({ scope, parent, einwohnerDE }) {
   const headMax = Math.max(...heads.map((x) => x.value)) || 1;
   const growth = h.before ? h.added / h.before : 0;
   const growthDE = de.before ? de.added / de.before : 0;
+  // The CSV: every figure of the blocks, as a number with its unit
+  const csv = {
+    name: 'speicher-vergleich',
+    filename: fileName('mastr_batterie_vergleich', scope.key),
+    rows: () =>
+      [
+        ['Speicherkapazität', parent.name, p.capacity, 'MWh'],
+        ['Speicherkapazität', scope.name, h.capacity, 'MWh'],
+        ...CLASSES.map((c) => [`davon ${c.label}`, scope.name, h.perClass[c.id], 'MWh']),
+        [`Anteil an ${parent.name}`, scope.name, (100 * h.capacity) / p.capacity, '%'],
+        ['Solarleistung (brutto)', scope.name, solar, 'MW'],
+        ['Speicherleistung', scope.name, h.power, 'MW'],
+        ['Speicherkapazität je Solarleistung', scope.name, perSolar, 'kWh/kW'],
+        ['Speicherkapazität je Solarleistung', 'Deutschland', perSolarDE, 'kWh/kW'],
+        [`Zubau ${h.fullYear}`, scope.name, h.added, 'MWh'],
+        [`Zubau ${h.fullYear - 1}`, scope.name, h.addedBefore, 'MWh'],
+        [`Zubau ${h.latest} bisher`, scope.name, h.addedSoFar, 'MWh'],
+        [`Wachstum ${h.fullYear}: Zubau auf den Bestand davor`, scope.name, 100 * growth, '%'],
+        [`Zubau ${de.fullYear}`, 'Deutschland', de.added, 'MWh'],
+        [`Wachstum ${de.fullYear}: Zubau auf den Bestand davor`, 'Deutschland', 100 * growthDE, '%'],
+        ...heads.map((x) => ['Speicherkapazität je Einwohner', x.label, x.value, 'kWh']),
+      ].map(([kennzahl, gebiet, wert, einheit]) => ({
+        Kennzahl: kennzahl,
+        Gebiet: gebiet,
+        Wert: round(wert, einheit === '%' ? 2 : 3),
+        Einheit: einheit,
+      })),
+  };
 
   return (
     <AnalysisPanel id="analyse-ziele" icon={Scale} title={title} lead={lead} className="targets">
@@ -162,10 +192,13 @@ export default function KommuneStorage({ scope, parent, einwohnerDE }) {
           ))}
         </FigureBlock>
       </div>
-      <p className="timeline__note">
-        Für Batteriespeicher gibt es kein gesetzliches Ausbauziel; die Blöcke vergleichen deshalb mit Solar, dem Land und
-        Deutschland. Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht enthalten.
-      </p>
+      <ChartFoot csv={csv}>
+        <p className="timeline__note">
+          Für Batteriespeicher gibt es kein gesetzliches Ausbauziel; die Blöcke vergleichen deshalb mit Solar, dem Land und
+          Deutschland. Speicher mit unplausibler Kapazität (unter 6 Minuten oder über 12 Stunden Volllast) sind nicht
+          enthalten.
+        </p>
+      </ChartFoot>
     </AnalysisPanel>
   );
 }

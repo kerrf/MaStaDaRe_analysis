@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Gauge, Target } from 'lucide-react';
+import { ChartFoot } from '../../components/ui/CsvLink';
 import { FigureBlock, FigureRow } from '../../components/ui/FigureBlock';
 import { API_BASE_URL } from '../../config/site';
 import { TARGETS, neededPerYear, yearsLeft } from '../../config/targets';
 import { useDatenstand, useStats } from '../../lib/data';
+import { round } from '../../lib/files';
 import { formatAmount, formatDate, formatNumber, formatPercent } from '../../lib/format';
 
 // The series of the targets, as Bruttoleistung (solar: 'solar', not 'solar_netto'), and their colours
@@ -37,6 +39,23 @@ export default function TargetsOverview() {
   });
   const ready = rows.every((r) => r.ready);
   const lastYear = rows[0].lastYear;
+  // The CSV: a row per technology, every figure of the two blocks
+  const csv = ready
+    ? {
+        name: 'ausbauziele',
+        filename: `mastr_ausbauziele_${YEAR}`,
+        rows: () =>
+          rows.map((r) => ({
+            Technologie: r.label,
+            'Installiert brutto (MW)': round(r.installed),
+            [`Ziel ${YEAR} (MW)`]: r.target,
+            'Erreicht (%)': round((100 * r.installed) / r.target, 2),
+            [`Zubau ${r.lastYear} (MW)`]: round(r.added),
+            [`Nötig je Jahr bis Ende ${YEAR} (MW)`]: round(r.needed),
+            'Tempo: Zubau gegenüber dem nötigen (%)': round(100 * r.pace, 2),
+          })),
+      }
+    : null;
 
   return (
     <div className="targets-overview">
@@ -83,12 +102,14 @@ export default function TargetsOverview() {
         )}
       </FigureBlock>
 
-      <p className="targets-overview__more">
-        Wie weit ist Ihr Landkreis, Ihre Gemeinde?{' '}
-        <Link to="/erzeuger/kommune" className="home-link">
-          Landkreis/Gemeinde ansehen <ArrowRight size={14} aria-hidden="true" />
-        </Link>
-      </p>
+      <ChartFoot csv={csv} className="targets-overview__foot">
+        <p className="targets-overview__more">
+          Wie weit ist Ihr Landkreis, Ihre Gemeinde?{' '}
+          <Link to="/erzeuger/kommune" className="home-link">
+            Landkreis/Gemeinde ansehen <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </p>
+      </ChartFoot>
     </div>
   );
 }

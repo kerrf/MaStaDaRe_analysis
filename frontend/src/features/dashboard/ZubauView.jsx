@@ -27,6 +27,7 @@ export default function ZubauView({ config, state }) {
               leistungOption={solar?.leistung}
               onLeistung={onLeistung}
               anchor={anchor}
+              fileBase={`mastr_${config.id}`}
             />
           );
         }
