@@ -7,7 +7,8 @@
 #     └─ Backend image     docker build (on main: stored on ghcr.io)
 #            │ all green, and only on main
 #            ▼
-#     Deploy backend       server pulls the image → restart → /health → smoke test (fails: back to the previous version)
+#     Deploy backend       server pulls the image → builds the views it needs → restart → /health → smoke test
+#                          (fails: back to the previous version)
 #            ▼
 #     Deploy frontend      Vercel production → the website renders with data from the API
 #
@@ -24,7 +25,7 @@ on:
     paths-ignore: ["**.md", "notebooks/**", "**.ipynb"]
   pull_request:
     branches: [main]
-  # The "Run workflow" button (Actions → Pipeline): deploys main again, e.g. after pushing the database
+  # The "Run workflow" button (Actions → Pipeline): deploys main again, e.g. when a deploy met the nightly update
   workflow_dispatch:
 
 # One run per branch at a time. On main every run finishes (a deploy must not stop halfway); on a pull request a newer
@@ -168,7 +169,8 @@ jobs:
     needs: [backend, frontend, security, image]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Usually a few minutes; building views takes longer (all of them, the first time: see DEPLOY.md, section 10)
+    timeout-minutes: 90
     environment:
       name: production
       url: https://api.mastr-data.de/health
@@ -194,7 +196,8 @@ jobs:
           install -m 600 /dev/null ~/.ssh/deploy_key
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  BatchMode yes\n  StrictHostKeyChecking yes\n' \
+          # Keepalives: a long view build sends nothing for minutes, the connection must not be dropped meanwhile
+          printf 'Host server\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  BatchMode yes\n  StrictHostKeyChecking yes\n  ServerAliveInterval 30\n  ServerAliveCountMax 6\n' \
             "$HOST" "$SSH_USER" > ~/.ssh/config
 
       # For this run only: the token expires when the job ends, the server keeps no lasting access to ghcr.io
@@ -208,8 +211,7 @@ jobs:
           # shellcheck disable=SC2029 # the values are this run's, put into the command here on purpose
           ssh server "cd '$DEPLOY_PATH' && SHA='$GITHUB_SHA' IMAGE='$IMAGE' bash -s" < deploy/deploy_backend.sh
 
-      # Every route the website uses, through Cloudflare as visitors reach it. Also catches a database that lacks a view
-      # the new code reads (then push the database and run the pipeline again).
+      # Every route the website uses, through Cloudflare as visitors reach it: the new code with the views it needs
       - name: Smoke test (deploy/smoke_test.sh)
         id: smoke
         run: ./deploy/smoke_test.sh

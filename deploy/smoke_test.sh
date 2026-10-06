@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 #
 # Calls every route the website uses, as the website does: each has to answer 200 with data (not an empty list). That
-# checks the code and the data at once, for a route fails too when the server's database lacks a view or the rows the
-# new code reads (push the database first, deploy/push_db.sh). The pipeline runs it after each backend deploy and goes
-# back if it fails.
+# checks the code and the data at once, for a route fails too when a view or the rows the new code reads are missing.
+# The pipeline runs it after each backend deploy and goes back if it fails, the daily check every morning.
 #
 #   ./deploy/smoke_test.sh                                   # the live API
 #   API_URL=http://localhost:8000 ./deploy/smoke_test.sh     # your local backend

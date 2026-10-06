@@ -6,4 +6,10 @@ After=docker.service
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/mastr
-ExecStart=/usr/bin/docker compose run --rm backend python -m app.etl.update
+# A run that hangs is stopped after 20 hours: while one runs, the timer starts no other, so it would block every night
+# after it. 20 hours leave room for a long night (the API quota ends a run anyway) and stop it before the next one.
+TimeoutStartSec=20h
+# One name: a second run can't start beside a running one
+ExecStart=/usr/bin/docker compose run --rm --name mastr_update backend python -m app.etl.update
+# After a stop (or the timeout) the container goes too, not only the command that started it
+ExecStopPost=-/usr/bin/docker rm --force mastr_update

@@ -19,8 +19,9 @@ services:
 
   backend:
     # On the server: the image the pipeline built for the deployed commit (deploy/deploy_backend.sh tags it).
-    # `docker compose build backend` builds the same from the code here instead.
-    image: mastr-api:live
+    # `docker compose build backend` builds the same from the code here instead. BACKEND_IMAGE: only for a one-off run of
+    # another image, like the deploy's view build with the new version before it goes live.
+    image: ${BACKEND_IMAGE:-mastr-api:live}
     build:
       context: .
       dockerfile: Dockerfile

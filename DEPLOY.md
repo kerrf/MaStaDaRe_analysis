@@ -149,7 +149,7 @@ push to main
   └─ Backend image     docker build → stored on ghcr.io
          │ all green
          ▼
-  Deploy backend       server pulls the image → restart → /health → smoke test
+  Deploy backend       server pulls the image → builds the views it needs → restart → /health → smoke test
          │ healthy       (else: back to the previous version, run turns red)
          ▼
   Deploy frontend      Vercel production → the website renders with data from the API
@@ -165,13 +165,38 @@ push to main
 | Security checks | gitleaks | searches every commit of the history for secrets: API keys, tokens, passwords, private keys. A finding is on GitHub already: replace that secret (new key, new password), then remove it from the code. A false alarm: its fingerprint (in the log) into `.gitleaksignore` |
 | | zizmor | the security of the workflows themselves, which hold the keys to the server and to Vercel: injection through `${{ }}` expressions, too broad permissions, credentials left on disk, actions not pinned. Online it also checks that each pinned commit belongs to its action and that no action in use has a known vulnerability, also for Dependabot's updates |
 | Backend image | build, store | builds the `Dockerfile` once and stores it on ghcr.io (GitHub's registry), named by the commit: what was checked is exactly what runs. Layers that didn't change come from a cache, so a code change rebuilds in about a minute |
-| Deploy backend | `deploy/deploy_backend.sh` | on the server: notes the running version as the way back, sets the repo files (compose.yml, Caddyfile) to the commit, swaps in the new image and waits until `/health` answers (it checks the database too). Not healthy within 2 minutes: back to the previous version. Caddy holds requests during the swap, so visitors see no errors |
-| | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare. A route also fails when the server's database lacks a view the new code reads. Fails: `deploy/rollback_backend.sh` |
+| Deploy backend | `deploy/deploy_backend.sh` | on the server: notes the running version as the way back, sets the repo files (compose.yml, Caddyfile) to the commit, **builds the views the new version needs** (below), swaps in the new image and waits until `/health` answers (it checks the database too). Not healthy within 2 minutes: back to the previous version. Caddy holds requests during the swap, so visitors see no errors. Last, it sets up the nightly update (§11) |
+| | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare. Fails: `deploy/rollback_backend.sh` |
 | Deploy frontend | `vercel deploy --prod` | Vercel builds and publishes the frontend, as it used to on every push; its own deploys of `main` are off (`frontend/vercel.json`), so the website changes only here |
 | | `deploy/check_website.sh` | opens www.mastr-data.de in a headless Chrome like a visitor: the app has to render and show the four figures of the start page, which it loads from the API. A blank page (a broken bundle) or a frontend that can't reach the backend fails here; a plain HTTP check would let both pass |
 
 Pull requests (Dependabot's) run only the four checks. `Run workflow` on
-the Actions tab runs it for `main` again, e.g. after pushing the database.
+the Actions tab runs it for `main` again, e.g. when a deploy met the nightly
+update.
+
+### The views: built by the deploy
+
+The dashboard reads its numbers from materialized views (schema `mrt`, the
+SQL in `backend/app/etl/queries/`). A new view or a changed SQL file needs no
+step of yours: the deploy runs `app/etl/transform.py` with the new image
+**before** the new version goes live, and it builds exactly the views whose
+file is new or changed (each view notes the SHA-256 of its file in its
+comment). It builds a view beside the live one, which keeps answering, and
+swaps them in one short transaction. If a build fails, the deploy stops: the
+previous version keeps running (views built before the failure are new
+already; views only grow, so it works with them).
+
+- Usually it builds one or two views, a minute or two each. The first deploy
+  after this was introduced builds all of them, as none carries its note yet:
+  about 15–30 minutes, once (the job waits up to 90).
+- While the nightly update runs (from 1:00, usually minutes), the deploy
+  refuses: run it again later (Actions → Pipeline → Run workflow).
+- Views only grow from one version to the next (new views, new columns): the
+  version before keeps working with them, also after a rollback. A column or
+  view that goes: first a version whose code no longer reads it, then one
+  without it in the SQL.
+- Locally the same, after changing a file: `cd backend`, then
+  `uv run python -m app.etl.transform` (no arguments).
 
 ### Once: secrets (GitHub → repo → Settings → Secrets and variables → Actions)
 
@@ -228,9 +253,9 @@ GitHub sends an email; the run's page shows which step failed and why.
   it first (new key or password where it is used), then remove it from the
   code. zizmor: its message names the line of the workflow and the fix.
 - **Deploy backend:** the previous version keeps running (or runs again). The
-  usual cause: the new code reads a view the server's database doesn't have
-  yet. Push the database first (`./deploy/push_db.sh`, §12), then `Run
-  workflow`. With database changes always in this order: database, then code.
+  log says where: the views (an error in a SQL file: fix it, push), the
+  nightly update was running (`Run workflow` later), the health check or the
+  smoke test (the step names the route).
 - **Deploy frontend:** the backend is already new (and compatible with the old
   frontend, as long as routes are only added); fix and push, or `Re-run
   failed jobs`.
@@ -305,8 +330,8 @@ so a night costs a few hundred detail calls instead of tens of thousands. Up to
 when each table is complete is noted in `meta.sync_state`: if the API quota or an
 interruption cuts a run short, the next one continues there.
 
-Afterwards it refreshes the dashboard's materialized views (schema `mrt`, created
-once by `transform.py`), so the website shows the new data. If nothing failed, it
+Afterwards it refreshes the dashboard's materialized views (schema `mrt`, built
+by the deploy with `transform.py`), so the website shows the new data. If nothing failed, it
 notes the **Datenstand** in `meta.update_runs`: the day up to which the data
 includes every change of the register. The API serves the newest one at
 `GET /meta/datenstand`, and the website shows it wherever it says "Datenstand"
@@ -314,13 +339,19 @@ includes every change of the register. The API serves the newest one at
 run keeps the previous Datenstand and exits with an error, visible in
 `systemctl status mastr-update.service`.
 
-Once, on the **server** (needs `webservice_key` in
-`backend/.env.production`, see step 3):
+**The deploy sets it up** (`deploy/deploy_backend.sh`, at its end): it
+installs `deploy/mastr-update.service` and `.timer` into systemd when they
+changed, with the repo folder as their working directory, and switches the
+timer on. It needs `webservice_key` in `backend/.env.production` (step 3).
+
+A run that hangs is stopped after 20 hours (`TimeoutStartSec`): while one runs,
+the timer starts no other, so a hung run would block every night after it.
+Its container has a fixed name, so two runs can't overlap.
+
+By hand, only before the pipeline's first deploy (as root on the server):
 
 ```bash
-sudo cp /opt/mastr/deploy/mastr-update.service /opt/mastr/deploy/mastr-update.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now mastr-update.timer
+cp /opt/mastr/deploy/mastr-update.service /opt/mastr/deploy/mastr-update.timer /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now mastr-update.timer
 ```
 
 Useful afterwards:
@@ -333,15 +364,13 @@ journalctl -u mastr-update.service -e        # the log of the last runs
 curl -s https://api.mastr-data.de/meta/datenstand   # the Datenstand the website shows
 ```
 
-If your deploy path isn't `/opt/mastr`, change `WorkingDirectory` in
-`deploy/mastr-update.service` first.
-
-**The refresh keeps a view's old definition.** A changed file in
-`backend/app/etl/queries/` reaches the server with the database: build the
-view locally, then run `deploy/push_db.sh` (section 12), which also brings new
-tables such as the gas ones.
+The refresh keeps each view's definition; a new or changed view comes with
+the deploy (section 10).
 
 ## 12. Push the local database to the server
+
+For new **data**, not for views (those come with the deploy, section 10):
+after loading a new bulk export locally, or new tables such as the gas ones.
 
 ```bash
 ./deploy/push_db.sh
@@ -417,13 +446,3 @@ hour, IP addresses, browsers, systems, endpoints, status codes, slow requests,
 crawlers) in a temporary folder of your session and opens it in the browser.
 The IP addresses are personal data: say so in the Datenschutzerklärung (done,
 section 3) and don't keep the logs or reports longer than needed.
-
-## Known gaps (not fixed by this deploy, by design)
-
-- `/solar/dashboard-stats` depends on `mrt.solar_rollup_stats` /
-  `mrt.solar_units_bundesland_agg`, which don't exist yet — the SQL to
-  build them exists (`backend/app/etl/queries/aggregate_pv_by_*.sql`) but
-  nothing runs it yet. This is the "whole update pipeline" to build later.
-- `MapPage.jsx` / `MapPage2.jsx` (`/map`, `/map2` routes) call backend
-  endpoints that don't exist — they look superseded by `MapPage3` (`/map3`)
-  and weren't touched.

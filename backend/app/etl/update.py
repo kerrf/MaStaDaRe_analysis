@@ -449,7 +449,7 @@ def upsert(conn: Connection, table_name: str, columns: tuple[str, ...], key: str
 
 def refresh_views(engine: Engine) -> list[str]:
     """Recompute the dashboard's materialized views from the updated tables. They read the raw and geo tables only,
-    so the order doesn't matter. (transform.py creates them, again after a change of their SQL.) Returns the failed ones."""
+    so the order doesn't matter. (transform.py builds them, with every deploy whose SQL changed.) Returns the failed ones."""
     with engine.connect() as conn:
         views = (
             conn.execute(

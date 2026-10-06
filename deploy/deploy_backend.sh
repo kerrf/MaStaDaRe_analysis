@@ -6,8 +6,11 @@
 #   1. pull the image of the commit from ghcr.io (the pipeline logged the server in for this run),
 #   2. note the way back: the commit and the image running now (deploy/rollback_backend.sh uses them),
 #   3. the repo files on the server (compose.yml, Caddyfile, deploy/) to the commit,
-#   4. start the new image and wait until the backend answers /health (compose.yml), else go back.
-# The database stays as it is: the data comes with deploy/push_db.sh and the nightly update.
+#   4. build the views the new version needs, with its image (app/etl/transform.py: new views, and those whose SQL
+#      changed; the old version keeps answering meanwhile). Fails: the files go back, the old version keeps running,
+#   5. start the new image and wait until the backend answers /health (compose.yml), else go back,
+#   6. set up the nightly update (deploy/mastr-update.service and .timer), so it can't be missing.
+# The data stays as it is: it comes with the nightly update (and deploy/push_db.sh for a new bulk export).
 
 set -Eeuo pipefail
 
@@ -29,6 +32,27 @@ backend_healthy() {
     sleep 2
   done
   return 1
+}
+
+# The nightly update's units into systemd, when they differ from the installed ones (the repo folder replaces
+# /opt/mastr), and its timer on. Needs root; the deploy goes on without it.
+install_nightly_update() {
+  [[ $EUID == 0 ]] || { info "not root: set up the nightly update by hand (DEPLOY.md, section 11)"; return 0; }
+  local unit changed=0
+  for unit in mastr-update.service mastr-update.timer; do
+    sed "s|^WorkingDirectory=.*|WorkingDirectory=$PWD|" "deploy/$unit" > "/tmp/$unit" || return 1
+    if ! cmp --silent "/tmp/$unit" "/etc/systemd/system/$unit"; then
+      install --mode 644 "/tmp/$unit" "/etc/systemd/system/$unit" || return 1
+      changed=1
+    fi
+    rm -f "/tmp/$unit"
+  done
+  if ((changed)); then
+    systemctl daemon-reload || return 1
+    info "nightly update: units installed"
+  fi
+  systemctl enable --now --quiet mastr-update.timer || return 1
+  info "nightly update: next run $(systemctl show mastr-update.timer --property=NextElapseUSecRealtime --value)"
 }
 
 # All in a function: the pipeline sends this script through ssh on stdin, and bash then has it read completely before
@@ -56,10 +80,21 @@ main() {
     info "no backend running yet: nothing to go back to"
   fi
 
-  step "Switching to ${SHA:0:7}"
+  step "Building the views of ${SHA:0:7}"
   local caddyfile_before
   caddyfile_before=$(git rev-parse HEAD:Caddyfile)
+  # The nightly update refreshes the views: building them beside it would hold up both
+  if systemctl is-active --quiet mastr-update.service 2> /dev/null; then
+    die "the nightly update is running. Run the pipeline again when it's done (Actions → Pipeline → Run workflow)"
+  fi
   git reset --quiet --hard "$SHA"
+  # With the new image and its SQL; the old backend keeps answering from the old views until each new one is ready
+  if ! BACKEND_IMAGE="$IMAGE:$SHA" docker compose run --rm --no-deps backend python -m app.etl.transform < /dev/null; then
+    git reset --quiet --hard refs/deploy/previous
+    die "building the views failed (see above). The previous version keeps running; views built before the failure are new already (views only grow, it works with them)"
+  fi
+
+  step "Switching to ${SHA:0:7}"
   docker tag "$IMAGE:$SHA" mastr-api:live
   # Only the ghcr.io name goes, the image stays as mastr-api:live
   docker rmi "$IMAGE:$SHA" > /dev/null
@@ -79,6 +114,9 @@ main() {
 
   # Keep two versions: live and previous. Older backend images have no name left and go (only ours, by their label).
   docker image prune --force --filter "label=org.opencontainers.image.source=https://github.com/kerrf/MaStaDaRe_analysis" > /dev/null
+
+  step "Nightly update"
+  install_nightly_update || info "could not set up the nightly update (see above); the new version is live anyway"
   step "Live: ${SHA:0:7}"
 }
 
