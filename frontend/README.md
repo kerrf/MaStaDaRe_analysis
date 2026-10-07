@@ -301,9 +301,11 @@ their grid lines.
 `FigureBlock` holds rows of `FigureRow`: a name, a value and a bar of its share of a named whole ("15,4 %"), under a
 head with icon, title, a chip with the gist (`good`/`fair`/`poor`/`neutral`) and an info. Used for the expansion
 targets – the national ones in `config/targets.js` (EEG 2023 § 4, WindSeeG § 1, in Bruttoleistung) – on the start page
-(`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace), and for the batteries of a Landkreis
-compared (`KommuneStorage.jsx`). Kreise and Gemeinden get no solar target: there is no official one, and a share of the
-national target by population would be made up.
+(`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace) and on the Landkreis/Gemeinde page
+(`KommuneTargets.jsx`: the area's solar against its Land or Kreis, how far Germany is with the targets for 2030 and 2040
+and what the area contributes to them, its Zubau beside Germany's pace). Kreise and Gemeinden get no target of their
+own: there is no official one, and a share of the national target (e.g. by population) would be made up. The batteries
+of a Landkreis are compared instead (`KommuneStorage.jsx`).
 
 ### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`, `config/kommune.js`)
 

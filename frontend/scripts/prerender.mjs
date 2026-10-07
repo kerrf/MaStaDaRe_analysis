@@ -246,7 +246,7 @@ const KOMMUNE_PAGES = [
       ['je Einwohner', `${formatNumber(row.relative_population_power, 2)} kW`],
       ['Zubau in 12 Monaten', power(row.added_12m_power)],
     ],
-    rest: (gemeinden) => `Zubau je Jahr, Ausrichtung, Anlagengröße und alle ${gemeinden} Gemeinden im Vergleich.`,
+    rest: (gemeinden) => `Zubau je Jahr, Ausbauziel 2030 und alle ${gemeinden} Gemeinden im Vergleich.`,
   },
   {
     config: SPEICHER,

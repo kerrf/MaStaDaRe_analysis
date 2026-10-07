@@ -19,6 +19,7 @@ import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
 import KommuneMap from './KommuneMap';
 import KommuneStorage from './KommuneStorage';
+import KommuneTargets from './KommuneTargets';
 import MapLegend from './MapLegend';
 import OrientationRose from './OrientationRose';
 import ScopeBar from './ScopeBar';
@@ -507,7 +508,7 @@ const CHARTS = { ausrichtung: OrientationRose, groesse: SizeDistribution };
 /**
  * The page "Landkreis/Gemeinde" of a dashboard: one Landkreis and its Gemeinden in depth for the dashboard's technology
  * (config/kommune.js: Solar for the Erzeuger, batteries for the Speicher) – on a detailed map with a background map, in
- * figures with rank and comparison, (batteries) in comparisons, Zubau and Bestand per year, its analyses, and every
+ * figures with rank and comparison, against targets or comparisons, Zubau and Bestand per year, its analyses, and every
  * Gemeinde in a table. Picking a Gemeinde (map, table, list, scope bar) narrows everything to it.
  */
 export default function KommuneView({ config, state }) {
@@ -838,6 +839,7 @@ export default function KommuneView({ config, state }) {
         </section>
       </div>
 
+      {profile.goals === 'solar' && <KommuneTargets scope={goalScope} parent={goalParent} />}
       {profile.goals === 'storage' && <KommuneStorage scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
 
       <RegionTimeline

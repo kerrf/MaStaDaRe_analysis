@@ -3088,7 +3088,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
     radial-gradient(circle at 72% 62%, #a39b6b 0 20%, transparent 21%), linear-gradient(135deg, #3f5a36, #5d6f43 55%, #7b7f55);
 }
 
-/* The key-figure blocks below the Landkreis map (KommuneStorage): two by two */
+/* The key-figure blocks below the Landkreis map (KommuneTargets, KommuneStorage): two by two */
 .targets__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

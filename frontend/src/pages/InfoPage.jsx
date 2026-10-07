@@ -44,7 +44,7 @@ const SOURCES = [
     href: 'https://www.naturalearthdata.com/',
   },
   {
-    data: 'Ausbauziele für Solar, Wind an Land und Wind auf See (Startseite)',
+    data: 'Ausbauziele für Solar, Wind an Land und Wind auf See (Startseite, Landkreis/Gemeinde)',
     source: 'Erneuerbare-Energien-Gesetz (EEG 2023), § 4; Windenergie-auf-See-Gesetz (WindSeeG), § 1',
     license: 'Amtliche Werke, gemeinfrei (§ 5 UrhG)',
     href: 'https://www.gesetze-im-internet.de/eeg_2014/__4.html',
