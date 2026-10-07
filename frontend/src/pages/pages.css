@@ -62,34 +62,6 @@
   padding-block: 32px 64px;
 }
 
-/* ------------------------------------------------------- Coming soon */
-.soon-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.check-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-  list-style: none;
-  color: var(--ink-secondary);
-}
-
-.check-list li {
-  display: flex;
-  gap: 10px;
-}
-
-.check-list svg {
-  flex: none;
-  margin-top: 4px;
-  color: var(--accent-strong, var(--brand-600));
-}
-
 /* ------------------------------------------------------------ Info page */
 .info-layout {
   display: grid;
@@ -306,8 +278,7 @@
 
 /* ------------------------------------------------------------ Responsive */
 @media (max-width: 860px) {
-  .info-layout,
-  .soon-grid {
+  .info-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 

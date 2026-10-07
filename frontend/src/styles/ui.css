@@ -11,10 +11,10 @@
   --accent-soft: var(--topic-speicher-soft);
 }
 
-[data-topic='maerkte'] {
-  --accent: var(--topic-maerkte);
-  --accent-strong: var(--topic-maerkte-strong);
-  --accent-soft: var(--topic-maerkte-soft);
+[data-topic='qualitaet'] {
+  --accent: var(--topic-qualitaet);
+  --accent-strong: var(--topic-qualitaet-strong);
+  --accent-soft: var(--topic-qualitaet-soft);
 }
 
 [data-topic='gas'] {

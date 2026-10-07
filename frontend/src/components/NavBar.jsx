@@ -5,11 +5,8 @@ import { SITE } from '../config/site';
 import { DASHBOARD_MENUS, VIEWS, viewPath } from '../config/views';
 import './NavBar.css';
 
-const MAERKTE = [
-  { label: 'Strom', to: '/maerkte/strom' },
-  { label: 'Gas', to: '/maerkte/gas' },
-  { label: 'CO₂', to: '/maerkte/co2' },
-];
+// How good the register's data is: one page for now, more to follow
+const DATENQUALITAET = [{ label: 'Datenqualität des MaStR', to: '/datenqualitaet' }];
 
 // The dashboards as menus of their pages (config/views.js): the page's name, and what it shows below it
 const DASHBOARDS = DASHBOARD_MENUS.map((menu) => ({
@@ -141,14 +138,14 @@ export default function NavBar() {
           ))}
 
           <Dropdown
-            id="maerkte"
-            label="Märkte"
-            active={pathname.startsWith('/maerkte')}
-            open={openMenu === 'maerkte'}
-            onOpen={() => setOpenMenu('maerkte')}
+            id="datenqualitaet"
+            label="Datenqualität"
+            active={pathname.startsWith('/datenqualitaet')}
+            open={openMenu === 'datenqualitaet'}
+            onOpen={() => setOpenMenu('datenqualitaet')}
             onClose={close}
           >
-            {MAERKTE.map((item) => (
+            {DATENQUALITAET.map((item) => (
               <NavLink key={item.to} to={item.to} className="navbar__menuItem">
                 {item.label}
                 <span className="badge badge--soon badge--xs">bald</span>

@@ -69,9 +69,6 @@ export default function HomePage() {
           </h2>
         </div>
         <Chapters />
-        <p className="chapters__next">
-          Als Nächstes: <Link to="/maerkte/strom">Märkte</Link> – Strom-, Gas- und CO₂-Preise als wirtschaftlicher Kontext.
-        </p>
       </section>
 
       <section className="container home-section" aria-labelledby="quelle-title">

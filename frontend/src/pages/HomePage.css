@@ -388,17 +388,6 @@
   height: 300px;
 }
 
-.chapters__next {
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-  font-size: 14px;
-  color: var(--ink-muted);
-}
-
-.chapters__next a {
-  font-weight: 650;
-}
-
 /* The gas storages as circles on the map */
 .gas-map {
   display: block;

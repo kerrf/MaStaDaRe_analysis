@@ -9,7 +9,7 @@ import NotFoundPage from './pages/NotFoundPage';
 const ErzeugerPage = lazy(() => import('./pages/ErzeugerPage'));
 const SpeicherPage = lazy(() => import('./pages/SpeicherPage'));
 const GasPage = lazy(() => import('./pages/GasPage'));
-const MarktPage = lazy(() => import('./pages/MarktPage'));
+const DatenqualitaetPage = lazy(() => import('./pages/DatenqualitaetPage'));
 const InfoPage = lazy(() => import('./pages/InfoPage'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
 const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
@@ -42,7 +42,7 @@ export default function App() {
           {dashboardRoutes('erzeuger', ErzeugerPage)}
           {dashboardRoutes('speicher', SpeicherPage)}
           {dashboardRoutes('gas', GasPage)}
-          <Route path="maerkte/:markt" element={<MarktPage />} />
+          <Route path="datenqualitaet" element={<DatenqualitaetPage />} />
           <Route path="info" element={<InfoPage />} />
           <Route path="impressum" element={<ImpressumPage />} />
           <Route path="datenschutz" element={<DatenschutzPage />} />
@@ -52,6 +52,8 @@ export default function App() {
           <Route path="map2" element={<Navigate to="/erzeuger" replace />} />
           <Route path="map3" element={<Navigate to="/erzeuger" replace />} />
           <Route path="storage-map" element={<Navigate to="/speicher" replace />} />
+          {/* Märkte (planned, never built) is gone; vercel.json redirects these too */}
+          <Route path="maerkte/*" element={<Navigate to="/" replace />} />
 
           <Route path="*" element={<NotFoundPage />} />
         </Route>
