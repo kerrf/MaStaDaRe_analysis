@@ -10,6 +10,7 @@ from app.models.analyses import (
     PvSpeicher,
     SizeDistribution,
     SolarOrientation,
+    SolarOrientationTilt,
     SolarZubauRegion,
     SpeicherPv,
 )
@@ -19,6 +20,7 @@ from app.schemas.analyses import (
     CACHE_CONTROL,
     HeatmapPoints,
     OrientationShare,
+    OrientationTiltShare,
     PvSpeicherData,
     Region,
     Regions,
@@ -116,6 +118,15 @@ def get_orientation(
     """Units and power per main orientation of the modules (8 directions, ost_west, nachgefuehrt, unbekannt)."""
     response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientation.of(db, region, selection.anlagenarten, selection.netto)
+
+
+@router.get("/orientation-tilt", response_model=list[OrientationTiltShare])
+def get_orientation_tilt(
+    response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"
+):
+    """Units and power per tilt class of the modules (0_20 … 90, nachgefuehrt, unbekannt) and main orientation."""
+    response.headers["Cache-Control"] = CACHE_CONTROL
+    return SolarOrientationTilt.of(db, region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/zubau", response_model=list[ZubauYear])

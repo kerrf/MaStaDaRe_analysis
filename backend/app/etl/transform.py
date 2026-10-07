@@ -60,6 +60,7 @@ VIEW_FILES = [
     # Analyses per Deutschland / Land / Kreis: size classes (solar, wind, hydro) and orientation of the solar modules
     "aggregate_size_distribution.sql",
     "aggregate_solar_orientation.sql",
+    "aggregate_solar_orientation_tilt.sql",
     # Solar Zubau and Bestand per year in every region (the Landkreis/Gemeinde page)
     "aggregate_solar_zubau_regions.sql",
     # The same for batteries, and their size classes by capacity (the Landkreis/Gemeinde page of the Speicher)

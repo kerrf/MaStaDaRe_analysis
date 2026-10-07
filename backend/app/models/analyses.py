@@ -152,6 +152,42 @@ class SolarOrientation(Base):
         return {"columns": columns, "rows": table_of(db, cls, cls.sort, filters, netto)}
 
 
+class SolarOrientationTilt(Base):
+    """Solar units and power per tilt class and main orientation of the modules and region
+    (aggregate_solar_orientation_tilt.sql). Only the combinations that occur."""
+
+    __tablename__ = "solar_orientation_tilt"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
+    region = Column(String, primary_key=True)
+    anlagenart = Column(String, primary_key=True)  # gebaeude, freiflaeche
+    tilt = Column(String, primary_key=True)  # 0_20, 21_40, 41_60, 61_89, 90, nachgefuehrt, unbekannt
+    orientation = Column(String, primary_key=True)  # nord … nordwest, ost_west, nachgefuehrt, unbekannt
+    tilt_sort = Column(Integer)  # flat to vertical, then tracked and unknown
+    orientation_sort = Column(Integer)  # the compass clockwise from north, then Ost-West, tracked, unknown
+
+    total_units = Column(Integer)
+    total_power = Column(Float)  # MW, Brutto
+    total_power_net = Column(Float)  # MW, Netto
+
+    @classmethod
+    def of(cls, db: Session, region: str, anlagenarten: tuple, netto: bool) -> list:
+        """The tilt classes and orientations in one region, flat to vertical, each clockwise from north."""
+        return (
+            db.query(
+                cls.tilt,
+                cls.orientation,
+                func.sum(cls.total_units).label("total_units"),
+                func.sum(power_of(cls, netto)).label("total_power"),
+            )
+            .filter(cls.level == level_of(region), cls.region == region, cls.anlagenart.in_(anlagenarten))
+            .group_by(cls.tilt, cls.tilt_sort, cls.orientation, cls.orientation_sort)
+            .order_by(cls.tilt_sort, cls.orientation_sort)
+            .all()
+        )
+
+
 class SolarZubauRegion(Base):
     """Solar Zubau and Bestand per year, Anlagenart and region since 2000 (aggregate_solar_zubau_regions.sql)."""
 

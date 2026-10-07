@@ -108,6 +108,15 @@ class OrientationShare(BaseModel):
     total_power: float  # MW
 
 
+class OrientationTiltShare(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    tilt: str
+    orientation: str
+    total_units: int
+    total_power: float  # MW
+
+
 class RegionColumn(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

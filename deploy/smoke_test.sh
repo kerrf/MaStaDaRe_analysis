@@ -24,6 +24,7 @@ ROUTES=(
   "/solar/dashboard-stats?level=bundesland"
   /solar/size-distribution
   /solar/orientation
+  /solar/orientation-tilt
   "/solar/size-distribution/regions?level=bundesland"
   "/solar/orientation/regions?level=bundesland"
   /solar/pv-speicher
@@ -42,6 +43,7 @@ ROUTES=(
   "/regions/areas?level=gemeinde&within=14524"
   "/solar/zubau?region=14524"
   "/solar/orientation?region=14524330"
+  "/solar/orientation-tilt?region=14524330"
   "/solar/size-distribution?region=14524330"
   "/battery/zubau?region=14524"
   "/battery/size-distribution?region=14524330"
