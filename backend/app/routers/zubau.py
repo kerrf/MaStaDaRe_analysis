@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.zubau import Registrierungen, Registrierungsverzug, Technology, Zubau
-from app.schemas.analyses import CACHE_CONTROL
 
 router = APIRouter(prefix="/zubau", tags=["Zubau"])
 
@@ -35,9 +34,8 @@ class RegistrationYear(BaseModel):
 
 
 @router.get("/registrierungen", response_model=list[RegistrationYear])
-def get_registrierungen(response: Response, db: Annotated[Session, Depends(get_db)]):
+def get_registrierungen(db: Annotated[Session, Depends(get_db)]):
     """Units registered in the Marktstammdatenregister per year and technology, from the first registration on."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return db.query(Registrierungen).order_by(Registrierungen.technology, Registrierungen.year).all()
 
 
@@ -56,8 +54,7 @@ class RegistrationDelay(BaseModel):
 
 
 @router.get("/registrierungsverzug", response_model=list[RegistrationDelay])
-def get_registrierungsverzug(response: Response, db: Annotated[Session, Depends(get_db)]):
+def get_registrierungsverzug(db: Annotated[Session, Depends(get_db)]):
     """Units per year of commissioning and technology by the time from going into operation to the registration:
     before, within a month (the deadline), 1–3 months, 3–12 months, later. Since the register started (31.01.2019)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return db.query(Registrierungsverzug).order_by(Registrierungsverzug.technology, Registrierungsverzug.year).all()

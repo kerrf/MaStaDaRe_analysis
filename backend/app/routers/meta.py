@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -21,9 +21,8 @@ class Datenstand(BaseModel):
 
 
 @router.get("/datenstand", response_model=Datenstand)
-def get_datenstand(response: Response, db: Annotated[Session, Depends(get_db)]):
+def get_datenstand(db: Annotated[Session, Depends(get_db)]):
     """Noted by the last complete nightly update (app.etl.update); null until one ran."""
-    response.headers["Cache-Control"] = "public, max-age=900"  # changes once a night
     if db.execute(text("SELECT to_regclass('meta.update_runs')")).scalar() is None:
         return Datenstand(datenstand=None, last_update=None)
     row = db.execute(text(LATEST_RUN)).first()

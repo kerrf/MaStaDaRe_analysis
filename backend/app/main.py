@@ -1,12 +1,10 @@
 import json
 import os
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.core.config import settings
 from app.db.database import engine
 from app.routers import battery, gas, meta, pumped_storage, regions, solar, water, wind, zubau
 
@@ -27,14 +25,34 @@ app.include_router(zubau.router)
 app.include_router(regions.router)
 app.include_router(meta.router)
 
-# Allow the deployed frontend(s) to talk to the API (origins come from ALLOWED_ORIGINS in .env)
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# The views change once a night (app.etl.update): a browser and Cloudflare may keep an answer for 15 minutes, and a
+# cache may still hand out its copy for a day while the server fails
+CACHE_CONTROL = "public, max-age=900, stale-if-error=86400"
+
+
+@app.middleware("http")
+async def same_answer_for_everybody(request: Request, call_next):
+    """Every answer is the same whoever asks, so Cloudflare can keep one copy of it for all visitors – its cache goes by
+    the address alone (it ignores Vary). So the data is open to any website (CORS "*", never one site's name, which a
+    cached copy would hand to the others), and a GET that found something may be kept (CACHE_CONTROL); errors and
+    /health never."""
+    if request.method == "OPTIONS":  # a browser asking first, before a request with headers of its own
+        response = Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Methods": "GET, HEAD",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
+    else:
+        response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    if "cache-control" not in response.headers:
+        cacheable = request.method in ("GET", "HEAD") and response.status_code == 200 and request.url.path != "/health"
+        response.headers["Cache-Control"] = CACHE_CONTROL if cacheable else "no-store"
+    return response
+
 
 PROCESSED_DIR = os.getenv(
     "PROCESSED_DIR",

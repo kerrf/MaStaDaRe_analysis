@@ -57,10 +57,14 @@ printf 'Smoke test of %s\n' "$API_URL"
 body=$(mktemp)
 trap 'rm -f "$body"' EXIT
 failed=0
+# Cloudflare keeps the API's answers for a while (Cache-Control, app/main.py): an address of its own for this run, so
+# every route is answered by the backend itself, not by a copy from before the deploy. The API ignores the parameter.
+run="smoke=$(date +%s)"
 for route in "${ROUTES[@]}"; do
+  [[ $route == *\?* ]] && url="$API_URL$route&$run" || url="$API_URL$route?$run"
   # A few tries: right after a deploy, Cloudflare and Caddy may need a moment
   result=$(curl --silent --output "$body" --write-out '%{http_code} %{time_total}' --max-time 60 \
-    --retry 2 --retry-delay 5 --retry-all-errors "$API_URL$route")
+    --retry 2 --retry-delay 5 --retry-all-errors "$url")
   code=${result%% *}
   # An empty list, or a map without points: the route works, but the database lacks its rows
   start=$(head -c 9 "$body")

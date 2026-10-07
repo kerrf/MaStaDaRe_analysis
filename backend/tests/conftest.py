@@ -5,7 +5,6 @@ import os
 for key, value in {
     "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
     "API_PREFIX": "",
-    "ALLOWED_ORIGINS": "http://localhost:5173",
     "DEBUG": "False",
 }.items():
     os.environ.setdefault(key, value)

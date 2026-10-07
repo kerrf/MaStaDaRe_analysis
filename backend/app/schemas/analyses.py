@@ -16,9 +16,6 @@ Region = Annotated[
     ),
 ]
 
-# The views change once a night (update.py refreshes them)
-CACHE_CONTROL = "public, max-age=900"
-
 Within = Annotated[
     str | None,
     Query(pattern=r"^(\d{2}|\d{5})$", description='Only the regions in this Land (e.g. "09") or Kreis (e.g. "09175")'),

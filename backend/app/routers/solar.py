@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, get_args
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,6 @@ from app.models.analyses import (
 from app.models.regions import RegionLevel, SolarRegionStats
 from app.models.solar import SolarRollupStats, SolarUnit
 from app.schemas.analyses import (
-    CACHE_CONTROL,
     HeatmapPoints,
     OrientationShare,
     OrientationTiltShare,
@@ -95,75 +94,59 @@ def get_dashboard_stats(
 
 
 @router.get("/heatmap", response_model=HeatmapPoints)
-def get_heatmap(response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection):
+def get_heatmap(db: Annotated[Session, Depends(get_db)], selection: Selection):
     """Where the solar power lies, for the continuous map: units with coordinates per cell of about 1 km, the others per
     postcode, in kW (mrt.heatmap_points)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return HeatmapPoint.of(db, "solar", selection.anlagenarten, "power_net" if selection.netto else "power")
 
 
 @router.get("/size-distribution", response_model=list[SizeClassShare])
-def get_size_distribution(
-    response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"
-):
+def get_size_distribution(db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
     """Units and power per size class (Balkon-PV to Solarpark), for Deutschland, a Land or a Kreis."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SizeDistribution.of(db, "solar", region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/orientation", response_model=list[OrientationShare])
-def get_orientation(
-    response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"
-):
+def get_orientation(db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
     """Units and power per main orientation of the modules (8 directions, ost_west, nachgefuehrt, unbekannt)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientation.of(db, region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/orientation-tilt", response_model=list[OrientationTiltShare])
-def get_orientation_tilt(
-    response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"
-):
+def get_orientation_tilt(db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
     """Units and power per tilt class of the modules (0_20 … 90, nachgefuehrt, unbekannt) and main orientation."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientationTilt.of(db, region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/zubau", response_model=list[ZubauYear])
-def get_zubau(response: Response, db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
+def get_zubau(db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
     """Zubau and Bestand per year since 2000 in a region, per chosen Anlagenart (mrt.solar_zubau_regions)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarZubauRegion.of(db, region, selection.anlagenarten, selection.netto)
 
 
 @router.get("/size-distribution/regions", response_model=RegionTable)
 def get_size_distribution_regions(
-    response: Response,
     db: Annotated[Session, Depends(get_db)],
     scope: Annotated[Regions, Depends(regions)],
     selection: Selection,
 ):
     """Units and power per size class for every Land, Kreis or Gemeinde (optionally within one)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SizeDistribution.table(db, "solar", scope.level, scope.within, selection.anlagenarten, selection.netto)
 
 
 @router.get("/orientation/regions", response_model=RegionTable)
 def get_orientation_regions(
-    response: Response,
     db: Annotated[Session, Depends(get_db)],
     scope: Annotated[Regions, Depends(regions)],
     selection: Selection,
 ):
     """Units and power per orientation for every Land, Kreis or Gemeinde (optionally within one)."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return SolarOrientation.table(db, scope.level, scope.within, selection.anlagenarten, selection.netto)
 
 
 @router.get("/pv-speicher", response_model=PvSpeicherData)
-def get_pv_speicher(response: Response, db: Annotated[Session, Depends(get_db)]):
+def get_pv_speicher(db: Annotated[Session, Depends(get_db)]):
     """Solar units and batteries at the same Lokation, Germany-wide: the solar units per Anlagenart, size class and year
     with the batteries at their Lokation, and the batteries per size class with or without solar there. Every value
     adds up; the page sums what it shows."""
-    response.headers["Cache-Control"] = CACHE_CONTROL
     return {"pv": db.query(PvSpeicher).all(), "speicher": db.query(SpeicherPv).all()}

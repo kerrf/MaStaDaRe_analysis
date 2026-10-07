@@ -1,7 +1,6 @@
 """Constants"""
 
 from dotenv import load_dotenv
-from pydantic import field_validator
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -22,12 +21,7 @@ class Settings(BaseSettings):
     ]
 
     API_PREFIX: str
-    ALLOWED_ORIGINS: str | list[str]
     DEBUG: bool
-
-    @field_validator("ALLOWED_ORIGINS", mode="before")
-    def parse_allowed_origins(cls, v: list[str]) -> list[str]:
-        return [origin.strip() for origin in v.split(",") if origin.strip()]
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 

@@ -113,6 +113,33 @@ gets a real Let's Encrypt cert automatically on first request to
 `api.mastr-data.de` (DNS is already proxied there, which is what lets the
 ACME challenge reach the origin).
 
+**Cache the API (once).** The data changes once a night, and every answer of
+the API with data says it may be kept for 15 minutes (`Cache-Control`,
+`backend/app/main.py`) – but Cloudflare keeps nothing of an API on its own
+(`cf-cache-status: DYNAMIC`). Caching → Cache Rules → Create rule:
+
+- Rule name: `API`
+- If incoming requests match → Custom filter expression: Field **Hostname**,
+  Operator **equals**, Value `api.mastr-data.de`
+- Cache eligibility: **Eligible for cache**
+- Edge TTL: **Use cache-control header if present, bypass cache if not**
+- Browser TTL: **Respect origin TTL**
+- Deploy
+
+Then the server answers each address at most once per 15 minutes and
+Cloudflare data centre; everything else comes from Cloudflare – a Reddit
+spike, or a bot hammering one page, doesn't reach the database. Check: the
+second call of an address says `HIT`:
+
+```bash
+curl -sI "https://api.mastr-data.de/regions/areas?level=bundesland" | grep -i cf-cache-status
+```
+
+Every answer is the same whoever asks (CORS `*`, never one site's name: a
+cached copy goes to everybody). After a deploy that changes what an existing
+route returns, old answers live on for up to 15 minutes; Caching →
+Configuration → **Purge Everything** clears them at once.
+
 ## 8. Verify
 
 ```bash
@@ -166,7 +193,7 @@ push to main
 | | zizmor | the security of the workflows themselves, which hold the keys to the server and to Vercel: injection through `${{ }}` expressions, too broad permissions, credentials left on disk, actions not pinned. Online it also checks that each pinned commit belongs to its action and that no action in use has a known vulnerability, also for Dependabot's updates |
 | Backend image | build, store | builds the `Dockerfile` once and stores it on ghcr.io (GitHub's registry), named by the commit: what was checked is exactly what runs. Layers that didn't change come from a cache, so a code change rebuilds in about a minute |
 | Deploy backend | `deploy/deploy_backend.sh` | on the server: notes the running version as the way back, sets the repo files (compose.yml, Caddyfile) to the commit, **builds the views the new version needs** (below), swaps in the new image and waits until `/health` answers (it checks the database too). Not healthy within 2 minutes: back to the previous version. Caddy holds requests during the swap, so visitors see no errors. Last, it sets up the nightly update (§11) |
-| | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare. Fails: `deploy/rollback_backend.sh` |
+| | `deploy/smoke_test.sh` | calls every route the website uses, through Cloudflare – with an address of its own each run (`?smoke=…`), so the new backend answers, not Cloudflare's cache. Fails: `deploy/rollback_backend.sh` |
 | Deploy frontend | `vercel deploy --prod` | Vercel builds and publishes the frontend, as it used to on every push; its own deploys of `main` are off (`frontend/vercel.json`), so the website changes only here |
 | | `deploy/check_website.sh` | opens www.mastr-data.de in a headless Chrome like a visitor: the app has to render and show the four figures of the start page, which it loads from the API. A blank page (a broken bundle) or a frontend that can't reach the backend fails here; a plain HTTP check would let both pass |
 
