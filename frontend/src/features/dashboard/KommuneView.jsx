@@ -6,7 +6,7 @@ import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
-import { GRANULARITIES } from '../../config/dashboards';
+import { GRANULARITIES, footnoteId } from '../../config/dashboards';
 import { KOMMUNE } from '../../config/kommune';
 import { BUNDESLAENDER, findBundeslandByAgs, isKreisKey } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -19,7 +19,6 @@ import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
 import KommuneMap from './KommuneMap';
 import KommuneStorage from './KommuneStorage';
-import KommuneTargets from './KommuneTargets';
 import MapLegend from './MapLegend';
 import OrientationRose from './OrientationRose';
 import ScopeBar from './ScopeBar';
@@ -177,16 +176,30 @@ function KommuneFinder({ state, onPick, lead, basePath }) {
 
 // -------------------------------------------------------------------------------------------------------------- panel
 
-// One figure of the panel: its value, how it compares, its rank
-function Figure({ label, value, compare, rank }) {
+// "308 MW" as the number and its unit, the unit set smaller; a count ("20.337") stays as it is
+function Amount({ text }) {
+  const [, number, unit] = /^(.*\d)\s+([^\d\s]+)$/.exec(text) ?? [null, text, null];
+  return (
+    <span className="kommune-figure__value">
+      {number}
+      {unit && <span className="kommune-figure__unit"> {unit}</span>}
+    </span>
+  );
+}
+
+// One figure of the panel: its name, its value (with what a density is counted on beside it), and in one quiet line its
+// rank and how it compares (details in the line's tooltip)
+function Figure({ label, value, base, meta, metaTitle }) {
   return (
     <div className="kommune-figure">
       <dt>{label}</dt>
-      <dd className="kommune-figure__value">{value}</dd>
-      {(compare || rank) && (
-        <dd className="kommune-figure__meta">
-          {compare && <span>{compare}</span>}
-          {rank && <span className="kommune-figure__rank">{rank}</span>}
+      <dd className="kommune-figure__line">
+        <Amount text={value} />
+        {base && <span className="kommune-figure__base">{base}</span>}
+      </dd>
+      {meta && (
+        <dd className="kommune-figure__meta" title={metaTitle}>
+          {meta}
         </dd>
       )}
     </div>
@@ -194,10 +207,12 @@ function Figure({ label, value, compare, rank }) {
 }
 
 /**
- * Left of the map: the Kreis or the picked Gemeinde in the profile's figures – each compared with the whole it lies in
- * and ranked among its peers –, how its size splits into its kinds, and (for the Kreis) its largest Gemeinden.
+ * Left of the map: the Kreis or the picked Gemeinde in the profile's figures – each ranked among its peers and compared
+ * with the whole it lies in –, how its size splits into its kinds, and (for the Kreis) its largest Gemeinden.
+ * row: the area's figures with its Einwohner and Fläche; parentShort: the whole it lies in, short ("Land", "Kreis");
+ * scope.shareOf: its share of that whole ("von Sachsen", "des Kreises")
  */
-function KommunePanel({ profile, what, scope, row, split, peers, parentRow, parentLabel, nationalRow, largest, onSelect, onBack }) {
+function KommunePanel({ profile, what, scope, row, split, peers, parentRow, parentShort, nationalRow, largest, onSelect, onBack }) {
   const Icon = profile.icon;
   if (!row) {
     return (
@@ -206,20 +221,32 @@ function KommunePanel({ profile, what, scope, row, split, peers, parentRow, pare
       </aside>
     );
   }
-  const compare = (field) => {
-    const parts = [];
-    if (parentRow?.[field]) parts.push(`${times(row[field] / parentRow[field])} ${parentLabel}`);
-    if (nationalRow?.[field]) parts.push(`${times(row[field] / nationalRow[field])} Bundesschnitt`);
-    return parts.join(' · ');
+  // Against the averages: "0,8× Ø Land · 0,7× Ø Bund", the averages themselves for the tooltip
+  const compare = (figure) => {
+    const { field } = figure;
+    const averages = [
+      [parentRow?.[field], `Ø ${parentShort}`, scope.parentName],
+      [nationalRow?.[field], 'Ø Bund', 'Deutschland'],
+    ].filter(([average]) => average);
+    return {
+      text: averages.map(([average, short]) => `${times(row[field] / average)} ${short}`).join(' · '),
+      title: averages.length ? `Durchschnitt ${averages.map(([average, , name]) => `${name}: ${figure.format(average)}`).join(', ')}` : undefined,
+    };
   };
-  const metaOf = (figure) => {
-    if (figure.share) return parentRow?.[figure.field] ? `${formatPercent(row[figure.field] / parentRow[figure.field])} von ${scope.parentName}` : '';
-    if (figure.compare) return compare(figure.field);
+  const detailOf = (figure) => {
+    if (figure.share) return { text: parentRow?.[figure.field] ? `${formatPercent(row[figure.field] / parentRow[figure.field])} ${scope.shareOf}` : '' };
+    if (figure.compare) return compare(figure);
     if (figure.growthOf) {
       const before = (row[figure.growthOf] ?? 0) - (row[figure.field] ?? 0);
-      return before > 0 && row[figure.field] > 0 ? `+${formatPercent(row[figure.field] / before)} auf den Bestand davor` : '';
+      return { text: before > 0 && row[figure.field] > 0 ? `+${formatPercent(row[figure.field] / before)} auf den Bestand davor` : '' };
     }
-    return '';
+    return { text: '' };
+  };
+  // The rank first, then how it compares; the first figure names the peers ("Rang 7 von 13 Kreisen")
+  const metaOf = (figure, i) => {
+    const rank = figure.rank && peers ? `Rang ${rankOf(peers.rows, row, figure.field)}${i === 0 ? ` ${peers.noun}` : ''}` : '';
+    const detail = detailOf(figure);
+    return { meta: [rank, detail.text].filter(Boolean).join(' · '), metaTitle: detail.title };
   };
   const size = profile.size;
 
@@ -244,8 +271,8 @@ function KommunePanel({ profile, what, scope, row, split, peers, parentRow, pare
             key={figure.field}
             label={figure.label}
             value={figure.format(row[figure.field] ?? 0)}
-            compare={metaOf(figure)}
-            rank={figure.rank && peers ? `Rang ${rankOf(peers.rows, row, figure.field)}${i === 0 ? ` ${peers.label}` : ''}` : ''}
+            base={figure.base && row[figure.base.field] ? figure.base.format(row[figure.base.field]) : null}
+            {...metaOf(figure, i)}
           />
         ))}
       </dl>
@@ -271,7 +298,7 @@ function KommunePanel({ profile, what, scope, row, split, peers, parentRow, pare
 
       {largest && largest.length > 0 && (
         <div className="kommune-largest">
-          <h3 className="kommune-panel__subtitle">Größte Gemeinden nach {profile.figures[0].label}</h3>
+          <h3 className="kommune-panel__subtitle">Größte Gemeinden nach {size.label}</h3>
           <ol>
             {largest.map((g) => (
               <li key={g.ags}>
@@ -480,7 +507,7 @@ const CHARTS = { ausrichtung: OrientationRose, groesse: SizeDistribution };
 /**
  * The page "Landkreis/Gemeinde" of a dashboard: one Landkreis and its Gemeinden in depth for the dashboard's technology
  * (config/kommune.js: Solar for the Erzeuger, batteries for the Speicher) – on a detailed map with a background map, in
- * figures with rank and comparison, against targets or comparisons, Zubau and Bestand per year, its analyses, and every
+ * figures with rank and comparison, (batteries) in comparisons, Zubau and Bestand per year, its analyses, and every
  * Gemeinde in a table. Picking a Gemeinde (map, table, list, scope bar) narrows everything to it.
  */
 export default function KommuneView({ config, state }) {
@@ -608,22 +635,24 @@ export default function KommuneView({ config, state }) {
   const withData = gemeindeRows.filter((r) => r._hasData);
 
   // The figures of the panel: of the Gemeinde (among the Gemeinden of the Kreis, against the Kreis) or of the Kreis
-  // (among the Kreise of the Land, against the Land)
+  // (among the Kreise of the Land, against the Land), each with its Einwohner and Fläche
+  const kreisArea = areasKreise.data?.find((row) => row.region === kreisAgs);
+  const kreisPanelRow = useMemo(() => kreisRow && { ...kreisRow, einwohner: kreisArea?.einwohner, qkm: kreisArea?.qkm }, [kreisRow, kreisArea]);
   const panel = gemeindeAgs
     ? {
-        scope: { name: gemeinde?.name ?? state.scopeName, kindLabel: `Gemeinde · ${kreisName}`, parentName: kreisName, loading: !gemeinden },
+        scope: { name: gemeinde?.name ?? state.scopeName, kindLabel: `Gemeinde · ${kreisName}`, parentName: kreisName, shareOf: 'des Kreises', loading: !gemeinden },
         row: gemeinde?._hasData ? gemeinde : null,
-        peers: { rows: withData, label: 'im Kreis' },
+        peers: { rows: withData, noun: 'Gemeinden' },
         parentRow: kreisRow,
-        parentLabel: 'Kreisschnitt',
+        parentShort: 'Kreis',
         onBack: () => selectGemeinde(null),
       }
     : {
-        scope: { name: kreisName, kindLabel: `Landkreis · ${region?.name}`, parentName: region?.name, loading: kreisStats.status !== 'ready' },
-        row: kreisRow,
-        peers: peersInLand && { rows: peersInLand, label: `in ${region.name}` },
+        scope: { name: kreisName, kindLabel: `Landkreis · ${region?.name}`, parentName: region?.name, shareOf: `von ${region?.name}`, loading: kreisStats.status !== 'ready' },
+        row: kreisPanelRow,
+        peers: peersInLand && { rows: peersInLand, noun: 'Kreisen' },
         parentRow: landRow,
-        parentLabel: 'Landesschnitt',
+        parentShort: 'Land',
         largest: [...withData].sort((a, b) => (b[sizeField] ?? 0) - (a[sizeField] ?? 0)).slice(0, 6),
       };
 
@@ -702,7 +731,7 @@ export default function KommuneView({ config, state }) {
 
   const mapStatus = [shapes, gemeindeStats, areas].some((r) => r.status === 'error') ? 'error' : gemeinden && gemeindeStats.status === 'ready' ? 'ready' : 'loading';
   const timelineSeries = profile.timeline.series.filter((s) => profile.timeline.key !== 'anlagenart' || !subtypes || subtypes.includes(s.id));
-  const kreisEinwohner = areasKreise.data?.find((row) => row.region === kreisAgs)?.einwohner;
+  const kreisEinwohner = kreisArea?.einwohner;
   const landEinwohner = areasLand.data?.find((row) => row.region === region.ags)?.einwohner;
   const goalScope = { key: state.scopeKey, name: gemeindeAgs ? gemeinde?.name ?? state.scopeName : kreisName, einwohner: gemeindeAgs ? gemeinde?.einwohner : kreisEinwohner };
   const goalParent = gemeindeAgs
@@ -721,7 +750,13 @@ export default function KommuneView({ config, state }) {
             onSubtypes={(ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','))}
             leistung={selection.leistung}
             onLeistung={(id) => setParam(technology.leistung.param, id, technology.leistung.options[0].id)}
+            inline
           />
+          {technology.leistung?.note && (
+            <p id={footnoteId(technology.leistung)} className="kommune-toolbar__note">
+              <sup className="footnote-ref">1</sup> {technology.leistung.note}
+            </p>
+          )}
         </section>
       )}
 
@@ -803,7 +838,6 @@ export default function KommuneView({ config, state }) {
         </section>
       </div>
 
-      {profile.goals === 'solar' && <KommuneTargets scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
       {profile.goals === 'storage' && <KommuneStorage scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
 
       <RegionTimeline

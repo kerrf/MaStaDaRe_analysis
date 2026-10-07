@@ -9,15 +9,20 @@ import { formatAmountFine, formatFixed, formatNumber, formatPercent } from '../l
 //   metrics:    what the map can shade the Gemeinden by; count: a number of units (no unit after it)
 //   figures:    the panel left of the map: field, how to write it, and what to add – its share of the whole it lies in
 //               (share), against the average of that whole and of Germany (compare: the density's sums, of/per), its
-//               rank among its peers (rank), its growth over the Bestand before (growthOf)
+//               rank among its peers (rank), its growth over the Bestand before (growthOf), what a density is counted
+//               on beside its value (base: Einwohner or Fläche of the area)
 //   split:      how the area's size splits into its kinds (Solar: Gebäude/Freifläche; batteries: Heim/Gewerbe/Groß)
 //   timeline:   Zubau and Bestand per year in the area, the series stacked, in one or more measures
 //   analyses:   the cards below the timeline
-//   goals:      the block of key figures against targets or comparisons (KommuneTargets / KommuneStorage)
+//   goals:      a block of key figures below the map (batteries: KommuneStorage, comparisons; solar has none – a
+//               Kreis's share of the national targets would be made up)
 //   table:      the columns of the table of all Gemeinden; csv: a row of its export
 
 const mw = (v) => formatAmountFine(v, 'MW');
 const mwh = (v) => formatAmountFine(v, 'MWh');
+// What a density is counted on, beside its value in the panel
+const EINWOHNER = { field: 'einwohner', format: (v) => `${formatNumber(v)} Einwohner` };
+const FLAECHE = { field: 'qkm', format: (v) => `${formatNumber(v, v < 10 ? 1 : 0)} km²` };
 
 export const KOMMUNE = {
   erzeuger: {
@@ -28,7 +33,7 @@ export const KOMMUNE = {
     finderLead: 'Solaranlagen eines Landkreises und seiner Gemeinden: auf der Karte, in Kennzahlen mit Rang und Vergleich, im Zubau je Jahr.',
     // Solar's filters (Anlagenart, Leistung) above the page
     filters: true,
-    size: { field: 'total_power', unit: 'MW', format: mw },
+    size: { field: 'total_power', unit: 'MW', label: 'Leistung', format: mw },
     metrics: [
       { id: 'total_power', label: 'Leistung', legend: 'Installierte Leistung', unit: 'MW', digits: 1 },
       { id: 'relative_population_power', label: 'je Einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
@@ -45,6 +50,7 @@ export const KOMMUNE = {
         format: (v) => `${formatNumber(v, 2)} kW`,
         compare: { of: 'total_power', per: 'einwohner' },
         rank: true,
+        base: EINWOHNER,
       },
       {
         field: 'relative_area_power',
@@ -52,6 +58,7 @@ export const KOMMUNE = {
         format: (v) => `${formatNumber(v, 0)} kW`,
         compare: { of: 'total_power', per: 'qkm' },
         rank: true,
+        base: FLAECHE,
       },
       { field: 'added_12m_power', label: 'Zubau der letzten 12 Monate', format: mw, growthOf: 'total_power' },
     ],
@@ -80,7 +87,6 @@ export const KOMMUNE = {
       { id: 'ausrichtung', title: 'Ausrichtung', subtitle: 'Leistung nach Hauptausrichtung der Module', path: '/solar/orientation' },
       { id: 'groesse', title: 'Anlagengröße', subtitle: 'Leistung und Anlagen je Leistungsklasse', path: '/solar/size-distribution', measure: 'power' },
     ],
-    goals: 'solar',
     table: [
       { id: 'einwohner', label: 'Einwohner', format: (v) => formatNumber(v) },
       { id: 'total_units', label: 'Anlagen', format: (v) => formatNumber(v) },
@@ -110,7 +116,7 @@ export const KOMMUNE = {
     finderLead:
       'Batteriespeicher eines Landkreises und seiner Gemeinden – vom Heim- bis zum Großspeicher: auf der Karte, in Kennzahlen mit Rang und Vergleich, im Zubau je Jahr.',
     filters: false,
-    size: { field: 'total_capacity', unit: 'MWh', format: mwh },
+    size: { field: 'total_capacity', unit: 'MWh', label: 'Kapazität', format: mwh },
     metrics: [
       { id: 'total_capacity', label: 'Kapazität', legend: 'Speicherkapazität', unit: 'MWh', digits: 1 },
       { id: 'total_power', label: 'Leistung', legend: 'Speicherleistung', unit: 'MW', digits: 1 },
@@ -128,6 +134,7 @@ export const KOMMUNE = {
         format: (v) => `${formatNumber(v, 2)} kWh`,
         compare: { of: 'total_capacity', per: 'einwohner' },
         rank: true,
+        base: EINWOHNER,
       },
       { field: 'added_12m_capacity', label: 'Zubau der letzten 12 Monate', format: mwh, growthOf: 'total_capacity' },
     ],

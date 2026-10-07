@@ -1,4 +1,4 @@
-import { lazy, Suspense, useLayoutEffect, useRef } from 'react';
+import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
@@ -12,6 +12,7 @@ import useDocumentTitle from '../../lib/useDocumentTitle';
 import AnlagenView from './AnlagenView';
 import RegionenView from './RegionenView';
 import ZubauView from './ZubauView';
+import { ScopeSlot } from './scopeSlot';
 import useDashboardState from './useDashboardState';
 import './dashboard.css';
 
@@ -30,11 +31,14 @@ function PageLoader() {
 
 /**
  * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Landkreis/Gemeinde, Zubau &
- * Registrierungen, Anlagen, Regionen. The header names the dashboard and the scope; tabs below it lead to the other pages, keeping the scope and
- * the choices (technology, filters) where the page has them.
+ * Registrierungen, Anlagen, Regionen. The header names the dashboard and the scope and holds the page's choice of the
+ * area (ScopeBar, through ScopeSlot); tabs below it lead to the other pages, keeping the scope and the choices
+ * (technology, filters) where the page has them.
  */
 export default function Dashboard({ config, view }) {
   const state = useDashboardState(config, view);
+  // The header's place for the area's choice: set as the header mounts, so the page's ScopeBar is there in the first paint
+  const [scopeSlot, setScopeSlot] = useState(null);
   const datenstand = useDatenstand();
   const menu = DASHBOARD_MENUS.find((m) => m.id === config.id);
   const pages = viewsOf(config.id);
@@ -75,6 +79,7 @@ export default function Dashboard({ config, view }) {
             {live ? <Badge tone="live">Live-Daten</Badge> : <Badge tone="soon">In Vorbereitung</Badge>}
           </div>
         </div>
+        <div ref={setScopeSlot} className="container dashboard-header__scope-slot" />
         {pages.length > 1 && (
           <nav ref={tabsRef} className="container dashboard-tabs" aria-label={`Seiten von ${config.title}`}>
             {pages.map((id) => {
@@ -97,9 +102,11 @@ export default function Dashboard({ config, view }) {
       </header>
 
       <div className="container dashboard-body">
-        <Suspense fallback={<PageLoader />}>
-          <Page config={config} state={state} />
-        </Suspense>
+        <ScopeSlot.Provider value={scopeSlot}>
+          <Suspense fallback={<PageLoader />}>
+            <Page config={config} state={state} />
+          </Suspense>
+        </ScopeSlot.Provider>
         {/* Notes for development (config todos): only in `npm run dev`, not for visitors */}
         {import.meta.env.DEV && view === 'karte' && config.todos?.map((todo) => <TodoNote key={todo}>{todo}</TodoNote>)}
       </div>

@@ -30,6 +30,12 @@ Erzeuger and Speicher have all five, Gas the map and Zubau (`DASHBOARD_MENUS`, w
 in the nav bar). `Dashboard.jsx` is the shell: header (dashboard, page, scope), tabs to the other pages, the page. Each
 analysis says on which page it is (`view` on the analysis). The map page loads Leaflet; the other pages don't.
 
+The choice of the area (`ScopeBar.jsx`: Deutschland, Bundesland, Landkreis and, on the pages with `gemeinde`, the
+Gemeinde) sits in the header above the tabs, apart from the cards that show the data: named fields side by side as one
+control, the chosen ones in the green of chosen buttons. A page renders its `ScopeBar` where it likes – or not, like
+Anlagen of the Speicher, which is Germany-wide – and the bar goes into the header through a portal (`ScopeSlot` in
+`scopeSlot.js`, provided by `Dashboard.jsx`).
+
 `useDashboardState.js` reads the state all pages share from the URL – scope, technology and its filters – and keeps it
 when switching pages (`hrefOf(view)`; Zubau is Germany-wide and has no scope). Each technology's filters have their own
 parameters, so the Steckbrief and the timeline can read solar's choice while wind is active (`selectionOf`).
@@ -294,9 +300,10 @@ their grid lines.
 
 `FigureBlock` holds rows of `FigureRow`: a name, a value and a bar of its share of a named whole ("15,4 %"), under a
 head with icon, title, a chip with the gist (`good`/`fair`/`poor`/`neutral`) and an info. Used for the expansion
-targets: the national ones in `config/targets.js` (EEG 2023 § 4, WindSeeG § 1, in Bruttoleistung), on the start page
-(`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace) and on the Landkreis/Gemeinde page
-(`KommuneTargets.jsx`: the area's share of the targets by population, how far it is, the pace it needs).
+targets – the national ones in `config/targets.js` (EEG 2023 § 4, WindSeeG § 1, in Bruttoleistung) – on the start page
+(`TargetsOverview.jsx`: Germany against the 2030 targets and last year's pace), and for the batteries of a Landkreis
+compared (`KommuneStorage.jsx`). Kreise and Gemeinden get no solar target: there is no official one, and a share of the
+national target by population would be made up.
 
 ### Landkreis/Gemeinde (`KommuneView.jsx`, `KommuneMap.jsx`, `config/kommune.js`)
 
@@ -316,8 +323,11 @@ found opens its Kreis with it picked.
   outside the Kreis, names at each Gemeinde's label point (`lib/geometry.js`, placed without overlap like the place
   names) and a scale bar. The switch's pictures are tiles of basemap.de only: EOX is asked first when its view is chosen
   (Datenschutzerklärung).
-- **Panel** left of it: the Kreis (or the picked Gemeinde) in figures, each with its share of the Land (Kreis), its
-  multiple of the Landes-/Kreis- and Bundesschnitt and its rank; Gebäude against Freifläche; the largest Gemeinden.
+- **Panel** left of it: the Kreis (or the picked Gemeinde) in figures, each a unit between thin lines – its name, its
+  value (the densities with the Einwohner or the Fläche beside it), and one quiet line: its rank among the Kreise of
+  the Land (Gemeinden of the Kreis), then its share of the Land (Kreis) or its multiple of the averages ("0,8× Ø Land ·
+  0,7× Ø Bund", the averages themselves in the line's tooltip); Gebäude against Freifläche; the largest Gemeinden. The
+  solar filters above the page sit in one row.
 - Below: Zubau and Bestand per year of the area (`/solar/zubau?region=…`, `mrt.solar_zubau_regions`, kW for small
   Gemeinden), Ausrichtung and Anlagengröße (their endpoints take Gemeinde keys too) and every Gemeinde in a sortable
   table with CSV export. A click on a Gemeinde – map, list, table, scope bar – picks it (`?gemeinde=`); again: the Kreis.

@@ -170,10 +170,6 @@ html .dashboard-tabs__tab.is-active {
   border-bottom-width: 3px;
 }
 
-html .scope-bar {
-  border-color: var(--border);
-}
-
 /* The map as a plate of the atlas: a neat line around it */
 html .map-workspace__body {
   outline: 1px solid var(--ink-primary);

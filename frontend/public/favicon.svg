@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c64c8"/>
-      <stop offset="1" stop-color="#093f84"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#g)"/>
-  <path d="M17.5 5.5 8.5 18h7l-1 8.5 9-12.5h-7z" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>
+  <!-- The mark of the nav bar (.navbar__logo: brand-600, lucide "zap"), the bolt a little larger and bolder for 16 px -->
+  <rect width="32" height="32" rx="8.5" fill="#2c5a43"/>
+  <path transform="translate(6.4 6.4) scale(0.8)" d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
