@@ -1,12 +1,15 @@
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
 import useDocumentTitle from '../lib/useDocumentTitle';
+import useRobots from '../lib/useRobots';
 import './pages.css';
 
 const orPlaceholder = (value, placeholder) => value || <span className="placeholder-text">{placeholder}</span>;
 
 export default function ImpressumPage() {
   useDocumentTitle('Impressum');
+  // Findable, but its links (e-mail, outside sites) aren't recommendations of the site
+  useRobots('index, nofollow');
   const { owner } = SITE;
 
   return (

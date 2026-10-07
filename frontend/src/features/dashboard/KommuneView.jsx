@@ -10,6 +10,7 @@ import { GRANULARITIES } from '../../config/dashboards';
 import { KOMMUNE } from '../../config/kommune';
 import { BUNDESLAENDER, findBundeslandByAgs, isKreisKey } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
+import { viewPath } from '../../config/views';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useJson, useStats, useTopology } from '../../lib/data';
 import { exportCsv, fileName, round, selectionSlug } from '../../lib/files';
@@ -41,9 +42,23 @@ function rankOf(peers, row, field) {
 
 /**
  * Without a Kreis: find one by name, a Kreis or a Gemeinde (all of Germany), or pick a Kreis of the chosen Land. The
- * lists load when the search is first used. lead: what the page shows, from its profile
+ * lists load when the search is first used. lead: what the page shows, from its profile; basePath: the dashboard's.
+ * Every choice is a link to its page (search engines follow links, not buttons); a plain click moves within the page.
  */
-function KommuneFinder({ state, onPick, lead }) {
+function KommuneFinder({ state, onPick, lead, basePath }) {
+  // The page of a Land, Kreis (5 digits) or Gemeinde (8 digits, in its Kreis)
+  const hrefOf = (code) => {
+    if (code.length === 2) return viewPath(basePath, 'kommune', code);
+    const land = findBundeslandByAgs(code.slice(0, 2));
+    return `${viewPath(basePath, 'kommune', land?.code, code.slice(0, 5))}${code.length === 8 ? `?gemeinde=${code}` : ''}`;
+  };
+  // A plain click picks within the page; with a modifier key (new tab, new window) the link does its work
+  const pick = (choose) => (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    choose();
+  };
+
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(false);
   const kreise = useTopology(active ? KREISE_TOPOLOGY : null);
@@ -115,13 +130,13 @@ function KommuneFinder({ state, onPick, lead }) {
         <ul className="kommune-finder__results">
           {matches.map((m) => (
             <li key={m.ags}>
-              <button type="button" className="kommune-finder__result" onClick={() => onPick(m.ags)}>
+              <a href={hrefOf(m.ags)} className="kommune-finder__result" onClick={pick(() => onPick(m.ags))}>
                 <span className="kommune-finder__name">{m.name}</span>
                 <span className="kommune-finder__kind">
                   {m.kind}
                   {m.context && ` · ${m.context}`}
                 </span>
-              </button>
+              </a>
             </li>
           ))}
         </ul>
@@ -134,9 +149,9 @@ function KommuneFinder({ state, onPick, lead }) {
           <ul>
             {state.kreisOptions.map((k) => (
               <li key={k.ags}>
-                <button type="button" className="kommune-finder__kreis" onClick={() => onPick(k.ags)}>
+                <a href={hrefOf(k.ags)} className="kommune-finder__kreis" onClick={pick(() => onPick(k.ags))}>
                   {k.name}
-                </button>
+                </a>
               </li>
             ))}
           </ul>
@@ -148,9 +163,9 @@ function KommuneFinder({ state, onPick, lead }) {
           <ul>
             {BUNDESLAENDER.map((b) => (
               <li key={b.code}>
-                <button type="button" className="kommune-finder__kreis" onClick={() => state.selectScope(b.code)}>
+                <a href={hrefOf(b.ags)} className="kommune-finder__kreis" onClick={pick(() => state.selectScope(b.code))}>
                   {b.name}
-                </button>
+                </a>
               </li>
             ))}
           </ul>
@@ -680,7 +695,7 @@ export default function KommuneView({ config, state }) {
     return (
       <>
         {scopeBar}
-        <KommuneFinder state={state} onPick={onPick} lead={profile.finderLead} />
+        <KommuneFinder state={state} onPick={onPick} lead={profile.finderLead} basePath={config.basePath} />
       </>
     );
   }

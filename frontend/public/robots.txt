@@ -1,0 +1,6 @@
+# Every page may be crawled. Addresses with parameters (?technologie=…, ?ebene=…) show the same page in another view:
+# each page names its address without them as canonical, and the sitemap lists only those.
+User-agent: *
+Allow: /
+
+Sitemap: https://www.mastr-data.de/sitemap.xml

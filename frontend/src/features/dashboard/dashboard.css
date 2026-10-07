@@ -2498,6 +2498,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .kommune-finder__kreis:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+  color: var(--ink-primary);
 }
 
 .kommune-finder__name {
@@ -2529,6 +2530,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .kommune-finder__kreis {
+  display: inline-block;
   padding: 5px 11px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);

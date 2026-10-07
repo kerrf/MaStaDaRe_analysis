@@ -2,6 +2,7 @@ import { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { canonicalUrl } from '../../config/seo';
 import { VIEW_PATHS } from '../../config/views';
 import { routeOf } from '../../lib/usage';
 import NavBar from '../NavBar';
@@ -47,6 +48,22 @@ function ScrollManager() {
   return null;
 }
 
+// The address search engines should know the page by: its path, without the query (config/seo.js). A pre-rendered page
+// brings the tag (scripts/prerender.mjs); here it follows every move inside the app.
+function CanonicalLink() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'canonical';
+      document.head.appendChild(link);
+    }
+    link.href = canonicalUrl(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function PageLoader() {
   return (
     <div className="page-loader" role="status" aria-label="Seite wird geladen">
@@ -62,6 +79,7 @@ export default function AppLayout() {
         Zum Inhalt springen
       </a>
       <ScrollManager />
+      <CanonicalLink />
       <NavBar />
       <main id="main" className="app__main">
         <Suspense fallback={<PageLoader />}>

@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import useDocumentTitle from '../lib/useDocumentTitle';
+import useRobots from '../lib/useRobots';
 import './pages.css';
 
 export default function NotFoundPage() {
   useDocumentTitle('Seite nicht gefunden');
+  // The server answers every unknown path with the app (200): this keeps such pages out of the search results
+  useRobots('noindex');
   return (
     <div className="container not-found">
       <span className="not-found__icon" aria-hidden="true">

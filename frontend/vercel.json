@@ -1,7 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": { "deploymentEnabled": { "main": false } },
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "buildCommand": "npm run build",
+  "cleanUrls": true,
+  "redirects": [{ "source": "/maerkte/:path*", "destination": "/", "permanent": true }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/spa" }],
   "headers": [
     {
       "source": "/(.*)\\.topojson",

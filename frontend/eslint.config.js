@@ -6,6 +6,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist', '.vite'] },
+  // Build scripts run in Node
+  { files: ['scripts/**/*.mjs'], languageOptions: { globals: globals.node }, rules: js.configs.recommended.rules },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

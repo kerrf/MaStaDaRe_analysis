@@ -6,7 +6,7 @@ React 18 + Vite + react-leaflet. Site copy is German, code and comments English.
 npm install
 npm run dev      # http://localhost:5173, expects the API at VITE_API_URL (default http://localhost:8000)
 npm run lint
-npm run build
+npm run build    # vite build, then scripts/prerender.mjs: the pages for search engines (see below)
 ```
 
 Public, user-facing documentation (method, map usage, sources, licences) lives on the Info page:
@@ -342,6 +342,28 @@ from. What it requests is in `homeData.js`.
 
 In development both only log to the console. Enabling them in the Vercel dashboard, the IP addresses (Firewall →
 Traffic) and the API's access log: `DEPLOY.md` §13.
+
+## Search engines (`scripts/prerender.mjs`, `config/seo.js`)
+
+The app renders in the browser; search engines, link previews and AI crawlers read the HTML as it arrives. So after
+`vite build` the script writes a page of its own for what should be found – its title, description, canonical address,
+robots tag and its content as text with the numbers of the API (styles: `.prerender` in `index.css`), which the app
+replaces as soon as it runs:
+
+- the start page, every page of the dashboards, the map of every Land (`/erzeuger/by`, `/speicher/by`), the
+  Landkreis/Gemeinde page of every Land and of every Kreis (`/erzeuger/kommune/sn/14524`: Photovoltaik with figures and
+  all Gemeinden; `/speicher/kommune/…`: batteries), info and legal pages: about 880, a little over 7 MB
+- `dist/<path>.html`, served at `/<path>` (`cleanUrls` in `vercel.json`); every other address gets the app's shell
+  `dist/spa.html` (the rewrite), the old `/maerkte/*` a redirect to the start page
+- `dist/sitemap.xml` with every page but the placeholders (lastmod: the Datenstand); `public/robots.txt` points to it
+- Titles, descriptions and texts come from the app's config (`scripts/prerender-modules.js`, bundled by Vite for Node);
+  the Kreis pages are titled by their place, as people search ("Landkreis Zwickau: Photovoltaik – …",
+  `kommuneTitle`), the same title the app sets (`useDocumentTitle`) – else search engines take the app's
+- The numbers come from the API (`VITE_API_URL`) at build time: they are as fresh as the last deploy of the frontend.
+  Without the API the pages keep their texts without numbers; the build doesn't fail on it.
+- In the app: `<link rel="canonical">` follows every route (`AppLayout.jsx`: path without query, lower case, www),
+  `useRobots` sets `index, nofollow` (Impressum) and `noindex` (404, Datenqualität while it is a placeholder)
+- The Kreise and Länder of the Landkreis/Gemeinde finder are links, so crawlers find every Kreis also in the app
 
 ## Datenstand
 

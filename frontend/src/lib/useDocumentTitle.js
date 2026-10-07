@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { SITE } from '../config/site';
+import { documentTitle } from '../config/seo';
 
+// The page's title (null: the start page's), with the site's name – as the pre-rendered HTML has it (config/seo.js)
 export default function useDocumentTitle(title) {
   useEffect(() => {
-    document.title = title ? `${title} · ${SITE.name}` : `${SITE.name} – Die Energiewende in Daten`;
+    document.title = documentTitle(title);
   }, [title]);
 }

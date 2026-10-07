@@ -4,6 +4,7 @@ import { Clock } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import TodoNote from '../../components/ui/TodoNote';
 import { hasData } from '../../config/dashboards';
+import { dashboardTitle, kommuneTitle } from '../../config/seo';
 import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
 import { useDatenstand } from '../../lib/data';
 import { formatDate } from '../../lib/format';
@@ -47,7 +48,11 @@ export default function Dashboard({ config, view }) {
     if (tab && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = tab.offsetLeft - (nav.clientWidth - tab.offsetWidth) / 2;
   }, [view]);
 
-  useDocumentTitle([config.title, view !== 'karte' && page.label, showScope && state.scopeName].filter(Boolean).join(' · '));
+  // A Landkreis/Gemeinde page is titled by its place, as people search for it (config/seo.js)
+  const kommune =
+    view === 'kommune' &&
+    kommuneTitle(config.id, { landName: state.region?.name, kreisName: state.kreisName, gemeindeName: state.gemeindeAgs && state.scopeName });
+  useDocumentTitle(kommune || dashboardTitle(config.title, view !== 'karte' && page.label, showScope && state.scopeName));
   if (state.redirect) return <Navigate to={state.redirect} replace />;
 
   const Page = PAGES[view];
