@@ -473,3 +473,52 @@ hour, IP addresses, browsers, systems, endpoints, status codes, slow requests,
 crawlers) in a temporary folder of your session and opens it in the browser.
 The IP addresses are personal data: say so in the Datenschutzerklärung (done,
 section 3) and don't keep the logs or reports longer than needed.
+
+## 14. Locked down: only through Cloudflare, SSH only with keys
+
+**Only through Cloudflare (comes with the deploy).** Caddy answers only
+connections from Cloudflare's addresses (`Caddyfile`: `abort` for any
+other); a request straight to the server's address – past Cloudflare's cache
+and rate limit – is cut off without an answer. It goes by the connection's own
+address, not a header, so it can't be faked. A firewall like ufw couldn't do
+it: Docker's ports bypass it (Docker writes its own rules). Cloudflare's
+addresses stand in the Caddyfile once, for this and for the visitor's IP in
+the access log; when Cloudflare adds a range (www.cloudflare.com/ips, rare),
+it goes there. Check – straight to the server, no answer (`curl: (52) Empty
+reply from server`):
+
+```bash
+curl --resolve api.mastr-data.de:443:152.53.185.75 https://api.mastr-data.de/health
+```
+
+**SSH only with keys (once, by hand).** Bots try passwords on port 22 all
+day; with keys only, guessing gets them nowhere.
+
+1. Your own login uses a key first. If ssh asks you for the password, on your
+   computer (the first only if you have no key yet, `~/.ssh/id_ed25519.pub`;
+   Enter for every question):
+
+   ```bash
+   ssh-keygen -t ed25519
+   ssh-copy-id root@152.53.185.75
+   ```
+
+   From then on ssh logs you in without the password.
+2. Log in like that, then on the server:
+
+   ```bash
+   cd /opt/mastr && bash deploy/harden_ssh.sh
+   ```
+
+   It stops if this login came in with a password (you'd lock yourself out),
+   lists the keys that may log in (yours, and `github-actions` of the
+   pipeline), switches passwords off – root keeps logging in, with a key –
+   and shows what the server offers to the internet (expected: 22, 80, 443).
+3. Keep that window open and log in from a second one. It works: done. It
+   doesn't: the script says how to undo it. Locked out with every window
+   closed: netcup's Server Control Panel → the server → its console (that
+   isn't SSH): log in as root with the password, delete
+   `/etc/ssh/sshd_config.d/00-mastr.conf`, then `systemctl reload ssh`.
+
+fail2ban isn't needed then: it bans addresses that guess passwords, and those
+no longer get anywhere.
