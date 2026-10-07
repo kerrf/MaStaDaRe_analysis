@@ -4,24 +4,8 @@ import { API_BASE_URL } from '../../config/site';
 import { RAMPS, inkOn, makeColorScale } from '../../lib/colorScale';
 import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
-import { formatAmount, formatCount, formatShare } from '../../lib/format';
-
-// The compass directions clockwise from north, by the keys of mrt.solar_orientation
-const DIRECTIONS = [
-  { id: 'nord', short: 'N', label: 'Nord' },
-  { id: 'nordost', short: 'NO', label: 'Nordost' },
-  { id: 'ost', short: 'O', label: 'Ost' },
-  { id: 'suedost', short: 'SO', label: 'Südost' },
-  { id: 'sued', short: 'S', label: 'Süd' },
-  { id: 'suedwest', short: 'SW', label: 'Südwest' },
-  { id: 'west', short: 'W', label: 'West' },
-  { id: 'nordwest', short: 'NW', label: 'Nordwest' },
-];
-// No single direction: the two halves of the centre
-const CENTRE = [
-  { id: 'ost_west', label: 'Ost-West', sign: -1 },
-  { id: 'nachgefuehrt', label: 'Nachgeführt', sign: 1 },
-];
+import { formatAmount, formatCount, formatNumber, formatShare } from '../../lib/format';
+import { CENTRE, DIRECTIONS } from './orientations';
 
 const OUTER = 150; // radius of the ring
 const INNER = 66; // radius of the centre
@@ -44,8 +28,18 @@ function sector(bearing) {
 // The upper (sign -1) or lower (1) half of the centre
 const half = (sign) => `M${sign * INNER},0A${INNER},${INNER} 0 0 1 ${-sign * INNER},0Z`;
 
-function Values({ x, y, row, share, fill }) {
+// A share in whole percent, for the small roses: "54 %", "<1 %" for a sliver, nothing for none
+const pct = (share) => (share > 0 ? (share < 0.005 ? '<1 %' : `${formatNumber(share * 100, 0)} %`) : '');
+
+function Values({ x, y, row, share, fill, compact }) {
   const ink = inkOn(fill);
+  if (compact) {
+    return (
+      <text className="rose__pct" x={x} y={y} dy="0.35em" textAnchor="middle" style={{ fill: ink }}>
+        {pct(share)}
+      </text>
+    );
+  }
   return (
     <text x={x} y={y} textAnchor="middle" style={{ fill: ink }}>
       <tspan className="rose__power" x={x} dy="-0.15em">
@@ -58,8 +52,58 @@ function Values({ x, y, row, share, fill }) {
   );
 }
 
-// Solar power by the main orientation of the modules, in the scope (mrt.solar_orientation): the eight compass
-// directions around the circle, Ost-West and tracking systems in its centre, unknown ones below it. fileBase: of its CSV
+/**
+ * The rose: the eight compass directions around the circle, Ost-West and tracking systems in its centre, each shaded by
+ * its share. rowOf(id): the orientation's row ({ total_power, total_units }); shareOf(id): its share of the whole;
+ * colorFor(share): its fill; label: what it shows, for screen readers. compact: a small copy (OrientationTiltAnalysis),
+ * the shares only, the power and units in the tooltips.
+ */
+export function RoseSvg({ rowOf, shareOf, colorFor, label, compact = false }) {
+  const tooltip = (name, id) =>
+    `${name}: ${formatAmount(rowOf(id).total_power, 'MW')} (${formatShare(shareOf(id))}) · ${formatCount(rowOf(id).total_units)} Anlagen`;
+  return (
+    <svg
+      className={compact ? 'rose__svg rose__svg--compact' : 'rose__svg'}
+      viewBox={`${-SIZE} ${-SIZE} ${2 * SIZE} ${2 * SIZE}`}
+      role="img"
+      aria-label={label}
+    >
+      {DIRECTIONS.map((direction, i) => {
+        const bearing = i * 45;
+        const fill = colorFor(shareOf(direction.id));
+        const [x, y] = point(MID, bearing);
+        const [lx, ly] = point(LABEL, bearing);
+        return (
+          <g key={direction.id} className="rose__part">
+            <title>{tooltip(direction.label, direction.id)}</title>
+            <path d={sector(bearing)} style={{ fill }} />
+            <Values x={x} y={y} row={rowOf(direction.id)} share={shareOf(direction.id)} fill={fill} compact={compact} />
+            <text className="rose__direction" x={lx} y={ly} dy="0.35em" textAnchor="middle">
+              {direction.short}
+            </text>
+          </g>
+        );
+      })}
+      {CENTRE.map((part) => {
+        const fill = colorFor(shareOf(part.id));
+        const y = part.sign * INNER * 0.5;
+        return (
+          <g key={part.id} className="rose__part">
+            <title>{tooltip(part.label, part.id)}</title>
+            <path d={half(part.sign)} style={{ fill }} />
+            <text className="rose__centre-label" x={0} y={y - (compact ? 13 : 17)} textAnchor="middle" style={{ fill: inkOn(fill) }}>
+              {part.label}
+            </text>
+            <Values x={0} y={y + (compact ? 12 : 5)} row={rowOf(part.id)} share={shareOf(part.id)} fill={fill} compact={compact} />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// Solar power by the main orientation of the modules, in the scope (mrt.solar_orientation): the rose, unknown ones
+// below it. fileBase: of its CSV
 export default function OrientationRose({ path, region, query, fileBase }) {
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
   if (stats.status === 'error') {
@@ -77,8 +121,6 @@ export default function OrientationRose({ path, region, query, fileBase }) {
   // Darker = larger share, on the Erzeuger ramp; the largest known orientation is the darkest
   const colorFor = makeColorScale(RAMPS.orange, Math.max(...[...DIRECTIONS, ...CENTRE].map((o) => shareOf(o.id))));
   const unknown = rowOf('unbekannt');
-  const tooltip = (label, id) =>
-    `${label}: ${formatAmount(rowOf(id).total_power, 'MW')} (${formatShare(shareOf(id))}) · ${formatCount(rowOf(id).total_units)} Anlagen`;
   const csv = {
     name: 'ausrichtung',
     filename: fileName(fileBase, 'ausrichtung', region, selectionSlug(query)),
@@ -93,38 +135,7 @@ export default function OrientationRose({ path, region, query, fileBase }) {
 
   return (
     <div className="rose">
-      <svg viewBox={`${-SIZE} ${-SIZE} ${2 * SIZE} ${2 * SIZE}`} role="img" aria-label="Solarleistung nach Ausrichtung der Module">
-        {DIRECTIONS.map((direction, i) => {
-          const bearing = i * 45;
-          const fill = colorFor(shareOf(direction.id));
-          const [x, y] = point(MID, bearing);
-          const [lx, ly] = point(LABEL, bearing);
-          return (
-            <g key={direction.id} className="rose__part">
-              <title>{tooltip(direction.label, direction.id)}</title>
-              <path d={sector(bearing)} style={{ fill }} />
-              <Values x={x} y={y} row={rowOf(direction.id)} share={shareOf(direction.id)} fill={fill} />
-              <text className="rose__direction" x={lx} y={ly} dy="0.35em" textAnchor="middle">
-                {direction.short}
-              </text>
-            </g>
-          );
-        })}
-        {CENTRE.map((part) => {
-          const fill = colorFor(shareOf(part.id));
-          const y = part.sign * INNER * 0.5;
-          return (
-            <g key={part.id} className="rose__part">
-              <title>{tooltip(part.label, part.id)}</title>
-              <path d={half(part.sign)} style={{ fill }} />
-              <text className="rose__centre-label" x={0} y={y - 17} textAnchor="middle" style={{ fill: inkOn(fill) }}>
-                {part.label}
-              </text>
-              <Values x={0} y={y + 5} row={rowOf(part.id)} share={shareOf(part.id)} fill={fill} />
-            </g>
-          );
-        })}
-      </svg>
+      <RoseSvg rowOf={rowOf} shareOf={shareOf} colorFor={colorFor} label="Solarleistung nach Ausrichtung der Module" />
 
       <div className="rose__foot">
         <span title="Keine Ausrichtung im Marktstammdatenregister: meist Balkonkraftwerke, deren vereinfachte Registrierung sie nicht abfragt">

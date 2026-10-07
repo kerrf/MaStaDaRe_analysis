@@ -23,7 +23,7 @@ has to hold everything (`src/config/views.js`):
 | Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
 | Landkreis/Gemeinde | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below) | `KommuneView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau` | Zubau im Zeitverlauf, Registrierungen im MaStR, Zeit bis zur Registrierung – Germany-wide | `ZubauView.jsx` |
-| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), batteries at solar units | `AnlagenView.jsx` |
+| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), Ausrichtung per Neigungswinkel (solar), batteries at solar units | `AnlagenView.jsx` |
 | Regionen | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
 
 Erzeuger and Speicher have all five, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
@@ -145,6 +145,16 @@ Germany-wide, one technology at a time (a switch, not stacked): `/zubau/registri
 technologies in `registrations.series` (Erzeuger: Solar, Wind, Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas:
 Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands on the axis (`StackedChart`, unit `Anzahl`).
 
+### Ausrichtung nach Neigungswinkel (`OrientationTiltAnalysis.jsx`, kind `orientation-tilt`)
+
+The rose of the orientations once per tilt class of the modules, five small ones side by side as wide as the page
+(`RoseSvg` of `OrientationRose.jsx`, compact: the shares only, power and units in the tooltips), in the scope and the
+selection like the Ausrichtung card. The register knows classes, not degrees (`HauptausrichtungNeigungswinkel`): 0–20°
+(with the newer "unter 5°"), 21–40°, 41–60°, 61–89°, 90°. Each rose shows the shares within its class, all on one colour
+scale; tracked units and those without a tilt (mostly Balkonkraftwerke) are named in the note. Data:
+`/solar/orientation-tilt?region=…` → `mrt.solar_orientation_tilt` (one row per tilt, orientation, Anlagenart and region
+that occurs).
+
 ### Solaranlagen mit Batteriespeicher (`PvSpeicherAnalysis.jsx`, `wide` on an analysis)
 
 Solar and battery units that share their Lokation (`LokationMaStRNummer`: the grid connection the register groups a
@@ -176,8 +186,9 @@ Kreise of a Land ~0.1 s.
 
 ### Technology-specific analyses (`analyses` on a technology)
 
-Appended to the dashboard's `analyses` of their page while that technology is active; Solar adds "Ausrichtung" and
-"Solaranlagen mit Batteriespeicher" (page Anlagen). Two cards stand side by side, one takes the full width.
+Appended to the dashboard's `analyses` of their page while that technology is active; Solar adds "Ausrichtung",
+"Ausrichtung nach Neigungswinkel" and "Solaranlagen mit Batteriespeicher" (page Anlagen), the wide panels in the order
+of the config. Two cards stand side by side, one takes the full width.
 
 ### Resolutions (`GRANULARITIES`)
 

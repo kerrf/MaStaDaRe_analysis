@@ -2,6 +2,7 @@ import {
   BatteryCharging,
   ChartColumnIncreasing,
   ClipboardList,
+  Compass,
   Construction,
   Cylinder,
   Droplets,
@@ -153,6 +154,15 @@ export const ERZEUGER = {
           kind: 'orientation',
           view: 'anlagen',
           path: '/solar/orientation', // mrt.solar_orientation
+        },
+        // The rose once per tilt class of the modules, as wide as the page (OrientationTiltAnalysis)
+        {
+          id: 'ausrichtung-neigung',
+          title: 'Ausrichtung nach Neigungswinkel',
+          kind: 'orientation-tilt',
+          view: 'anlagen',
+          path: '/solar/orientation-tilt', // mrt.solar_orientation_tilt
+          icon: Compass,
         },
         PV_SPEICHER,
       ],

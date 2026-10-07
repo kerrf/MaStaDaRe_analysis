@@ -1,5 +1,6 @@
 import AnalysisCard from './AnalysisCard';
 import AnalysesNav from './AnalysesNav';
+import OrientationTiltAnalysis from './OrientationTiltAnalysis';
 import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
@@ -10,12 +11,13 @@ const ofPage = (analyses) => (analyses ?? []).filter((a) => a.view === 'anlagen'
 const isCard = (a) => a.kind === 'sizes' || a.kind === 'orientation';
 
 // The page "Anlagen" of a dashboard: what the plants are like – size classes and orientation of the active technology in
-// the scope, and the batteries at solar units (Germany-wide)
+// the scope (as cards), then as wide panels the orientation per tilt (solar, in the scope) and the batteries at solar
+// units (Germany-wide), in the order of the config
 export default function AnlagenView({ config, state }) {
   const { technology, region, kreisAgs, kreisOptions, selectScope, gemeindeAgs, gemeindeOptions, selectGemeinde } = state;
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
-  const panels = analyses.filter((a) => a.kind === 'pv-speicher');
+  const panels = analyses.filter((a) => a.kind === 'orientation-tilt' || a.kind === 'pv-speicher');
   // Technologies to choose from: those with analyses of their own here (Erzeuger: size classes, Ausrichtung)
   const perTechnology = ofPage(config.analyses).some(isCard) || config.technologies.some((t) => ofPage(t.analyses).length);
   const technologies = perTechnology ? config.technologies.filter((t) => !t.plantsPath) : [];
@@ -54,9 +56,21 @@ export default function AnlagenView({ config, state }) {
           ))}
         </div>
       )}
-      {panels.map((a) => (
-        <PvSpeicherAnalysis key={a.id} analysis={a} subtypes={pv.subtypes} leistung={pv.leistung} ramp={config.ramp} anchor={`analyse-${a.id}`} />
-      ))}
+      {panels.map((a) =>
+        a.kind === 'orientation-tilt' ? (
+          <OrientationTiltAnalysis
+            key={a.id}
+            analysis={a}
+            region={state.scopeKey}
+            scopeName={state.scopeName}
+            query={state.selectionQuery}
+            fileBase={`mastr_${technology.id}`}
+            anchor={`analyse-${a.id}`}
+          />
+        ) : (
+          <PvSpeicherAnalysis key={a.id} analysis={a} subtypes={pv.subtypes} leistung={pv.leistung} ramp={config.ramp} anchor={`analyse-${a.id}`} />
+        ),
+      )}
     </>
   );
 }
