@@ -2,11 +2,12 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 
 DROP MATERIALIZED VIEW IF EXISTS mrt.size_distribution;
 
--- Units and power per size class (Bruttoleistung of the unit) for solar, wind and hydropower, for Deutschland ('DE'),
--- every Bundesland (2-digit key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every class, also
--- empty ones. Solar per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql), wind per Lage
+-- Units and power per size class (Bruttoleistung) for solar, wind and hydropower, for Deutschland ('DE'), every
+-- Bundesland (2-digit key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every class, also empty
+-- ones. Solar per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql), wind per Lage
 -- ('an_land', 'auf_see'); the API sums the chosen ones. Hydropower as 'alle'. Power as Brutto (Bruttoleistung) and
--- Netto (Nettonennleistung); the classes go by the Bruttoleistung either way.
+-- Netto (Nettonennleistung); the classes go by the Bruttoleistung either way. Solar counts Anlagen, not units: the
+-- units at one grid connection together (solar_anlagen); wind and hydropower count their units (turbines).
 CREATE MATERIALIZED VIEW mrt.size_distribution AS
 WITH classes (technology, size_class, above, up_to, label, hint) AS (
     -- kW, the lower bound excluded, the upper one included ("bis 2 kWp"). Solar: Balkon-PV, small and standard rooftop
@@ -35,16 +36,31 @@ WITH classes (technology, size_class, above, up_to, label, hint) AS (
 kinds (technology, anlagenart) AS (
     VALUES ('solar', 'gebaeude'), ('solar', 'freiflaeche'), ('wind', 'an_land'), ('wind', 'auf_see'), ('water', 'alle')
 ),
-units AS (
-    -- Installed units (InBetrieb) in Germany: without the border hydropower plants in Austria and Switzerland, with
-    -- offshore wind (no Gemeindeschlüssel, it counts for DE only)
+solar_anlagen AS (
+    -- Installed solar units (InBetrieb) in Germany, those at one grid connection (the Lokation in the register) of the
+    -- same Anlagenart as one Anlage, whoever operates them: parks are often registered in parts (per section, inverter
+    -- or investor; over 100 units at one connection). Each on its own: balcony-size units (up to 2 kWp: the tenants of
+    -- a house have their own behind its one connection), units without a Lokation, and the parts of a Lokation in
+    -- another Gemeinde or postcode – a park across a border counts in each Gemeinde, and a Lokation the register shares
+    -- between unrelated units across a city (Hamburg: over 1,100, nearly all balcony units) merges next to nothing.
     SELECT
-        'solar' AS technology,
         CASE WHEN "ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         "Gemeindeschluessel" AS ags,
-        "Bruttoleistung" AS power,
-        "Nettonennleistung" AS power_net
-    FROM raw.solar_units WHERE "EinheitBetriebsstatus" = '35' AND "Land" = '84'
+        sum("Bruttoleistung") AS power,
+        sum("Nettonennleistung") AS power_net
+    FROM raw.solar_units
+    WHERE "EinheitBetriebsstatus" = '35' AND "Land" = '84'
+    GROUP BY
+        1,
+        2,
+        "Postleitzahl",
+        CASE WHEN "Bruttoleistung" <= 2 OR "LokationMaStRNummer" IS NULL THEN "EinheitMastrNummer"
+            ELSE "LokationMaStRNummer" END
+),
+units AS (
+    -- Installed units (InBetrieb) in Germany, solar as Anlagen: without the border hydropower plants in Austria and
+    -- Switzerland, with offshore wind (no Gemeindeschlüssel, it counts for DE only)
+    SELECT 'solar' AS technology, anlagenart, ags, power, power_net FROM solar_anlagen
     UNION ALL
     SELECT
         'wind',
