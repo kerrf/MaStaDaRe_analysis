@@ -72,6 +72,16 @@
   --series-kaverne: #0e8a7e;
   --series-pore: #c27c0e;
   --series-aquifer: #3b6fd4;
+  /* Batteries by technology (Lithium in the Speicher blue) and by coupling (AC dark, DC light); without an entry grey */
+  --series-lithium: #2a78d6;
+  --series-blei: #5b6472;
+  --series-redox-flow: #0e8a7e;
+  --series-hochtemperatur: #c25a0e;
+  --series-nickel: #8453d6;
+  --series-batterie-sonstige: #b9ab8f;
+  --series-ac: #104281;
+  --series-dc: #86b6ef;
+  --series-unbekannt: #d3c7b1;
   /* Time from commissioning to registration: grey early, green within the deadline, then warmer the later */
   --delay-early: #98a2b3;
   --delay-in-time: #3f9b63;

@@ -4,8 +4,8 @@ import TimelineAnalysis from './TimelineAnalysis';
 import AnalysesNav from './AnalysesNav';
 import { selectionOf } from './useDashboardState';
 
-// The page "Zubau & Registrierungen" of a dashboard, Germany-wide: Zubau im Zeitverlauf, Registrierungen im MaStR and
-// Zeit bis zur Registrierung, one below the other
+// The page "Zubau & Registrierungen" of a dashboard, Germany-wide: Ausbau im Zeitverlauf, Registrierungen im MaStR and
+// Abstand zwischen Inbetriebnahmen und Registierung, one below the other
 export default function ZubauView({ config, state }) {
   const analyses = config.analyses.filter((a) => a.view === 'zubau');
   // The solar Leistung (Netto or Brutto) of the timeline: solar's choice in the URL, switchable on the timeline itself

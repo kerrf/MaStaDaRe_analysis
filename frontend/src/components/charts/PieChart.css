@@ -1,0 +1,96 @@
+/* A ring of slices and its legend below (PieChart.jsx) */
+.pie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+
+.pie__title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.pie__svg {
+  display: block;
+  width: 100%;
+  max-width: 210px;
+  font-family: var(--font-sans);
+}
+
+/* A thin line in the card's colour between the slices */
+.pie__slice {
+  stroke: var(--surface-card);
+  stroke-width: 1.5;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.pie__slice.is-dim {
+  opacity: 0.35;
+}
+
+.pie__centre-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-primary);
+}
+
+.pie__centre-label {
+  font-size: 12px;
+  fill: var(--ink-muted);
+}
+
+.pie__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.pie__item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.pie__item.is-active {
+  background: var(--surface-hover);
+}
+
+.pie__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.pie__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-primary);
+}
+
+.pie__share {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pie__value {
+  min-width: 72px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-muted);
+}

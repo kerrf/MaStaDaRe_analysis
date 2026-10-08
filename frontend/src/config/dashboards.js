@@ -71,7 +71,7 @@ export const isAvailable = (granularity, technology) =>
 
 // Analyses on more than one dashboard. view: the page of the dashboard that shows them (config/views.js).
 
-// Registrierungen im MaStR per year and Zeit bis zur Registrierung, Germany-wide, one technology at a time
+// Registrierungen im MaStR per year and Abstand zwischen Inbetriebnahmen und Registierung, Germany-wide, one technology at a time
 // (mrt.registrierungen, mrt.registrierungsverzug). series: the technologies of the switch, as the API names them.
 const registrations = (series) => [
   {
@@ -84,7 +84,7 @@ const registrations = (series) => [
   },
   {
     id: 'registrierungsverzug',
-    title: 'Zeit bis zur Registrierung',
+    title: 'Abstand zwischen Inbetriebnahmen und Registierung',
     kind: 'registration-delay',
     view: 'zubau',
     icon: Timer,
@@ -227,7 +227,7 @@ export const ERZEUGER = {
   analyses: [
     {
       id: 'timeline',
-      title: 'Zubau im Zeitverlauf',
+      title: 'Ausbau im Zeitverlauf',
       icon: ChartColumnIncreasing,
       view: 'zubau',
       // Germany-wide chart across the full width (mrt.zubau_zeitverlauf). Stacked in this order, the first at the bottom.
@@ -282,6 +282,48 @@ export const SPEICHER = {
       statsPath: '/battery/dashboard-stats',
       heatmapPath: '/battery/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
+      // The page Anlagen, in the scope: size classes by the plant's capacity (mrt.battery_size_distribution), and the
+      // units by battery technology and by coupling (mrt.battery_kinds)
+      analyses: [
+        {
+          id: 'groesse',
+          title: 'Verteilung nach Speichergröße',
+          kind: 'sizes',
+          view: 'anlagen',
+          path: '/battery/size-distribution',
+          measure: 'capacity',
+          unitsLabel: 'Speicher',
+          what: 'Kapazität und Speicher je Größenklasse der Speicheranlage',
+        },
+        {
+          id: 'arten',
+          title: 'Batterietechnologie und Kopplung',
+          kind: 'kinds',
+          view: 'anlagen',
+          path: '/battery/kinds',
+          unitsLabel: 'Speicher',
+          what: 'Anteile nach Batterietechnologie und AC/DC-Kopplung',
+          measures: [
+            { id: 'capacity', label: 'Kapazität', field: 'total_capacity', unit: 'MWh' },
+            { id: 'units', label: 'Anzahl', field: 'total_units' },
+          ],
+          groups: [
+            {
+              id: 'technologie',
+              title: 'Batterietechnologie',
+              colors: {
+                lithium: 'var(--series-lithium)',
+                blei: 'var(--series-blei)',
+                redox_flow: 'var(--series-redox-flow)',
+                hochtemperatur: 'var(--series-hochtemperatur)',
+                nickel: 'var(--series-nickel)',
+                sonstige: 'var(--series-batterie-sonstige)',
+              },
+            },
+            { id: 'kopplung', title: 'AC/DC-Kopplung', colors: { ac: 'var(--series-ac)', dc: 'var(--series-dc)' } },
+          ],
+        },
+      ],
     },
     {
       id: 'pumpspeicher',
@@ -362,7 +404,7 @@ export const SPEICHER = {
   analyses: [
     {
       id: 'timeline',
-      title: 'Zubau im Zeitverlauf: Kapazität',
+      title: 'Ausbau im Zeitverlauf: Kapazität',
       icon: ChartColumnIncreasing,
       view: 'zubau',
       // Battery capacity by size class, like battery-charts.de (RWTH Aachen)
@@ -381,7 +423,7 @@ export const SPEICHER = {
     },
     {
       id: 'timeline-leistung',
-      title: 'Zubau im Zeitverlauf: Leistung',
+      title: 'Ausbau im Zeitverlauf: Leistung',
       icon: Zap,
       view: 'zubau',
       // The same batteries by their power (Bruttoleistung, as on the map)
@@ -412,8 +454,25 @@ export const SPEICHER = {
   ],
 };
 
+// The kinds of gas producers and storages: the filters of the map and of the Anlagen page, the colours of their sites
+// and of their slices
+const GAS_TECHNIK = [
+  { id: 'biomethan', label: 'Biomethan', color: 'var(--series-biomethan)' },
+  { id: 'erdgas', label: 'Erdgasförderung', color: 'var(--series-erdgas)' },
+  { id: 'lng', label: 'LNG', color: 'var(--series-lng)' },
+  { id: 'wasserstoff', label: 'Power-to-Gas: Wasserstoff', color: 'var(--series-wasserstoff)' },
+  { id: 'methan', label: 'Power-to-Gas: Methan', color: 'var(--series-methan)' },
+];
+const GAS_SPEICHERARTEN = [
+  { id: 'kaverne', label: 'Kavernenspeicher', color: 'var(--series-kaverne)' },
+  { id: 'pore', label: 'Porenspeicher', color: 'var(--series-pore)' },
+  { id: 'aquifer', label: 'Aquiferspeicher', color: 'var(--series-aquifer)' },
+];
+const colorsOf = (options) => Object.fromEntries(options.map((o) => [o.id, o.color]));
+
 // Gas: producers and storages, few enough to show each at its location like the Pumpspeicher (mrt.gaserzeuger,
-// mrt.gasspeicher). Their subtypes filter the sites in the browser and colour them.
+// mrt.gasspeicher). Their subtypes filter the sites in the browser and colour them; on the Anlagen page they go to the
+// API (?technik=…, ?speicherart=…).
 export const GAS = {
   id: 'gas',
   basePath: '/gas',
@@ -441,14 +500,32 @@ export const GAS = {
         param: 'technik',
         label: 'Technologie',
         field: 'technologie',
-        options: [
-          { id: 'biomethan', label: 'Biomethan', color: 'var(--series-biomethan)' },
-          { id: 'erdgas', label: 'Erdgasförderung', color: 'var(--series-erdgas)' },
-          { id: 'lng', label: 'LNG', color: 'var(--series-lng)' },
-          { id: 'wasserstoff', label: 'Power-to-Gas: Wasserstoff', color: 'var(--series-wasserstoff)' },
-          { id: 'methan', label: 'Power-to-Gas: Methan', color: 'var(--series-methan)' },
-        ],
+        options: GAS_TECHNIK,
       },
+      // The page Anlagen, in the scope: the producers in operation by their Erzeugungsleistung and by technology
+      analyses: [
+        {
+          id: 'groesse',
+          title: 'Verteilung nach Anlagengröße',
+          kind: 'sizes',
+          view: 'anlagen',
+          path: '/gas/erzeuger/size-distribution',
+          what: 'Erzeugungsleistung und Anlagen je Größenklasse',
+        },
+        {
+          id: 'technologie',
+          title: 'Gastechnologie',
+          kind: 'kinds',
+          view: 'anlagen',
+          path: '/gas/erzeuger/kinds',
+          what: 'Anteile der Technologien',
+          measures: [
+            { id: 'power', label: 'Leistung', field: 'total_power', unit: 'MW' },
+            { id: 'units', label: 'Anzahl', field: 'total_units' },
+          ],
+          groups: [{ id: 'technologie', title: 'Gastechnologie', colors: colorsOf(GAS_TECHNIK) }],
+        },
+      ],
       metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Erzeugungsleistung', unit: 'MW', digits: 1 }],
       // Einheiten in Germany; a unit's Erzeugungsleistung is the most gas it can feed in, in MW (kWh per hour)
       kpis: [
@@ -481,12 +558,35 @@ export const GAS = {
         param: 'speicherart',
         label: 'Speicherart',
         field: 'speicherart',
-        options: [
-          { id: 'kaverne', label: 'Kavernenspeicher', color: 'var(--series-kaverne)' },
-          { id: 'pore', label: 'Porenspeicher', color: 'var(--series-pore)' },
-          { id: 'aquifer', label: 'Aquiferspeicher', color: 'var(--series-aquifer)' },
-        ],
+        options: GAS_SPEICHERARTEN,
       },
+      // The page Anlagen, in the scope: the storages in operation by their working gas and by Speicherart
+      analyses: [
+        {
+          id: 'groesse',
+          title: 'Verteilung nach Speichergröße',
+          kind: 'sizes',
+          view: 'anlagen',
+          path: '/gas/speicher/size-distribution',
+          measure: 'arbeitsgas',
+          unitsLabel: 'Speicher',
+          what: 'Arbeitsgas und Speicher je Größenklasse',
+        },
+        {
+          id: 'speicherart',
+          title: 'Gasspeicherart',
+          kind: 'kinds',
+          view: 'anlagen',
+          path: '/gas/speicher/kinds',
+          unitsLabel: 'Speicher',
+          what: 'Anteile der Speicherarten',
+          measures: [
+            { id: 'capacity', label: 'Arbeitsgas', field: 'total_capacity', unit: 'GWh' },
+            { id: 'units', label: 'Anzahl', field: 'total_units' },
+          ],
+          groups: [{ id: 'speicherart', title: 'Gasspeicherart', colors: colorsOf(GAS_SPEICHERARTEN) }],
+        },
+      ],
       metrics: [
         { id: 'total_capacity', label: 'Kapazität', legend: 'Arbeitsgas', unit: 'GWh', digits: 0 },
         { id: 'total_power', label: 'Ausspeicherung', legend: 'Ausspeicherleistung', unit: 'MW', digits: 0 },

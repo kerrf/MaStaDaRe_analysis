@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, X, Zap } from 'lucide-react';
 import { SITE } from '../config/site';
@@ -29,22 +29,24 @@ const isMapPath = (pathname, basePath) => {
   return pathname.startsWith(basePath) && !Object.values(VIEWS).some((v) => v.path && rest[0] === v.path);
 };
 
-// A menu in the bar: opens on click (and on hover with a mouse), closes on a click outside, Escape or leaving it
+// A menu in the bar: opens on click (and on hover with a mouse), closes on a click outside, Escape or leaving it.
+// onClose(id) closes it only while it is still the open one: leaving it for the next menu, its delayed close must not
+// shut the menu that just opened.
 function Dropdown({ id, label, active, open, onOpen, onClose, children }) {
   const ref = useRef(null);
   const leaveTimer = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    const onPointerDown = (e) => !ref.current?.contains(e.target) && onClose();
-    const onKeyDown = (e) => e.key === 'Escape' && onClose();
+    const onPointerDown = (e) => !ref.current?.contains(e.target) && onClose(id);
+    const onKeyDown = (e) => e.key === 'Escape' && onClose(id);
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open, onClose, id]);
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
 
   const hover = (e) => {
@@ -54,7 +56,7 @@ function Dropdown({ id, label, active, open, onOpen, onClose, children }) {
   };
   const leave = (e) => {
     if (e.pointerType !== 'mouse') return;
-    leaveTimer.current = setTimeout(onClose, 180);
+    leaveTimer.current = setTimeout(() => onClose(id), 180);
   };
 
   return (
@@ -64,7 +66,7 @@ function Dropdown({ id, label, active, open, onOpen, onClose, children }) {
         className={`navbar__link navbar__dropdownToggle${active ? ' is-active' : ''}`}
         aria-expanded={open}
         aria-controls={`${id}-menu`}
-        onClick={() => (open ? onClose() : onOpen())}
+        onClick={() => (open ? onClose(id) : onOpen())}
       >
         {label} <ChevronDown size={15} aria-hidden="true" className="navbar__chevron" />
       </button>
@@ -79,7 +81,7 @@ export default function NavBar() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
-  const close = useRef(() => setOpenMenu(null)).current;
+  const close = useCallback((id) => setOpenMenu((current) => (current === id ? null : current)), []);
 
   useEffect(() => {
     setMenuOpen(false);

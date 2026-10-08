@@ -33,10 +33,16 @@ function sharedTicks(maxima) {
   return steps.map((step) => Array.from({ length: count + 1 }, (_, k) => Number((k * step).toFixed(9))));
 }
 
-// How an axis writes its numbers: in its unit, or a larger one – power from 1,000 MW in GW, counts from 10,000 in
-// thousands and from a million in millions
+// The next larger unit prefix (MW → GW, GWh → TWh)
+const LARGER = { k: 'M', M: 'G', G: 'T' };
+
+// How an axis writes its numbers: in its unit, or a larger one – power from 1,000 MW in GW (working gas from 1,000 GWh
+// in TWh), counts from 10,000 in thousands and from a million in millions
 function scaleOf(axis, top) {
-  if (axis.kind === 'power') return top >= 1000 ? { factor: 1000, unit: axis.unit.replace(/^M/, 'G') } : { factor: 1, unit: axis.unit };
+  if (axis.kind === 'power') {
+    const larger = LARGER[axis.unit[0]];
+    return top >= 1000 && larger ? { factor: 1000, unit: larger + axis.unit.slice(1) } : { factor: 1, unit: axis.unit };
+  }
   if (top >= 1e6) return { factor: 1e6, unit: 'Mio.' };
   if (top >= 1e4) return { factor: 1e3, unit: 'Tsd.' };
   return { factor: 1, unit: '' };

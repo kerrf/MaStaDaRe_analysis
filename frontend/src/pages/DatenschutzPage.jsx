@@ -69,7 +69,7 @@ export default function DatenschutzPage() {
             Dashboards werden ohne externe Kartendienste dargestellt.
           </p>
           <p>
-            Nur die Seite <strong>Landkreis/Gemeinde</strong> zeigt eine Hintergrundkarte aus Kartenkacheln: die Karten Grau und Farbig
+            Nur die Seite <strong>Regionen im Detail</strong> zeigt eine Hintergrundkarte aus Kartenkacheln: die Karten Grau und Farbig
             vom <strong>Bundesamt für Kartographie und Geodäsie</strong> (basemap.de, Deutschland), das Satellitenbild von der{' '}
             <strong>EOX IT Services GmbH</strong> (Österreich). Beim Laden der Kacheln erhält der jeweilige Anbieter technisch bedingt
             die IP-Adresse, Datum und Uhrzeit sowie Browserinformationen; Kacheln des Satellitenbilds werden erst geladen, wenn es

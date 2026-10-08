@@ -21,7 +21,7 @@ const CLASSES = [
 const percent = (value) => `${formatNumber(value, 1)} %`;
 const inTime = (row) => (row.vorab + row.bis_1_monat) / row.units;
 
-// Zeit bis zur Registrierung: how long after going into operation units were registered, per year of commissioning, as
+// Abstand zwischen Inbetriebnahmen und Registierung: how long after going into operation units were registered, per year of commissioning, as
 // shares of the units – one technology at a time, Germany-wide (mrt.registrierungsverzug)
 export default function RegistrationDelayAnalysis({ analysis, initial, anchor }) {
   const { path, series } = analysis.delay;

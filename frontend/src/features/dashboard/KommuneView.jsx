@@ -333,7 +333,7 @@ function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectio
   const data = useJson(`${API_BASE_URL}${timeline.path}?region=${scopeKey}${timeline.withSelection && query ? `&${query}` : ''}`);
   // Aggregiert: the Bestand at each year's end instead of the Zubau per year
   const [aggregiert, setAggregiert] = useState(false);
-  const [style, setStyle] = useState('kurve');
+  const [style, setStyle] = useState('balken');
   const view = aggregiert ? 'bestand' : 'zubau';
   const [measureId, setMeasureId] = useState(timeline.measures[0].id);
   const measure = timeline.measures.find((m) => m.id === measureId) ?? timeline.measures[0];

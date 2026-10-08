@@ -1620,6 +1620,62 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   cursor: pointer;
 }
 
+/* The years of the Jährlich view (TimeControls): from – to, and the shortcut to every year, in one box like the others */
+.year-span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 3px 3px 3px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.year-span__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.year-span__select {
+  height: 32px;
+  padding-right: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.year-span__all {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.year-span__all:hover:not(.is-active) {
+  background: var(--surface-hover);
+  color: var(--ink-primary);
+}
+
+/* Every year shown: the shortcut lights up green, like the chosen option of a switch */
+.year-span__all.is-active {
+  background: var(--brand-600);
+  color: #fff;
+  cursor: default;
+}
+
+.year-span__all:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .timeline__state {
   display: flex;
   align-items: center;
@@ -1746,6 +1802,39 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 
 .sizes__fill--power {
   background: var(--accent);
+}
+
+/* The kinds of the units as rings (KindShares): the switch of the measure, then one ring or two side by side */
+.kind-shares {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kind-shares__controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kind-shares__controls .segmented__option {
+  flex: none;
+  padding: 0 14px;
+}
+
+.kind-shares__pies {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px 18px;
+}
+
+.kind-shares__pies--pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 560px) {
+  .kind-shares__pies--pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Verteilung nach Anlagengröße as columns: the legend above the chart */

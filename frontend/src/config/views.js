@@ -6,11 +6,12 @@ import { ChartColumnIncreasing, Landmark, Map as MapIcon, MapPinned, Ruler } fro
 export const VIEWS = {
   karte: { id: 'karte', label: 'Karte', icon: MapIcon, path: '', scoped: true },
   // One Landkreis and its Gemeinden in depth, on a detailed map (KommuneView)
-  kommune: { id: 'kommune', label: 'Landkreis/Gemeinde', icon: Landmark, path: 'kommune', scoped: true, gemeinde: true },
+  kommune: { id: 'kommune', label: 'Regionen im Detail', icon: Landmark, path: 'kommune', scoped: true, gemeinde: true },
   zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: false },
   // gemeinde: the page can show a single Gemeinde of the Kreis too (?gemeinde=…)
   anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true, gemeinde: true },
-  regionen: { id: 'regionen', label: 'Regionen', icon: MapPinned, path: 'regionen', scoped: true },
+  // Steckbrief of an area and its parts side by side
+  regionen: { id: 'regionen', label: 'Regionen im Vergleich', icon: MapPinned, path: 'regionen', scoped: true },
 };
 export const VIEW_PATHS = new Set(Object.values(VIEWS).map((view) => view.path).filter(Boolean));
 
@@ -36,7 +37,7 @@ export const DASHBOARD_MENUS = [
       karte: 'Batterie- und Pumpspeicher je Land, Kreis, Gemeinde',
       kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
-      anlagen: 'Batteriespeicher an Solaranlagen',
+      anlagen: 'Speichergröße, Batterietechnologie und Kopplung, Batteriespeicher an Solaranlagen',
       regionen: 'Steckbrief eines Gebiets',
     },
   },
@@ -47,6 +48,7 @@ export const DASHBOARD_MENUS = [
     views: {
       karte: 'Gaserzeuger und Gasspeicher an ihren Standorten',
       zubau: 'Registrierungen und Meldefristen',
+      anlagen: 'Größenklassen und Technologien der Gaserzeuger, Größen und Arten der Gasspeicher',
     },
   },
 ];

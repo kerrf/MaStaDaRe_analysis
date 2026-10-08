@@ -21,12 +21,12 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Landkreis/Gemeinde | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below) | `KommuneView.jsx` |
-| Zubau & Registrierungen | `/erzeuger/zubau` | Zubau im Zeitverlauf, Registrierungen im MaStR, Zeit bis zur Registrierung – Germany-wide | `ZubauView.jsx` |
-| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | size classes and Ausrichtung of the active technology in the scope (down to a Gemeinde), Ausrichtung per Neigungswinkel (solar), batteries at solar units | `AnlagenView.jsx` |
-| Regionen | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
+| Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
+| Zubau & Registrierungen | `/erzeuger/zubau` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – Germany-wide | `ZubauView.jsx` |
+| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units | `AnlagenView.jsx` |
+| Regionen im Vergleich | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
 
-Erzeuger and Speicher have all five, Gas the map and Zubau (`DASHBOARD_MENUS`, which also holds the texts of the menus
+Erzeuger and Speicher have all five, Gas the map, Zubau and Anlagen (`DASHBOARD_MENUS`, which also holds the texts of the menus
 in the nav bar). `Dashboard.jsx` is the shell: header (dashboard, page, scope), tabs to the other pages, the page. Each
 analysis says on which page it is (`view` on the analysis). The map page loads Leaflet; the other pages don't.
 
@@ -97,7 +97,7 @@ the same default) – map, KPIs, ranking, analysis cards and the table per regio
 `useDashboardState.js`). The solar views hold one row per Anlagenart (gebaeude: 853, 2484, 2961 and none; freiflaeche: 852)
 with Brutto and Netto columns; the API sums the chosen Anlagenarten and answers with the usual field names, so nothing
 else changes on the page. Map title, legend and Top 10 name the measure ("· Netto (AC)"), the map subtitle a narrowed
-selection ("· nur Freifläche"). The Zubau im Zeitverlauf follows the Leistung (series with `netto`), not the
+selection ("· nur Freifläche"). The Ausbau im Zeitverlauf follows the Leistung (series with `netto`), not the
 Anlagenart.
 
 Wind: `subtypes` Lage (`?lage=an_land|auf_see`). Offshore wind is the region `offshore` on every level; the API leaves
@@ -114,12 +114,17 @@ the URL), and falls back to the `ChartPlaceholder` ("bald") where the active tec
 
 | kind | Chart | Data |
 | --- | --- | --- |
-| `sizes` | `SizeDistribution.jsx`: share of power and units per size class as columns side by side (`components/charts/GroupedBarChart.jsx`), one scale for both | `technology.sizesPath` (`/{solar,wind,water}/size-distribution`, `mrt.size_distribution`) |
+| `sizes` | `SizeDistribution.jsx`: share of power and units per size class as columns side by side (`components/charts/GroupedBarChart.jsx`), one scale for both; `measure` `capacity` (batteries, MWh) or `arbeitsgas` (gas storages, GWh) instead of the power | `analysis.path`, else `technology.sizesPath` (`/{solar,wind,water}/size-distribution`, `mrt.size_distribution`; `/battery/size-distribution`; `/gas/{erzeuger,speicher}/size-distribution`) |
 | `orientation` | `OrientationRose.jsx`: compass rose, power and share inside the 8 sectors, Ost-West and nachgeführt in the centre, unknown below | `analysis.path` (`/solar/orientation`, `mrt.solar_orientation`) |
+| `kinds` | `KindShares.jsx`: a ring per kind (`groups`, `components/charts/PieChart.jsx`), the shares of the measure the switch chooses (`measures`: capacity, power or the number), legend with share and amount | `analysis.path`: `/battery/kinds` (`mrt.battery_kinds`: Batterietechnologie, AC/DC-Kopplung), `/gas/erzeuger/kinds` (technology), `/gas/speicher/kinds` (Speicherart) |
 
-Both views hold one row per region (Deutschland, Länder, Kreise, Gemeinden) and class, also empty ones, so a request
-returns exactly the rows of one scope. Classes, thresholds and labels live in the SQL only
-(`backend/app/etl/queries/aggregate_size_distribution.sql`).
+The size views hold one row per region (Deutschland, Länder, Kreise, Gemeinden) and class, also empty ones, so a request
+returns exactly the rows of one scope. Classes, thresholds and labels live in the SQL
+(`backend/app/etl/queries/aggregate_size_distribution.sql`, `aggregate_battery_size_distribution.sql`) – for gas, with its
+few hundred sites, in `backend/app/models/gas.py`, which sums the sites of `mrt.gaserzeuger`/`mrt.gasspeicher` per
+request (in operation in Germany, in the region by the start of their Gemeindeschlüssel, the chosen kinds:
+`?technik=…`, `?speicherart=…`). `mrt.battery_kinds` holds only the kinds that occur in a region; their colours are in
+the analysis' `groups` (tokens `--series-lithium` … `--series-unbekannt`, gas: its subtypes' colours).
 
 ### Analyses one below the other (`AnalysisPanel.jsx`)
 
@@ -128,7 +133,7 @@ card of its own that starts with a clear head – accent bar, tinted band, icon 
 shows, its switches on the right (`tools`). Timelines, registrations, the registration delay, PV-Speicher and the table
 per region all use it.
 
-### Zeit bis zur Registrierung (`RegistrationDelayAnalysis.jsx`, kind `registration-delay`)
+### Abstand zwischen Inbetriebnahmen und Registierung (`RegistrationDelayAnalysis.jsx`, kind `registration-delay`)
 
 How long after going into operation units were registered, per year of commissioning since the register started
 (31.01.2019), as shares stacked to 100 %: before going into operation, within a month (the deadline of § 5 MaStRV),
@@ -145,11 +150,14 @@ One card per technology with area stats (`statsPath`) for the scope: Anlagen, Le
 
 ### Registrierungen im MaStR (`RegistrationsAnalysis.jsx`, kind `registrations`)
 
-Units registered per year (`Registrierungsdatum`) since the first registration (2019, when the register started),
-Germany-wide, one technology at a time (a switch, not stacked): `/zubau/registrierungen` from `mrt.registrierungen`
-(`aggregate_registrierungen.sql`), every unit the register lists whatever its status. Each dashboard lists its
-technologies in `registrations.series` (Erzeuger: Solar, Wind, Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas:
-Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands on the axis (`StackedChart`, unit `Anzahl`).
+Units registered per year or month (`Registrierungsdatum`) since the first registration (2019, when the register
+started), Germany-wide, one technology at a time (a switch, not stacked): `/zubau/registrierungen` from
+`mrt.registrierungen` (`aggregate_registrierungen.sql`: per month and, with `month` null, per year; `units` registered in
+the period, `total` all up to its end; `?yearly=true` only the years), every unit the register lists whatever its
+status. The same time controls as the Ausbau im Zeitverlauf (below): aggregiert (all registered so far), Jährlich or
+Monatlich, the span. Each dashboard lists its technologies in `registrations.series` (Erzeuger: Solar, Wind,
+Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas: Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands
+on the axis (`StackedChart`, unit `Anzahl`).
 
 ### Ausrichtung nach Neigungswinkel (`OrientationTiltAnalysis.jsx`, kind `orientation-tilt`)
 
@@ -194,7 +202,10 @@ Kreise of a Land ~0.1 s.
 
 Appended to the dashboard's `analyses` of their page while that technology is active; Solar adds "Ausrichtung",
 "Ausrichtung nach Neigungswinkel" and "Solaranlagen mit Batteriespeicher" (page Anlagen), the wide panels in the order
-of the config. Two cards stand side by side, one takes the full width.
+of the config; batteries "Verteilung nach Speichergröße" and "Batterietechnologie und Kopplung", the gas producers and
+storages their size classes and "Gastechnologie" or "Gasspeicherart". Two cards stand side by side, one takes the full
+width. The Anlagen page offers the technologies with cards of their own there (also the gas sites, though the map shows
+them as sites), and the choice only when there is one: a single technology without filters (Speicher) gets no bar.
 
 ### Resolutions (`GRANULARITIES`)
 
@@ -265,13 +276,15 @@ the map. The Analysen section only shows when it has something (Gas: nothing yet
 - **The area in view** is named in the top left corner (`map-scope` in `MapView.jsx`): "Bundesland" above a Land, its
   Land above a Kreis.
 
-### Zubau im Zeitverlauf (`timeline` on an analysis)
+### Ausbau im Zeitverlauf (`timeline` on an analysis)
 
 An analysis with `timeline` is drawn full-width above the other cards (`TimelineAnalysis.jsx`), Germany-wide whatever
 the scope. Data: `/zubau/zeitverlauf?technology=…` from `mrt.zubau_zeitverlauf` (`aggregate_zubau.sql`), one row per
 series and month plus one per year (`month` null), with `added` (Zubau) and `installed` (Bestand at the period's end).
 Views: Zubau (what went into operation per period, bars) or Bestand (in operation at its end, bars or a curve of stacked
-areas), per year or per month (the last 12 months, a year or all months since `since`). Series are stacked in config
+areas – switched on, always bars first), per year (from–to, or every year since `since` with one click) or per month
+(the last 12 months, a year or all months since `since`). The controls and the periods are shared with the
+Registrierungen: `TimeControls.jsx` and `timeView.js` (`useTimeView`, `indexRows`, `buildPeriods`). Series are stacked in config
 order, the first at the bottom; a click on the legend hides one. Bars carry their total where every one fits. A curve's
 axis starts near its lowest point (`curveFloor`: 35 → 40 reads from 30) when the curve stays high up; series that then
 lie wholly below the axis are named under the chart, which also switches the axis back to 0. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG, no chart library. On the Zubau page the

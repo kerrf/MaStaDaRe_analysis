@@ -7,10 +7,11 @@ import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
 import { formatAmount, formatCount } from '../../lib/format';
 
-// What the left axis measures: the power, or (batteries) the capacity
+// What the left axis measures: the power, (batteries) the capacity, or (gas storages) the working gas
 const MEASURES = {
   power: { field: 'total_power', label: 'Leistung', unit: 'MW' },
   capacity: { field: 'total_capacity', label: 'Kapazität', unit: 'MWh' },
+  arbeitsgas: { field: 'total_capacity', label: 'Arbeitsgas', unit: 'GWh' },
 };
 
 // The power or capacity (left axis) and the number of units (right axis) per size class, each on its own scale
@@ -24,8 +25,8 @@ const axesOf = (measure, unitsLabel) => ({
 });
 
 // Units and power per size class of the active technology in the scope (mrt.size_distribution, the batteries'
-// mrt.battery_size_distribution), as columns. measure: 'power' or 'capacity'; unitsLabel: what the units are called;
-// fileBase: of its CSV ("mastr_solar")
+// mrt.battery_size_distribution, the gas sites by their power or working gas), as columns. measure: 'power', 'capacity'
+// or 'arbeitsgas'; unitsLabel: what the units are called; fileBase: of its CSV ("mastr_solar")
 export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen', fileBase }) {
   const measure = MEASURES[measureId];
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);

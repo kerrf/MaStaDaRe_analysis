@@ -44,19 +44,19 @@ const SOURCES = [
     href: 'https://www.naturalearthdata.com/',
   },
   {
-    data: 'Ausbauziele für Solar, Wind an Land und Wind auf See (Startseite, Landkreis/Gemeinde)',
+    data: 'Ausbauziele für Solar, Wind an Land und Wind auf See (Startseite, Regionen im Detail)',
     source: 'Erneuerbare-Energien-Gesetz (EEG 2023), § 4; Windenergie-auf-See-Gesetz (WindSeeG), § 1',
     license: 'Amtliche Werke, gemeinfrei (§ 5 UrhG)',
     href: 'https://www.gesetze-im-internet.de/eeg_2014/__4.html',
   },
   {
-    data: 'Hintergrundkarte der Seite Landkreis/Gemeinde (Grau, Farbig)',
+    data: 'Hintergrundkarte der Seite Regionen im Detail (Grau, Farbig)',
     source: 'basemap.de Web Raster, Bundesamt für Kartographie und Geodäsie',
     license: 'Datenlizenz Deutschland – Namensnennung – 2.0, © basemap.de / BKG',
     href: 'https://basemap.de',
   },
   {
-    data: 'Satellitenbild der Seite Landkreis/Gemeinde',
+    data: 'Satellitenbild der Seite Regionen im Detail',
     source: 'Sentinel-2 cloudless 2024, EOX IT Services GmbH (enthält modifizierte Copernicus-Sentinel-Daten 2024)',
     license: 'CC BY-NC-SA 4.0',
     href: 'https://s2maps.eu',

@@ -131,6 +131,16 @@
   display: block;
 }
 
+/* The 8 px between the button and its menu still count as the menu: the mouse on its way down doesn't leave it */
+.navbar__menu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 9px;
+}
+
 .navbar__menuItem {
   display: flex;
   align-items: center;
@@ -294,5 +304,10 @@
     border: 0;
     box-shadow: none;
     transform: none;
+  }
+
+  /* In the list the menu follows its button directly: no gap to bridge (it would lie over the item above) */
+  .navbar__menu::before {
+    display: none;
   }
 }

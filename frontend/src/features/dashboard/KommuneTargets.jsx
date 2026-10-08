@@ -151,7 +151,7 @@ export default function KommuneTargets({ scope, parent }) {
           title="Tempo bis 2030"
           color="var(--accent)"
           chip={paceChip(paceDE)}
-          info={`Zubau im letzten vollen Jahr (${h.fullYear}) in ${scope.name}; daneben Deutschland: sein Zubau gegenüber dem, was ab jetzt jedes Jahr dazukommen muss, um das Bundesziel bis Ende 2030 zu erreichen.`}
+          info={`Ausbau im letzten vollen Jahr (${h.fullYear}) in ${scope.name}; daneben Deutschland: sein Zubau gegenüber dem, was ab jetzt jedes Jahr dazukommen muss, um das Bundesziel bis Ende 2030 zu erreichen.`}
         >
           <FigureRow label={`Zubau ${h.fullYear}`} value={mw(h.added)} />
           <FigureRow label={`Deutschland: Zubau ${de.fullYear}`} value={mw(de.added)} share={paceDE} shareLabel={formatPercent(paceDE)} muted />
