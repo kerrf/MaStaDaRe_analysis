@@ -25,18 +25,27 @@ async def get_zeitverlauf(
     return query.order_by(Zubau.technology, Zubau.year, Zubau.month.nulls_first()).all()
 
 
-class RegistrationYear(BaseModel):
+class RegistrationPeriod(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     technology: str
     year: int
-    units: int
+    month: int | None  # None: the whole year
+    units: int  # registered within the period
+    total: int  # registered up to its end
 
 
-@router.get("/registrierungen", response_model=list[RegistrationYear])
-def get_registrierungen(db: Annotated[Session, Depends(get_db)]):
-    """Units registered in the Marktstammdatenregister per year and technology, from the first registration on."""
-    return db.query(Registrierungen).order_by(Registrierungen.technology, Registrierungen.year).all()
+@router.get("/registrierungen", response_model=list[RegistrationPeriod])
+def get_registrierungen(
+    db: Annotated[Session, Depends(get_db)],
+    yearly: Annotated[bool, Query(description="Only the rows per year, without the months")] = False,
+):
+    """Units registered in the Marktstammdatenregister per month and year and technology, from the first registration
+    on: in the period, and all up to its end."""
+    query = db.query(Registrierungen)
+    if yearly:
+        query = query.filter(Registrierungen.month.is_(None))
+    return query.order_by(Registrierungen.technology, Registrierungen.year, Registrierungen.month.nulls_first()).all()
 
 
 class RegistrationDelay(BaseModel):

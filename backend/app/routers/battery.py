@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.analyses import BatterySizeDistribution, BatteryZubauRegion, HeatmapPoint
+from app.models.analyses import BatteryKind, BatterySizeDistribution, BatteryZubauRegion, HeatmapPoint
 from app.models.regions import BatteryRegionStats, RegionLevel
-from app.schemas.analyses import BatterySizeClass, BatteryZubauYear, HeatmapPoints, Region
+from app.schemas.analyses import BatterySizeClass, BatteryZubauYear, HeatmapPoints, KindShare, Region
 
 router = APIRouter(prefix="/battery", tags=["Battery Storage Data"])
 
@@ -27,6 +27,13 @@ def get_zubau(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
 def get_size_distribution(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
     """Units, power and capacity per size class of the plant's capacity in a region (mrt.battery_size_distribution)."""
     return BatterySizeDistribution.of(db, region)
+
+
+@router.get("/kinds", response_model=list[KindShare])
+def get_kinds(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
+    """Units, power and capacity in a region by battery technology (technologie) and by coupling (kopplung: AC or DC),
+    the kinds that occur (mrt.battery_kinds)."""
+    return BatteryKind.of(db, region)
 
 
 @router.get("/heatmap", response_model=HeatmapPoints)

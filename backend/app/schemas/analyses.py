@@ -87,6 +87,29 @@ class BatterySizeClass(BaseModel):
     total_capacity: float  # MWh
 
 
+class KindShare(BaseModel):
+    """Units of one kind in a region, for a pie: battery technology or coupling, gas technology or storage type."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    kind: str  # technologie, kopplung, speicherart
+    category: str  # lithium, ac, biomethan, kaverne, …, unbekannt
+    label: str
+    total_units: int
+    total_power: float  # MW
+    total_capacity: float | None  # batteries: MWh, gas storages: GWh of working gas; gas producers: none
+
+
+class GasSizeClass(BaseModel):
+    """Gas producers per class of their Erzeugungsleistung, gas storages per class of their working gas."""
+
+    size_class: int
+    label: str
+    total_units: int
+    total_power: float  # MW: Erzeugungsleistung, Ausspeicherleistung
+    total_capacity: float | None  # storages: working gas, GWh
+
+
 class HeatmapPoints(BaseModel):
     """Points for the continuous map as columns, one entry per point (mrt.heatmap_points): the website spreads each value
     with a Gaussian kernel of width sigma around its centre."""

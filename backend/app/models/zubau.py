@@ -38,8 +38,8 @@ class Zubau(Base):
 
 
 class Registrierungen(Base):
-    """Units registered in the Marktstammdatenregister per year of registration and technology, from the first
-    registration on (etl/queries/aggregate_registrierungen.sql)."""
+    """Units registered in the Marktstammdatenregister per month and, with month NULL, per year of registration and
+    technology, from the first registration on (etl/queries/aggregate_registrierungen.sql)."""
 
     __tablename__ = "registrierungen"
     __table_args__ = {"schema": "mrt"}
@@ -47,7 +47,9 @@ class Registrierungen(Base):
     # The dashboards' technology ids: solar, wind, wasserkraft, batterie, pumpspeicher, gaserzeuger, gasspeicher
     technology = Column(String, primary_key=True)
     year = Column(Integer, primary_key=True)
-    units = Column(Integer)
+    month = Column(Integer, primary_key=True)
+    units = Column(Integer)  # registered within the period
+    total = Column(Integer)  # registered up to the end of the period
 
 
 class Registrierungsverzug(Base):

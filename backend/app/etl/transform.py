@@ -55,7 +55,7 @@ VIEW_FILES = [
     "aggregate_water_by_region_power.sql",
     # Needs raw.storage_plants (AnlagenStromSpeicher) for the storage capacity
     "aggregate_pumpspeicher.sql",
-    # Zubau im Zeitverlauf (Germany-wide, per month and year); battery capacity also from raw.storage_plants
+    # Ausbau im Zeitverlauf (Germany-wide, per month and year); battery capacity also from raw.storage_plants
     "aggregate_zubau.sql",
     # Analyses per Deutschland / Land / Kreis: size classes (solar, wind, hydro) and orientation of the solar modules
     "aggregate_size_distribution.sql",
@@ -63,16 +63,18 @@ VIEW_FILES = [
     "aggregate_solar_orientation_tilt.sql",
     # Solar Zubau and Bestand per year in every region (the Landkreis/Gemeinde page)
     "aggregate_solar_zubau_regions.sql",
-    # The same for batteries, and their size classes by capacity (the Landkreis/Gemeinde page of the Speicher)
+    # The same for batteries, their size classes by capacity (the Landkreis/Gemeinde page of the Speicher), and their
+    # battery technology and AC/DC coupling (the Anlagen page)
     "aggregate_battery_zubau_regions.sql",
     "aggregate_battery_size_distribution.sql",
+    "aggregate_battery_kinds.sql",
     # Where the power lies, for the continuous map (heatmap): solar, wind and batteries at their coordinates or postcode
     "aggregate_heatmap_points.sql",
     # Solar units and batteries at the same Lokation (Germany-wide), needs raw.storage_plants for the capacity
     "aggregate_pv_speicher.sql",
     # Gas producers and gas storages at their location (raw.gas_producer_units, gas_storage_units, gas_storage_plants)
     "aggregate_gas.sql",
-    # Registrations in the MaStR per year and technology (every dashboard's Analysen)
+    # Registrations in the MaStR per month and year and technology (every dashboard's Analysen)
     "aggregate_registrierungen.sql",
     # How long after going into operation units were registered, per technology and year of commissioning
     "aggregate_registrierungsverzug.sql",

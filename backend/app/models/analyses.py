@@ -275,6 +275,35 @@ class BatterySizeDistribution(Base):
         return db.query(cls).filter(cls.level == level_of(region), cls.region == region).order_by(cls.size_class).all()
 
 
+class BatteryKind(Base):
+    """Battery units in operation by battery technology (Lithium, Blei, …) and by coupling (AC, DC) per region
+    (aggregate_battery_kinds.sql); only the kinds that occur."""
+
+    __tablename__ = "battery_kinds"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis, gemeinde
+    region = Column(String, primary_key=True)
+    kind = Column(String, primary_key=True)  # technologie, kopplung
+    category = Column(String, primary_key=True)  # lithium, …, ac, dc, unbekannt
+    sort = Column(Integer)
+    label = Column(String)  # "Lithium", "AC-gekoppelt", "ohne Angabe"
+
+    total_units = Column(Integer)
+    total_power = Column(Float)  # MW
+    total_capacity = Column(Float)  # MWh
+
+    @classmethod
+    def of(cls, db: Session, region: str) -> list:
+        """The kinds of one region: technologies, then couplings, each in their order."""
+        return (
+            db.query(cls)
+            .filter(cls.level == level_of(region), cls.region == region)
+            .order_by(cls.kind.desc(), cls.sort)
+            .all()
+        )
+
+
 class HeatmapPoint(Base):
     """Where the power of solar, wind and batteries lies, as points for the continuous map (aggregate_heatmap_points.sql):
     units with coordinates per cell of about 1 km (site), the others per postcode (area), each with the width of its

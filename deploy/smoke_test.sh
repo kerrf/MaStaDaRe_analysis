@@ -35,6 +35,12 @@ ROUTES=(
   /water/size-distribution
   "/water/size-distribution/regions?level=bundesland"
   "/battery/dashboard-stats?level=bundesland"
+  # The Anlagen pages of Speicher and Gas: size classes and kinds (the pies)
+  /battery/kinds
+  /gas/erzeuger/size-distribution
+  /gas/erzeuger/kinds
+  /gas/speicher/size-distribution
+  /gas/speicher/kinds
   /pumped-storage/plants
   /gas/erzeuger
   /gas/speicher
@@ -47,6 +53,7 @@ ROUTES=(
   "/solar/size-distribution?region=14524330"
   "/battery/zubau?region=14524"
   "/battery/size-distribution?region=14524330"
+  "/battery/kinds?region=14524330"
   # The continuous map (mrt.heatmap_points)
   /solar/heatmap
   /wind/heatmap
