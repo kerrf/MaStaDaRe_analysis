@@ -12,6 +12,7 @@ const SECTIONS = [
   { id: 'methodik', label: 'Methodik' },
   { id: 'quellen', label: 'Datenquellen & Lizenzen' },
   { id: 'aktualitaet', label: 'Aktualität' },
+  { id: 'pruefung', label: 'Datenprüfung je Anlagenart' },
   { id: 'glossar', label: 'Glossar' },
   { id: 'faq', label: 'Häufige Fragen' },
   { id: 'nutzung', label: 'Nutzung & Haftung' },
@@ -273,6 +274,40 @@ export default function InfoPage() {
               des Marktstammdatenregisters seit dem letzten Abgleich über dessen Webdienst und berechnet Karten und Kennzahlen
               neu. Der Datenstand ist der Tag, bis zu dem alle Änderungen enthalten sind.
             </p>
+          </section>
+
+          <section id="pruefung">
+            <h2>Datenprüfung je Anlagenart</h2>
+            <p>
+              Die Angaben im Register stammen von den Betreibern selbst und enthalten Fehler. So gehen die Auswertungen damit um
+              (Details und Zahlen unter <Link to="/datenqualitaet">Datenqualität</Link>):
+            </p>
+            <ul>
+              <li>
+                <strong>Alle Anlagenarten:</strong> nur Einheiten in Betrieb in Deutschland; endgültig stillgelegte zählen nicht.
+              </li>
+              <li>
+                <strong>Solar:</strong> In der Verteilung nach Anlagengröße zählen Einheiten am selben Netzanschluss als eine
+                Anlage – Solarparks sind oft in Teilen registriert. Balkonkraftwerke bis 2 kWp zählen einzeln, ebenso Teile einer
+                Lokation in verschiedenen Gemeinden oder Postleitzahlgebieten (das Register kennt Sammel-Lokationen).
+              </li>
+              <li>
+                <strong>Wind und Wasserkraft:</strong> Jede Turbine zählt als eigene Einheit, wie im Register.
+              </li>
+              <li>
+                <strong>Batteriespeicher:</strong> Die Kapazität kommt von der Speicheranlage. Ein Speicher zählt nur mit mehr als
+                0,3 kWh und 0,3 kW, und er muss in 6 Minuten bis 12 Stunden voll sein – so fallen Verwechslungen von Wh und kWh
+                heraus (rund 0,4 % der Speicher). Größenklassen: Heimspeicher unter 30 kWh und 30 kW, Großspeicher ab 1 MWh
+                oder 1 MW.
+              </li>
+              <li>
+                <strong>Pumpspeicher:</strong> Die einzeln registrierten Maschinen werden über Standort und Speicheranlage zu
+                Kraftwerken zusammengefasst; winzige Fehleinträge (bis 33 kW) zählen nicht.
+              </li>
+              <li>
+                <strong>Gas:</strong> Erzeuger und Speicher in Betrieb, nach ihrer Leistung bzw. ihrem Arbeitsgasvolumen.
+              </li>
+            </ul>
           </section>
 
           <section id="glossar">

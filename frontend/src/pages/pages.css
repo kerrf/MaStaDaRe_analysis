@@ -276,6 +276,43 @@
   margin-top: 12px;
 }
 
+/* ------------------------------------------------------------ Datenqualität */
+/* When the numbers were counted, above the first section */
+.quality__stand {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+
+/* Small tables of counts: only as wide as they need, the figures right-aligned */
+.quality__table {
+  max-width: 520px;
+}
+
+.quality__table .data-table {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.quality__table th[scope='row'] {
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+.quality__table td,
+.quality__table thead th:not(:first-child) {
+  text-align: right;
+}
+
+.quality__table tfoot tr {
+  border-top: 1px solid var(--border);
+}
+
+.quality__table tfoot th,
+.quality__table tfoot td {
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
 /* ------------------------------------------------------------ Responsive */
 @media (max-width: 860px) {
   .info-layout {
