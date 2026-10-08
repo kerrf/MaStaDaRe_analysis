@@ -1,5 +1,4 @@
 import AnalysisCard from './AnalysisCard';
-import AnalysesNav from './AnalysesNav';
 import OrientationTiltAnalysis from './OrientationTiltAnalysis';
 import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import ScopeBar from './ScopeBar';
@@ -26,8 +25,6 @@ export default function AnlagenView({ config, state }) {
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
   const panels = analyses.filter((a) => a.kind === 'orientation-tilt' || a.kind === 'pv-speicher');
-  // The choice only where there is one: more than one technology, or one with filters
-  const choice = technologies.length > 1 || technologies.some((t) => t.subtypes || t.leistung);
   // The batteries at solar units follow solar's choice (Anlagenart, Leistung) where the dashboard has solar
   const solar = config.technologies.find((t) => t.id === 'solar');
   const pv = solar ? selectionOf(solar, state.searchParams) : { subtypes: null, leistung: null };
@@ -45,10 +42,7 @@ export default function AnlagenView({ config, state }) {
           onSelectGemeinde={selectGemeinde}
         />
       )}
-      {choice && <SelectionBar technologies={technologies} state={state} />}
-      <AnalysesNav
-        links={[...(cards.length ? [{ id: 'analyse-anlagen', title: cards.map((a) => a.title).join(' · '), icon: technology.icon }] : []), ...panels.map((a) => ({ id: `analyse-${a.id}`, title: a.title, icon: a.icon }))]}
-      />
+      {technologies.length > 0 && <SelectionBar technologies={technologies} state={state} active={technology} />}
       {cards.length > 0 && (
         <div id="analyse-anlagen" className={`analyses-grid${cards.length > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>
           {cards.map((a) => (

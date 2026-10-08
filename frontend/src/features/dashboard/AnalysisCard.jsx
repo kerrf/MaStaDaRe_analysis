@@ -1,5 +1,6 @@
 import Badge from '../../components/ui/Badge';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
+import InverterGap from './InverterGap';
 import KindShares from './KindShares';
 import OrientationRose from './OrientationRose';
 import SizeDistribution from './SizeDistribution';
@@ -9,8 +10,9 @@ import SizeDistribution from './SizeDistribution';
 const VIEWS = {
   sizes: {
     Chart: SizeDistribution,
-    // Its own endpoint (batteries, gas), else the technology's size classes
+    // Its own endpoint (batteries, gas), else the technology's size classes – with their footnote
     path: (analysis, technology) => analysis.path ?? technology.sizesPath,
+    note: (analysis, technology) => (analysis.path ? analysis.note : technology.sizesNote),
     subtitle: (technology) => `${technology.label}: Leistung und Anlagen je Leistungsklasse`,
   },
   orientation: {
@@ -56,11 +58,14 @@ export default function AnalysisCard({ analysis, technology, region, scopeName, 
             unitsLabel={unitsLabel}
             groups={groups}
             measures={measures}
+            note={view.note?.(analysis, technology)}
             fileBase={`mastr_${technology.id}`}
           />
         ) : (
           <ChartPlaceholder variant={analysis.variant} />
         )}
+        {/* Solar (it has Netto and Brutto): below its size classes, how far the inverters stay below the modules' peak */}
+        {path && analysis.kind === 'sizes' && technology.leistung && <InverterGap path={path} region={region} query={query} />}
       </div>
     </article>
   );

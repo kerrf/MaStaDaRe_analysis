@@ -102,6 +102,12 @@ const PV_SPEICHER = {
   icon: BatteryCharging,
 };
 
+// Below the solar size classes (Anlagen, Regionen im Detail): they count Anlagen, the units at one grid connection
+// together (aggregate_size_distribution.sql)
+export const SOLAR_SIZES_NOTE =
+  'Einheiten am selben Netzanschluss (Lokation im MaStR) zählen als eine Anlage, auch mit verschiedenen Betreibern – ' +
+  'etwa Solarparks, die in Teilen registriert sind. Balkonkraftwerke bis 2 kWp zählen einzeln.';
+
 export const ERZEUGER = {
   id: 'erzeuger',
   basePath: '/erzeuger',
@@ -118,8 +124,9 @@ export const ERZEUGER = {
       statsPath: '/solar/dashboard-stats',
       // The points of the continuous map (mrt.heatmap_points): plants at their coordinates, small ones per postcode
       heatmapPath: '/solar/heatmap',
-      // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution)
+      // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution), and its footnote
       sizesPath: '/solar/size-distribution',
+      sizesNote: SOLAR_SIZES_NOTE,
       // Multiple choice in the technology's filters while it is active; no param in the URL = all selected.
       // Gebäude: Gebäude-, sonstige und steckerfertige Anlagen and those without an Art; Freifläche: Freiflächenanlagen.
       // Passed to every solar request as ?anlagenart=… (the views have one row per Anlagenart, the API sums the chosen).
@@ -498,7 +505,7 @@ export const GAS = {
       },
       subtypes: {
         param: 'technik',
-        label: 'Technologie',
+        label: 'Gastechnologie',
         field: 'technologie',
         options: GAS_TECHNIK,
       },

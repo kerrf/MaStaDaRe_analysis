@@ -86,10 +86,14 @@ leistung: { param: 'leistung', label: 'Leistung', options: [{ id: 'netto', … }
 ```
 
 The active technology's filters are a layer of their own below all technology chips ("Filter für Solar",
-`TechFilters.jsx`, in the map's `ControlPanel` and in the `SelectionBar` of the Anlagen and Regionen pages), hanging off the choice of technology on an accent line: `SubtypePicker` checkboxes (at least
+`TechFilters.jsx`, in the map's `ControlPanel` and in the `SelectionBar` of the Anlagen and Regionen im Vergleich
+pages), hanging off the choice of technology on an accent line: `SubtypePicker` checkboxes (at least
 one stays selected; an option with a `color` shows it in its box) and the small `OptionSwitch` Netto (AC) / Brutto
 (DC). The `note` of `leistung` is a footnote below the map, marked ¹ at the switch and in the map title
-(`footnoteId`).
+(`footnoteId`). Off the map the choice is a tray like the map's settings band (`SelectionBar.jsx`, sunken, apart from
+the white cards of the data): "Technologie" above the chips, the filters in one row below, the footnote last – on every
+dashboard's Anlagen page the same, also with a single technology (Speicher). Regionen im Detail puts its solar filters
+in the same tray.
 
 Solar: both go to every solar request as the same parameters as in the page URL
 (`?anlagenart=freiflaeche&leistung=brutto`, only what differs from the default: all Anlagenarten, Netto – the API has
@@ -114,7 +118,7 @@ the URL), and falls back to the `ChartPlaceholder` ("bald") where the active tec
 
 | kind | Chart | Data |
 | --- | --- | --- |
-| `sizes` | `SizeDistribution.jsx`: share of power and units per size class as columns side by side (`components/charts/GroupedBarChart.jsx`), one scale for both; `measure` `capacity` (batteries, MWh) or `arbeitsgas` (gas storages, GWh) instead of the power | `analysis.path`, else `technology.sizesPath` (`/{solar,wind,water}/size-distribution`, `mrt.size_distribution`; `/battery/size-distribution`; `/gas/{erzeuger,speicher}/size-distribution`) |
+| `sizes` | `SizeDistribution.jsx`: share of power and units per size class as columns side by side (`components/charts/GroupedBarChart.jsx`), one scale for both; `measure` `capacity` (batteries, MWh) or `arbeitsgas` (gas storages, GWh) instead of the power. Solar counts Anlagen, not units: those at one grid connection together, balcony-size ones each on its own (`aggregate_size_distribution.sql`) – said in a footnote below the chart (`note`: the technology's `sizesNote`, on Regionen im Detail the analysis' `note`, both `SOLAR_SIZES_NOTE`). Solar adds below it, in the card, the difference of inverter and peak power (`InverterGap.jsx`: the size classes summed once Netto, once Brutto; on average, weighted by power) | `analysis.path`, else `technology.sizesPath` (`/{solar,wind,water}/size-distribution`, `mrt.size_distribution`; `/battery/size-distribution`; `/gas/{erzeuger,speicher}/size-distribution`) |
 | `orientation` | `OrientationRose.jsx`: compass rose, power and share inside the 8 sectors, Ost-West and nachgeführt in the centre, unknown below | `analysis.path` (`/solar/orientation`, `mrt.solar_orientation`) |
 | `kinds` | `KindShares.jsx`: a ring per kind (`groups`, `components/charts/PieChart.jsx`), the shares of the measure the switch chooses (`measures`: capacity, power or the number), legend with share and amount | `analysis.path`: `/battery/kinds` (`mrt.battery_kinds`: Batterietechnologie, AC/DC-Kopplung), `/gas/erzeuger/kinds` (technology), `/gas/speicher/kinds` (Speicherart) |
 
@@ -128,7 +132,7 @@ the analysis' `groups` (tokens `--series-lithium` … `--series-unbekannt`, gas:
 
 ### Analyses one below the other (`AnalysisPanel.jsx`)
 
-On the pages of analyses: one link per analysis at the top (`AnalysesNav.jsx`, jumps there), then each analysis as a
+On the Zubau page: one link per analysis at the top (`AnalysesNav.jsx`, jumps there); on every page each analysis as a
 card of its own that starts with a clear head – accent bar, tinted band, icon (`icon` of the analysis), title, what it
 shows, its switches on the right (`tools`). Timelines, registrations, the registration delay, PV-Speicher and the table
 per region all use it.
@@ -387,7 +391,7 @@ replaces as soon as it runs:
 - The numbers come from the API (`VITE_API_URL`) at build time: they are as fresh as the last deploy of the frontend.
   Without the API the pages keep their texts without numbers; the build doesn't fail on it.
 - In the app: `<link rel="canonical">` follows every route (`AppLayout.jsx`: path without query, lower case, www),
-  `useRobots` sets `index, nofollow` (Impressum) and `noindex` (404, Datenqualität while it is a placeholder)
+  `useRobots` sets `index, nofollow` (Impressum) and `noindex` (404, Datenqualität while it is being built)
 - The Kreise and Länder of the Landkreis/Gemeinde finder are links, so crawlers find every Kreis also in the app
 
 ## Datenstand

@@ -1,5 +1,6 @@
 import { BatteryCharging, Sun } from 'lucide-react';
 import { formatAmountFine, formatFixed, formatNumber, formatPercent } from '../lib/format';
+import { SOLAR_SIZES_NOTE } from './dashboards';
 
 // The page Landkreis/Gemeinde of a dashboard (KommuneView.jsx): one technology of it in a Landkreis and its Gemeinden.
 // Everything that differs between the technologies is here, the page itself only reads it:
@@ -13,7 +14,7 @@ import { formatAmountFine, formatFixed, formatNumber, formatPercent } from '../l
 //               on beside its value (base: Einwohner or Fläche of the area)
 //   split:      how the area's size splits into its kinds (Solar: Gebäude/Freifläche; batteries: Heim/Gewerbe/Groß)
 //   timeline:   Zubau and Bestand per year in the area, the series stacked, in one or more measures
-//   analyses:   the cards below the timeline
+//   analyses:   the cards below the timeline (note: a footnote below the chart)
 //   goals:      the block of key figures below the map: solar against the national targets (KommuneTargets: what the
 //               area contributes, no made-up target of its own), batteries in comparisons (KommuneStorage)
 //   table:      the columns of the table of all Gemeinden; csv: a row of its export
@@ -85,7 +86,14 @@ export const KOMMUNE = {
     },
     analyses: [
       { id: 'ausrichtung', title: 'Ausrichtung', subtitle: 'Leistung nach Hauptausrichtung der Module', path: '/solar/orientation' },
-      { id: 'groesse', title: 'Anlagengröße', subtitle: 'Leistung und Anlagen je Leistungsklasse', path: '/solar/size-distribution', measure: 'power' },
+      {
+        id: 'groesse',
+        title: 'Anlagengröße',
+        subtitle: 'Leistung und Anlagen je Leistungsklasse',
+        path: '/solar/size-distribution',
+        measure: 'power',
+        note: SOLAR_SIZES_NOTE,
+      },
     ],
     goals: 'solar',
     table: [

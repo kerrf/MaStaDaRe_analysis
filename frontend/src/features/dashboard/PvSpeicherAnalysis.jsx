@@ -238,7 +238,7 @@ export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, ancho
           </ul>
           <p className="timeline__note">
             Abgleich über die Lokation im Marktstammdatenregister (LokationMaStRNummer): Einheiten am selben Netzanschluss
-            teilen sie. Einheiten in Betrieb; Kapazität nur mit plausibler Angabe (wie battery-charts.de).
+            teilen sie. Einheiten in Betrieb; Kapazität nur mit plausibler Angabe.
           </p>
         </>
       )}

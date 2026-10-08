@@ -744,7 +744,7 @@ export default function KommuneView({ config, state }) {
     <>
       {scopeBar}
       {profile.filters && (
-        <section className="card kommune-toolbar" aria-label="Auswahl">
+        <section className="selection-bar" aria-label="Auswahl">
           <TechFilters
             technology={technology}
             subtypes={subtypes}
@@ -754,7 +754,7 @@ export default function KommuneView({ config, state }) {
             inline
           />
           {technology.leistung?.note && (
-            <p id={footnoteId(technology.leistung)} className="kommune-toolbar__note">
+            <p id={footnoteId(technology.leistung)} className="selection-bar__note">
               <sup className="footnote-ref">1</sup> {technology.leistung.note}
             </p>
           )}
@@ -873,6 +873,7 @@ export default function KommuneView({ config, state }) {
                   query={query}
                   measure={a.measure}
                   unitsLabel={profile.unitsLabel}
+                  note={a.note}
                   fileBase={`mastr_${technology.id}`}
                 />
               </div>

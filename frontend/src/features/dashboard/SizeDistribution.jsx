@@ -26,8 +26,9 @@ const axesOf = (measure, unitsLabel) => ({
 
 // Units and power per size class of the active technology in the scope (mrt.size_distribution, the batteries'
 // mrt.battery_size_distribution, the gas sites by their power or working gas), as columns. measure: 'power', 'capacity'
-// or 'arbeitsgas'; unitsLabel: what the units are called; fileBase: of its CSV ("mastr_solar")
-export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen', fileBase }) {
+// or 'arbeitsgas'; unitsLabel: what the units are called; note: a footnote below the chart; fileBase: of its CSV
+// ("mastr_solar")
+export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen', note, fileBase }) {
   const measure = MEASURES[measureId];
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
 
@@ -82,7 +83,9 @@ export default function SizeDistribution({ path, region, query, measure: measure
               [unitsLabel]: row.total_units,
             })),
         }}
-      />
+      >
+        {note && <p className="sizes-chart__note">{note}</p>}
+      </ChartFoot>
     </div>
   );
 }
