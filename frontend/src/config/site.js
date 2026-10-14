@@ -17,9 +17,9 @@ export const SITE = {
 
   // TODO: Pflichtangaben für das Impressum (§ 5 DDG). Leere Felder werden als Platzhalter angezeigt.
   owner: {
-    name: '',
-    street: '',
-    postalCity: '',
-    email: '',
+    name: 'Maxim Sokol',
+    street: 'Schwalbacher Str. 2',
+    postalCity: '12161',
+    email: 'ms63xicy@gmail.com',
   },
 };

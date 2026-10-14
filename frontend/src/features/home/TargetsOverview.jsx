@@ -84,7 +84,7 @@ export default function TargetsOverview() {
       <FigureBlock
         icon={Gauge}
         title={ready ? `Tempo: Zubau ${lastYear} gegenüber dem nötigen` : 'Tempo'}
-        info={`Zubau im letzten vollen Jahr gegenüber dem, was ab jetzt jedes Jahr dazukommen muss, um das Ziel bis Ende ${YEAR} zu erreichen.`}
+        info={`Ausbau im letzten vollen Jahr gegenüber dem, was ab jetzt jedes Jahr dazukommen muss, um das Ziel bis Ende ${YEAR} zu erreichen.`}
       >
         {rows.map((r) =>
           r.ready ? (
@@ -106,7 +106,7 @@ export default function TargetsOverview() {
         <p className="targets-overview__more">
           Wie weit ist Ihr Landkreis, Ihre Gemeinde?{' '}
           <Link to="/erzeuger/kommune" className="home-link">
-            Regionen im Detail ansehen <ArrowRight size={14} aria-hidden="true" />
+            Landkreis/Gemeinde ansehen <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </p>
       </ChartFoot>

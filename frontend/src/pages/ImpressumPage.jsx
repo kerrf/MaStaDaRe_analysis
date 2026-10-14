@@ -11,6 +11,8 @@ export default function ImpressumPage() {
   // Findable, but its links (e-mail, outside sites) aren't recommendations of the site
   useRobots('index, nofollow');
   const { owner } = SITE;
+  // The hint goes once every field in src/config/site.js → owner is filled in
+  const complete = Boolean(owner.name && owner.street && owner.postalCity && owner.email);
 
   return (
     <div className="page">
@@ -23,10 +25,12 @@ export default function ImpressumPage() {
 
       <div className="container page-body">
         <article className="prose legal">
-          <TodoNote>
-            Pflichtangaben in <code>src/config/site.js</code> → <code>owner</code> eintragen. Ob und in welchem Umfang eine Impressumspflicht
-            besteht (§ 5 DDG), hängt vom Charakter der Seite ab – im Zweifel rechtlich prüfen lassen. Dies ist keine Rechtsberatung.
-          </TodoNote>
+          {!complete && (
+            <TodoNote>
+              Pflichtangaben in <code>src/config/site.js</code> → <code>owner</code> eintragen. Ob und in welchem Umfang eine Impressumspflicht
+              besteht (§ 5 DDG), hängt vom Charakter der Seite ab – im Zweifel rechtlich prüfen lassen. Dies ist keine Rechtsberatung.
+            </TodoNote>
+          )}
 
           <h2>Angaben gemäß § 5 DDG</h2>
           <p>
