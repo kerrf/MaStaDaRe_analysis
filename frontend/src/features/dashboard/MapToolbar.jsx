@@ -1,5 +1,5 @@
 import SegmentedControl from '../../components/ui/SegmentedControl';
-import { GRANULARITIES, hasData, isAvailable } from '../../config/dashboards';
+import { BASES, GRANULARITIES, QUANTITIES, hasData, isAvailable } from '../../config/dashboards';
 import { SMOOTHINGS } from '../../lib/heatmap';
 import TechFilters from './TechFilters';
 
@@ -19,10 +19,13 @@ function Group({ label, htmlFor, children, wide = false }) {
   );
 }
 
+// What an option of the Kennzahl means, as its tooltip: the metric's name and unit (on the continuous map: its density)
+const titleOf = (metric) => (metric.basis === 'dichte' ? `${metric.heat.legend} (${metric.heat.unit})` : `${metric.legend} (${metric.unit})`);
+
 /**
- * The settings of the map in a band between its title and the map, like the toolbar of a map app: technology, Kennzahl,
- * resolution (for the continuous map its smoothing) in a row, the active technology's filters (Solar: Anlagenart,
- * Leistung) below them.
+ * The settings of the map in a band between its title and the map, like the toolbar of a map app: technology, Kennzahl
+ * in two steps (Leistung or Kapazität, then absolut, je km² or je Einwohner), resolution (for the continuous map its
+ * smoothing) in a row, the active technology's filters (Solar: Anlagenart, Leistung) below them.
  */
 export default function MapToolbar({
   config,
@@ -41,6 +44,12 @@ export default function MapToolbar({
   onSmoothing,
 }) {
   const filtered = Boolean(technology.subtypes || technology.leistung);
+  // The Kennzahl's two rows, the same for every technology – also where a row has a single choice (Erzeuger: only
+  // Leistung; plants: only absolut). A new quantity keeps the basis where it has one.
+  const quantities = QUANTITIES.filter((q) => metrics.some((m) => m.quantity === q.id));
+  const bases = BASES.filter((b) => metrics.some((m) => m.quantity === metric.quantity && m.basis === b.id));
+  const metricOf = (quantity, basis) =>
+    metrics.find((m) => m.quantity === quantity && m.basis === basis) ?? metrics.find((m) => m.quantity === quantity);
   return (
     <div className="map-toolbar" role="group" aria-label="Ansicht anpassen">
       <div className="map-toolbar__row">
@@ -67,16 +76,23 @@ export default function MapToolbar({
           </div>
         </Group>
 
-        {metrics.length > 1 && (
-          <Group label="Kennzahl">
-            <SegmentedControl
-              label="Kennzahl"
-              value={metric.id}
-              onChange={onMetric}
-              options={metrics.map((m) => ({ id: m.id, label: m.label, title: `${m.legend} (${m.unit})` }))}
-            />
-          </Group>
-        )}
+        <Group label="Kennzahl">
+          <SegmentedControl
+            label="Kennzahl"
+            value={metric.quantity}
+            onChange={(quantity) => onMetric(metricOf(quantity, metric.basis).id)}
+            options={quantities.map((q) => ({ id: q.id, label: q.label, title: titleOf(metricOf(q.id, metric.basis)) }))}
+          />
+        </Group>
+
+        <Group label="Bezug">
+          <SegmentedControl
+            label="Bezug"
+            value={metric.basis}
+            onChange={(basis) => onMetric(metricOf(metric.quantity, basis).id)}
+            options={bases.map((b) => ({ id: b.id, label: b.label, title: titleOf(metricOf(metric.quantity, b.id)) }))}
+          />
+        </Group>
 
         {!technology.plantsPath && (
           <Group label="Räumliche Auflösung" htmlFor="map-granularity">
@@ -102,16 +118,6 @@ export default function MapToolbar({
           </Group>
         )}
 
-        {config.segments && (
-          <Group label={`${config.segments.label} · folgt`}>
-            <SegmentedControl
-              label={config.segments.label}
-              value="alle"
-              onChange={() => {}}
-              options={config.segments.options.map((o) => ({ ...o, disabled: o.id !== 'alle' }))}
-            />
-          </Group>
-        )}
       </div>
 
       {filtered && (

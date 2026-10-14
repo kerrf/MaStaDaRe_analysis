@@ -88,7 +88,7 @@ export default function TimelineAnalysis({ analysis, leistung, leistungOption, o
     <AnalysisPanel id={anchor} icon={analysis.icon} title={title} lead={subtitle} className="timeline-card">
       {/* Every control always in its place: only the span (years or months) changes with the Zeitraster */}
       <div className="timeline__controls">
-        <TimeControls id={analysis.id} time={time} since={since} latestYear={latestYear} />
+        <TimeControls time={time} since={since} latestYear={latestYear} />
         {hasNetto && leistungOption && onLeistung && (
           <div className="timeline__leistung">
             <span className="timeline__leistung-label">Solar</span>

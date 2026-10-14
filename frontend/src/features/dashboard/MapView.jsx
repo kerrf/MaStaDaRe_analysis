@@ -85,10 +85,11 @@ export default function MapView({ config, state }) {
   const requested = GRANULARITIES.find((g) => g.id === searchParams.get('ebene'));
   const granularity = requested && isAvailable(requested, technology) ? requested : defaultGranularity;
   const isHeatmap = granularity.kind === 'heatmap';
-  // The continuous map spreads absolute values (power, capacity) only: per km² and per inhabitant have no place there
+  // The continuous map spreads absolute values (power, capacity) only, as their density: per km² and per inhabitant have
+  // no place there
   const allMetrics = technology.metrics ?? config.metrics;
   const metrics = useMemo(
-    () => (isHeatmap ? allMetrics.filter((m) => m.heat).map((m) => ({ ...m, label: m.heat.label ?? m.label })) : allMetrics),
+    () => (isHeatmap ? allMetrics.filter((m) => m.heat).map((m) => ({ ...m, basis: 'dichte' })) : allMetrics),
     [isHeatmap, allMetrics],
   );
   const metric = metrics.find((m) => m.id === searchParams.get('kennzahl')) ?? metrics[0];

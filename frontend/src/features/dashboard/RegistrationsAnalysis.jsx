@@ -18,11 +18,12 @@ const FIELDS = { zubau: 'units', bestand: 'total' };
 // Registrierungen im MaStR: units registered per year or month, Germany-wide, one technology at a time – not stacked,
 // the technologies differ by orders of magnitude (mrt.registrierungen, aggregate_registrierungen.sql). The same time
 // controls as the Ausbau im Zeitverlauf: aggregiert (all registered so far), Jährlich or Monatlich, the span.
-export default function RegistrationsAnalysis({ analysis, initial, anchor }) {
+export default function RegistrationsAnalysis({ analysis, anchor }) {
   const { path, series } = analysis.registrations;
   const data = useJson(`${API_BASE_URL}${path}`);
-  // initial: the technology to start with (the dashboard's active one), if the switch has it
-  const [selectedId, setSelectedId] = useState(() => (series.some((s) => s.id === initial) ? initial : series[0].id));
+  // Always the first technology to start with (Solar, Batteriespeicher, Gaserzeuger), whatever the map shows: Pumpspeicher,
+  // with a handful of registrations a year, would look like an empty chart
+  const [selectedId, setSelectedId] = useState(series[0].id);
   const selected = series.find((s) => s.id === selectedId) ?? series[0];
   const time = useTimeView();
   const { view, range, years: span, measure, isCurve } = time;
@@ -84,7 +85,7 @@ export default function RegistrationsAnalysis({ analysis, initial, anchor }) {
     >
       {facts?.table && (
         <div className="timeline__controls">
-          <TimeControls id={analysis.id} time={time} since={facts.since} latestYear={latestYear} />
+          <TimeControls time={time} since={facts.since} latestYear={latestYear} />
         </div>
       )}
       {data.status === 'error' ? (

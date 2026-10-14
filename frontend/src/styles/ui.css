@@ -282,6 +282,55 @@
   opacity: 1;
 }
 
+/* ------------------------------------------------------------ List select */
+/* A dropdown of its own (ListSelect.jsx): the button takes the look of the selects around it (its className), the
+   list floats above the page, scrolls within itself and never hands its scrolling on to the page */
+.list-select {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.list-select__menu {
+  position: fixed;
+  z-index: 3100;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+
+.list-select__option {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.list-select__option.is-active {
+  background: var(--surface-hover);
+  color: var(--ink-primary);
+}
+
+.list-select__option[aria-selected='true'] {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.list-select__option[aria-selected='true'].is-active {
+  background: var(--brand-100);
+}
+
 /* ----------------------------------------------------------------- Switch */
 .switch {
   display: inline-flex;

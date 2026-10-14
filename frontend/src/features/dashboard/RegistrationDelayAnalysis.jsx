@@ -23,11 +23,12 @@ const inTime = (row) => (row.vorab + row.bis_1_monat) / row.units;
 
 // Abstand zwischen Inbetriebnahmen und Registierung: how long after going into operation units were registered, per year of commissioning, as
 // shares of the units – one technology at a time, Germany-wide (mrt.registrierungsverzug)
-export default function RegistrationDelayAnalysis({ analysis, initial, anchor }) {
+export default function RegistrationDelayAnalysis({ analysis, anchor }) {
   const { path, series } = analysis.delay;
   const data = useJson(`${API_BASE_URL}${path}`);
-  // initial: the technology to start with (the dashboard's active one), if the switch has it
-  const [selectedId, setSelectedId] = useState(() => (series.some((s) => s.id === initial) ? initial : series[0].id));
+  // Always the first technology to start with (Solar, Batteriespeicher, Gaserzeuger), whatever the map shows: Pumpspeicher,
+  // with a handful of registrations a year, would look like an empty chart
+  const [selectedId, setSelectedId] = useState(series[0].id);
   const selected = series.find((s) => s.id === selectedId) ?? series[0];
 
   const view = useMemo(() => {

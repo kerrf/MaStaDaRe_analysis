@@ -48,7 +48,7 @@ parameters, so the Steckbrief and the timeline can read solar's choice while win
 | path `…/:land` | Selected Bundesland (ISO code, e.g. `by`) – zooms in and masks the rest of Germany |
 | path `…/:land/:kreis` | Selected Landkreis of that Land (5-digit key, e.g. `by/09175`) – zooms in further |
 | `?technologie=` | Technology id, default = first in `technologies` |
-| `?kennzahl=` | Metric id, default = first in `metrics` |
+| `?kennzahl=` | Metric id, default = first in `metrics`; the toolbar chooses it in two steps, Kennzahl (its `quantity`) and Bezug (its `basis`) |
 | `?ebene=` | Resolution id from `GRANULARITIES`, default = `defaultGranularity` |
 | `?anlagenart=gebaeude` | Solar sub-selection (comma separated). No parameter = all options |
 | `?lage=an_land` | Wind: an Land or auf See. No parameter = both |
@@ -250,7 +250,7 @@ site: { label: 'Speicher', key: 'mastr_nummer', icon: '<ellipse …/><path …/>
 45.806 GWh read 45,8 TWh), `key` the plant's id, `label` the name of the plants in the ranking and subtitle. Plants in
 operation have the topic colour or the colour of their subtype, planned or temporarily shut down ones grey; plants at
 the same spot (Speicheranlagen of one station, storages of several operators at Etzel or Epe) share one icon and
-tooltip. The technology brings its own `metrics` (ranking; the Kennzahl switch only shows with two or more) and `kpis`,
+tooltip. The technology brings its own `metrics` (ranking, the Kennzahl; plants only `absolut`) and `kpis`,
 computed from the plants per Land/Kreis: `plants` in operation, `planned`, and the sum of every other KPI field. Plants
 abroad (Austria, Luxembourg, the Netherlands) are on the map but not in the KPIs. `note` on a technology is a line below
 the map. The Analysen section only shows when it has something (Gas: nothing yet).
@@ -288,7 +288,10 @@ series and month plus one per year (`month` null), with `added` (Zubau) and `ins
 Views: Zubau (what went into operation per period, bars) or Bestand (in operation at its end, bars or a curve of stacked
 areas – switched on, always bars first), per year (from–to, or every year since `since` with one click) or per month
 (the last 12 months, a year or all months since `since`). The controls and the periods are shared with the
-Registrierungen: `TimeControls.jsx` and `timeView.js` (`useTimeView`, `indexRows`, `buildPeriods`). Series are stacked in config
+Registrierungen: `TimeControls.jsx` and `timeView.js` (`useTimeView`, `indexRows`, `buildPeriods`). Years and months
+are chosen in dropdowns of their own (`components/ui/ListSelect.jsx`: the list floats above the page, scrolls, opens
+upwards where there is more room), not the browser's `<select>`, whose list came out cut off. The Registrierungen
+start with the dashboard's first technology, whatever the map shows. Series are stacked in config
 order, the first at the bottom; a click on the legend hides one. Bars carry their total where every one fits. A curve's
 axis starts near its lowest point (`curveFloor`: 35 → 40 reads from 30) when the curve stays high up; series that then
 lie wholly below the axis are named under the chart, which also switches the axis back to 0. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG, no chart library. On the Zubau page the
@@ -303,8 +306,8 @@ timeline has its own Netto/Brutto switch for solar (`leistungOption`, `onLeistun
 ### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
 
 The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, the
-settings in a band below it (technology, Kennzahl, resolution in a row, the technology's filters on a line hanging off
-it), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+settings in a band below it (technology, Kennzahl, Bezug, resolution in a row, the technology's filters on a line
+hanging off it), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
 analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
@@ -422,7 +425,12 @@ the view: from where its thinnest 2 % of the power lie to the 99.5th percentile 
 below, they fade out. The legend shows the scale, the smoothing in km and the value under the pointer.
 
 Only the absolute Kennzahlen have a `heat` entry (`config/dashboards.js`): per km² and per inhabitant aren't offered
-there. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
+there, the Bezug reads „Dichte“.
+
+The Kennzahl of the map is chosen in two rows, the same for every dashboard (`MapToolbar.jsx`): Kennzahl – Leistung or
+Kapazität (`QUANTITIES`) – then Bezug – Absolut, je km², je Einwohner (`BASES`). Each metric names its `quantity` and
+`basis`; a row with a single choice still shows (Erzeuger: Leistung; plants: Absolut), and a new Kennzahl keeps the
+Bezug where it has one. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
 
 ## Map export
 

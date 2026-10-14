@@ -62,6 +62,20 @@ export function scopeAnalysesOf(technology) {
   ].filter(Boolean);
 }
 
+// A Kennzahl of the map is a quantity in a basis: Leistung or Kapazität, absolut, je km² or je Einwohner (the
+// continuous map: as a density). The toolbar chooses them in two rows (MapToolbar.jsx), the same for every technology;
+// the URL keeps the metric's id (?kennzahl=…).
+export const QUANTITIES = [
+  { id: 'leistung', label: 'Leistung' },
+  { id: 'kapazitaet', label: 'Kapazität' },
+];
+export const BASES = [
+  { id: 'absolut', label: 'Absolut' },
+  { id: 'flaeche', label: 'je km²' },
+  { id: 'einwohner', label: 'je Einwohner' },
+  { id: 'dichte', label: 'Dichte' },
+];
+
 // The resolutions a technology has data for (`granularities`, default: all) and that make sense for it.
 const REGION_LEVELS = ['bundesland', 'landkreis', 'gemeinde'];
 export const isAvailable = (granularity, technology) =>
@@ -209,14 +223,15 @@ export const ERZEUGER = {
   metrics: [
     {
       id: 'total_power',
-      label: 'Absolut',
+      quantity: 'leistung',
+      basis: 'absolut',
       legend: 'Installierte Leistung',
       unit: 'MW',
       digits: 1,
       heat: { legend: 'Leistungsdichte', unit: 'kW/km²' },
     },
-    { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
-    { id: 'relative_population_power', label: 'je Einw.', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
+    { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+    { id: 'relative_population_power', quantity: 'leistung', basis: 'einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
   ],
   tooltipRows: [
     { key: 'total_units', label: 'Anlagen', digits: 0 },
@@ -350,8 +365,8 @@ export const SPEICHER = {
         ],
       },
       metrics: [
-        { id: 'total_capacity', label: 'Kapazität', legend: 'Speicherkapazität', unit: 'MWh', digits: 0 },
-        { id: 'total_power', label: 'Leistung', legend: 'Turbinenleistung', unit: 'MW', digits: 0 },
+        { id: 'total_capacity', quantity: 'kapazitaet', basis: 'absolut', legend: 'Speicherkapazität', unit: 'MWh', digits: 0 },
+        { id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Turbinenleistung', unit: 'MW', digits: 0 },
       ],
       // Plants in operation in Germany. Capacities are not summed: plants sharing a reservoir report it each.
       kpis: [
@@ -363,36 +378,30 @@ export const SPEICHER = {
     },
     { id: 'sonstige', label: 'Sonstige', icon: Package },
   ],
-  segments: {
-    label: 'Größenklasse',
-    options: [
-      { id: 'alle', label: 'Alle' },
-      { id: 'heim', label: 'Heim' },
-      { id: 'gewerbe', label: 'Gewerbe' },
-      { id: 'gross', label: 'Groß' },
-    ],
-  },
   // Power, like the Erzeuger, and the usable capacity (only batteries with a plausible one, aggregate_bat_by_region_power.sql)
   metrics: [
     {
       id: 'total_power',
-      label: 'Absolut',
+      quantity: 'leistung',
+      basis: 'absolut',
       legend: 'Speicherleistung',
       unit: 'MW',
       digits: 1,
-      heat: { label: 'Leistung', legend: 'Leistungsdichte', unit: 'kW/km²' },
+      heat: { legend: 'Leistungsdichte', unit: 'kW/km²' },
     },
-    { id: 'relative_area_power', label: 'je km²', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
-    { id: 'relative_population_power', label: 'je Einw.', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
+    { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+    { id: 'relative_population_power', quantity: 'leistung', basis: 'einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
     {
       id: 'total_capacity',
-      label: 'Kapazität',
+      quantity: 'kapazitaet',
+      basis: 'absolut',
       legend: 'Speicherkapazität',
       unit: 'MWh',
       digits: 1,
       heat: { legend: 'Kapazitätsdichte', unit: 'kWh/km²', measure: 'capacity' },
     },
-    { id: 'relative_population_capacity', label: 'kWh je Einw.', legend: 'Kapazität je Einwohner', unit: 'kWh/Einw.', digits: 2 },
+    { id: 'relative_area_capacity', quantity: 'kapazitaet', basis: 'flaeche', legend: 'Kapazität je Fläche', unit: 'kWh/km²', digits: 1 },
+    { id: 'relative_population_capacity', quantity: 'kapazitaet', basis: 'einwohner', legend: 'Kapazität je Einwohner', unit: 'kWh/Einw.', digits: 2 },
   ],
   tooltipRows: [
     { key: 'total_units', label: 'Speicher', digits: 0 },
@@ -457,7 +466,6 @@ export const SPEICHER = {
   todos: [
     'Pumpspeicher und Sonstige: eigene Rollups analog aggregate_bat_by_region_power.sql (Technologie 1537 bzw. 525/526/3067).',
     'Achtung: aggregate_bat_by_bundesland.sql droppt und überschreibt mrt.solar_units_bundesland_agg (die alte Solar-View) – wird nicht mehr gebraucht.',
-    'Größenklassen (Heim/Gewerbe/Groß) als Filter-Parameter im Karten-Endpoint vorsehen – mit den Grenzen aus aggregate_zubau.sql (wie battery-charts.de).',
   ],
 };
 
@@ -533,7 +541,7 @@ export const GAS = {
           groups: [{ id: 'technologie', title: 'Gastechnologie', colors: colorsOf(GAS_TECHNIK) }],
         },
       ],
-      metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Erzeugungsleistung', unit: 'MW', digits: 1 }],
+      metrics: [{ id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Erzeugungsleistung', unit: 'MW', digits: 1 }],
       // Einheiten in Germany; a unit's Erzeugungsleistung is the most gas it can feed in, in MW (kWh per hour)
       kpis: [
         { id: 'plants', kind: 'sum', field: 'plants', label: 'Anlagen in Betrieb', icon: Flame },
@@ -595,8 +603,8 @@ export const GAS = {
         },
       ],
       metrics: [
-        { id: 'total_capacity', label: 'Kapazität', legend: 'Arbeitsgas', unit: 'GWh', digits: 0 },
-        { id: 'total_power', label: 'Ausspeicherung', legend: 'Ausspeicherleistung', unit: 'MW', digits: 0 },
+        { id: 'total_capacity', quantity: 'kapazitaet', basis: 'absolut', legend: 'Arbeitsgas', unit: 'GWh', digits: 0 },
+        { id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Ausspeicherleistung', unit: 'MW', digits: 0 },
       ],
       kpis: [
         { id: 'plants', kind: 'sum', field: 'plants', label: 'Speicher in Betrieb', icon: Cylinder },
@@ -609,7 +617,7 @@ export const GAS = {
         'den durchschnittlichen Brennwert. Ein- und Ausspeicherleistung wie von den Betreibern gemeldet.',
     },
   ],
-  metrics: [{ id: 'total_power', label: 'Leistung', legend: 'Leistung', unit: 'MW', digits: 0 }],
+  metrics: [{ id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Leistung', unit: 'MW', digits: 0 }],
   tooltipRows: [],
   kpis: [],
   analyses: registrations([

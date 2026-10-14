@@ -31,9 +31,9 @@ export default function ZubauView({ config, state }) {
             />
           );
         }
-        if (a.kind === 'registrations') return <RegistrationsAnalysis key={a.id} analysis={a} initial={state.technology.id} anchor={anchor} />;
+        if (a.kind === 'registrations') return <RegistrationsAnalysis key={a.id} analysis={a} anchor={anchor} />;
         if (a.kind === 'registration-delay') {
-          return <RegistrationDelayAnalysis key={a.id} analysis={a} initial={state.technology.id} anchor={anchor} />;
+          return <RegistrationDelayAnalysis key={a.id} analysis={a} anchor={anchor} />;
         }
         return null;
       })}
