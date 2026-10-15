@@ -274,6 +274,29 @@ class BatterySizeDistribution(Base):
         """The classes of one region, the smallest first."""
         return db.query(cls).filter(cls.level == level_of(region), cls.region == region).order_by(cls.size_class).all()
 
+    @classmethod
+    def table(cls, db: Session, level: RegionLevel, within: str | None) -> dict:
+        """Every region of a level: its units, power and capacity per class, in the order of the columns."""
+        columns = (
+            db.query(cast(cls.size_class, String).label("key"), cls.label, cls.hint)
+            .filter_by(level="deutschland", region="DE")
+            .order_by(cls.size_class)
+            .all()
+        )
+        rows = (
+            db.query(
+                cls.region,
+                func.array_agg(aggregate_order_by(cls.total_units, cls.size_class)).label("units"),
+                func.array_agg(aggregate_order_by(cast(cls.total_power, Float), cls.size_class)).label("power"),
+                func.array_agg(aggregate_order_by(cast(cls.total_capacity, Float), cls.size_class)).label("capacity"),
+            )
+            .filter(*in_level(cls, level, within))
+            .group_by(cls.region)
+            .order_by(cls.region)
+            .all()
+        )
+        return {"columns": columns, "rows": rows}
+
 
 class BatteryKind(Base):
     """Battery units in operation by battery technology (Lithium, Blei, …) and by coupling (AC, DC) per region

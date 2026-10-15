@@ -11,6 +11,10 @@ CREATE MATERIALIZED VIEW mrt.registrierungen AS
 WITH units AS (
     SELECT 'solar' AS technology, "Registrierungsdatum" AS registered FROM raw.solar_units
     UNION ALL
+    -- Solar per Anlagenart too: Freifläche, else Gebäude (also steckerfertige, sonstige and those without an Art)
+    SELECT CASE WHEN "ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END, "Registrierungsdatum"
+    FROM raw.solar_units
+    UNION ALL
     SELECT 'wind', "Registrierungsdatum" FROM raw.wind_units
     UNION ALL
     SELECT 'wasserkraft', "Registrierungsdatum" FROM raw.water_units

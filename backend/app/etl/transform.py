@@ -78,6 +78,12 @@ VIEW_FILES = [
     "aggregate_registrierungen.sql",
     # How long after going into operation units were registered, per technology and year of commissioning
     "aggregate_registrierungsverzug.sql",
+    # The same three per Bundesland and Landkreis (and Deutschland): the Zubau page in a Land or Kreis
+    "aggregate_zubau_zeitverlauf_regions.sql",
+    "aggregate_registrierungen_regions.sql",
+    "aggregate_registrierungsverzug_regions.sql",
+    # Units in planning by their planned commissioning date, per Bundesland and Landkreis (and Deutschland)
+    "aggregate_geplant_zeitverlauf_regions.sql",
 ]
 
 

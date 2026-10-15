@@ -6,7 +6,16 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.analyses import BatteryKind, BatterySizeDistribution, BatteryZubauRegion, HeatmapPoint
 from app.models.regions import BatteryRegionStats, RegionLevel
-from app.schemas.analyses import BatterySizeClass, BatteryZubauYear, HeatmapPoints, KindShare, Region
+from app.schemas.analyses import (
+    BatterySizeClass,
+    BatteryZubauYear,
+    HeatmapPoints,
+    KindShare,
+    Region,
+    Regions,
+    RegionTable,
+    regions,
+)
 
 router = APIRouter(prefix="/battery", tags=["Battery Storage Data"])
 
@@ -27,6 +36,13 @@ def get_zubau(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
 def get_size_distribution(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
     """Units, power and capacity per size class of the plant's capacity in a region (mrt.battery_size_distribution)."""
     return BatterySizeDistribution.of(db, region)
+
+
+@router.get("/size-distribution/regions", response_model=RegionTable)
+def get_size_distribution_regions(db: Annotated[Session, Depends(get_db)], scope: Annotated[Regions, Depends(regions)]):
+    """Units, power and capacity per size class of the plant's capacity for every Land, Kreis or Gemeinde (optionally
+    within one)."""
+    return BatterySizeDistribution.table(db, scope.level, scope.within)
 
 
 @router.get("/kinds", response_model=list[KindShare])

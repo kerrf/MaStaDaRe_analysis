@@ -3,9 +3,10 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 DROP MATERIALIZED VIEW IF EXISTS mrt.zubau_zeitverlauf;
 
 -- Zubau (additions by commissioning date) and Bestand (installed at the end of the period) in Germany, per month and
--- per year since 2000: solar and wind in MW, battery storage split into size classes, twice: in MWh of usable capacity
--- ('heimspeicher', ...) and in MW of power ('heimspeicher_leistung', ...).
--- Solar twice: as Bruttoleistung (DC, 'solar') and Nettonennleistung (AC, 'solar_netto', the dashboard's default).
+-- per year since 2000: solar, wind and hydropower in MW, battery storage split into size classes, twice: in MWh of
+-- usable capacity ('heimspeicher', ...) and in MW of power ('heimspeicher_leistung', ...).
+-- Solar twice: as Bruttoleistung (DC, 'solar') and Nettonennleistung (AC, 'solar_netto', the dashboard's default), and
+-- the same per Anlagenart ('solar_gebaeude', 'solar_freiflaeche', each also '…_netto').
 CREATE MATERIALIZED VIEW mrt.zubau_zeitverlauf AS
 WITH battery_plants AS (
     -- The capacity (kWh) is registered per storage plant (AnlagenStromSpeicher), the power (kW) per unit.
@@ -23,24 +24,25 @@ units AS (
     -- 1. Every unit that went into operation (planned ones have no Inbetriebnahmedatum): its series, the day it came,
     --    the day it was finally decommissioned (38) and its amount. A decommissioned unit without a valid date leaves
     --    in the month it came.
+    -- Solar in one pass, each unit four times: all solar and its Anlagenart (Freifläche, else Gebäude: also
+    -- steckerfertige, sonstige and those without an Art), each as Bruttoleistung and as Nettonennleistung ('…_netto')
     SELECT
-        'solar' AS technology,
-        "Inbetriebnahmedatum" AS added_on,
-        CASE WHEN "EinheitBetriebsstatus" = '38'
-            THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END AS removed_on,
-        "Bruttoleistung" AS amount  -- kW
-    FROM raw.solar_units
-    WHERE "Inbetriebnahmedatum" IS NOT NULL
-
-    UNION ALL
-    SELECT
-        'solar_netto',
-        "Inbetriebnahmedatum",
-        CASE WHEN "EinheitBetriebsstatus" = '38'
-            THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
-        "Nettonennleistung"
-    FROM raw.solar_units
-    WHERE "Inbetriebnahmedatum" IS NOT NULL
+        s.technology,
+        u."Inbetriebnahmedatum" AS added_on,
+        CASE WHEN u."EinheitBetriebsstatus" = '38'
+            THEN GREATEST(u."DatumEndgueltigeStilllegung"::date, u."Inbetriebnahmedatum") END AS removed_on,
+        s.amount  -- kW
+    FROM raw.solar_units u
+    CROSS JOIN LATERAL (
+        SELECT CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END AS art
+    ) a
+    CROSS JOIN LATERAL (VALUES
+        ('solar', u."Bruttoleistung"),
+        ('solar_netto', u."Nettonennleistung"),
+        (a.art, u."Bruttoleistung"),
+        (a.art || '_netto', u."Nettonennleistung")
+    ) AS s(technology, amount)
+    WHERE u."Inbetriebnahmedatum" IS NOT NULL
 
     UNION ALL
     SELECT
@@ -51,6 +53,17 @@ units AS (
         "Bruttoleistung"
     FROM raw.wind_units
     WHERE "Inbetriebnahmedatum" IS NOT NULL
+
+    UNION ALL
+    -- Hydropower in Germany: without the border plants in Austria and Switzerland, like the map
+    SELECT
+        'wasserkraft',
+        "Inbetriebnahmedatum",
+        CASE WHEN "EinheitBetriebsstatus" = '38'
+            THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
+        "Bruttoleistung"
+    FROM raw.water_units
+    WHERE "Inbetriebnahmedatum" IS NOT NULL AND "Land" = '84'
 
     UNION ALL
     -- Size classes of battery-charts.de (RWTH Aachen) by the plant: Heimspeicher below 30 kWh and 30 kW,

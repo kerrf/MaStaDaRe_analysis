@@ -151,6 +151,7 @@ class RegionRow(BaseModel):
     region: str  # Gemeindeschlüssel of the Land, Kreis or Gemeinde
     units: list[int]  # per column
     power: list[float]  # MW, per column
+    capacity: list[float] | None = None  # MWh, per column (batteries)
 
 
 class RegionTable(BaseModel):
