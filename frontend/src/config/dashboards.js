@@ -137,7 +137,6 @@ export const SOLAR_SIZES_NOTE =
 export const ERZEUGER = {
   id: 'erzeuger',
   basePath: '/erzeuger',
-  eyebrow: 'Stromerzeugung',
   title: 'Erzeuger',
   description: 'Installierte Leistung von Stromerzeugungsanlagen – bundesweit, je Bundesland und kleinräumig nach Postleitzahl.',
   ramp: RAMPS.orange,
@@ -165,7 +164,7 @@ export const ERZEUGER = {
         ],
       },
       // Which power the solar values show, passed as ?leistung=… (the first option is the default, like in the API).
-      // The note is a footnote below the map, marked ¹ at the switch and in the map title.
+      // The note is a footnote below the choice of technology (SelectionBar), marked ¹ at the switch and in the map title.
       leistung: {
         param: 'leistung',
         label: 'Leistung',
@@ -363,7 +362,6 @@ const BATTERY_NOTE =
 export const SPEICHER = {
   id: 'speicher',
   basePath: '/speicher',
-  eyebrow: 'Stromspeicher',
   title: 'Speicher',
   description: 'Kapazität und Leistung von Batterie- und Pumpspeichern – vom Heimspeicher bis zum Großspeicher.',
   ramp: RAMPS.blue,
@@ -575,7 +573,6 @@ const colorsOf = (options) => Object.fromEntries(options.map((o) => [o.id, o.col
 export const GAS = {
   id: 'gas',
   basePath: '/gas',
-  eyebrow: 'Gasinfrastruktur',
   title: 'Gas',
   description:
     'Gaserzeuger und Gasspeicher an ihren Standorten – von der Biomethananlage bis zum LNG-Terminal, vom Kavernen- bis zum Porenspeicher.',

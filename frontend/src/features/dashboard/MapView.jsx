@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Construction, Download, Maximize2, Minimize2, RefreshCw, Scale, TriangleAlert } from 'lucide-react';
-import { GRANULARITIES, STATES_TOPOLOGY, footnoteId, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
+import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
 import { trackEvent } from '../../lib/usage';
@@ -17,6 +17,7 @@ import RankingPanel from './RankingPanel';
 import MapRail from './MapRail';
 import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
+import SelectionBar from './SelectionBar';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
@@ -336,7 +337,8 @@ export default function MapView({ config, state }) {
   const frameRef = useRef(null);
   const [exporting, setExporting] = useState(null);
   const scopeLabel = scopeName;
-  // Solar values say which power they are; the map title points to the footnote that explains it
+  // Solar values say which power they are; the map title points to the footnote that explains it, at the Leistung's
+  // switch above (SelectionBar)
   const metricLegend = leistung ? `${metric.legend} · ${leistung.label}` : metric.legend;
   const mapTitle = isSites ? 'Standorte' : isHeatmap ? (leistung ? `${metric.heat.legend} · ${leistung.label}` : metric.heat.legend) : metricLegend;
   const leistungNote = technology.leistung?.note;
@@ -368,6 +370,8 @@ export default function MapView({ config, state }) {
   return (
     <>
       <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
+
+      <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} />
 
       <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
 
@@ -414,13 +418,7 @@ export default function MapView({ config, state }) {
         </header>
 
         <MapToolbar
-          config={config}
           technology={technology}
-          onTechnology={state.setTechnology}
-          subtypes={subtypes}
-          onSubtypes={state.setSubtypes}
-          leistung={leistung}
-          onLeistung={state.setLeistung}
           metrics={metrics}
           metric={metric}
           onMetric={(id) => {
@@ -561,11 +559,6 @@ export default function MapView({ config, state }) {
               </Link>
             </span>
           </span>
-          {leistungNote && (
-            <p id={footnoteId(technology.leistung)} className="map-card__footnote">
-              <sup className="footnote-ref">1</sup> {leistungNote}
-            </p>
-          )}
           {technology.note && <p className="map-card__footnote">{technology.note}</p>}
         </footer>
       </section>

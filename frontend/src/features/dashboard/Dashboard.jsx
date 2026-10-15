@@ -31,9 +31,9 @@ function PageLoader() {
 
 /**
  * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Landkreis/Gemeinde, Zubau &
- * Registrierungen, Anlagen, Regionen. The header names the dashboard and the scope and holds the page's choice of the
- * area (ScopeBar, through ScopeSlot); tabs below it lead to the other pages, keeping the scope and the choices
- * (technology, filters) where the page has them.
+ * Registrierungen, Anlagen, Regionen. The header – the settings of every page, apart from what the pages show – names
+ * the dashboard once, holds the page's choice of the area (ScopeBar, through ScopeSlot), and below it the tabs lead to
+ * the other pages, keeping the area and the choices (technology, filters) where the page has them.
  */
 export default function Dashboard({ config, view }) {
   const state = useDashboardState(config, view);
@@ -61,18 +61,20 @@ export default function Dashboard({ config, view }) {
 
   const Page = PAGES[view];
   const live = view !== 'karte' || hasData(state.technology);
+  // The page and the area: on screen the tabs and the Gebiet say them, the heading names them for screen readers and
+  // search engines
+  const context = [view !== 'karte' && page.label, showScope && state.scopeName].filter(Boolean).join(' · ');
   return (
     <div className="dashboard" data-topic={config.id}>
       <header className="dashboard-header">
         <div className="container dashboard-header__inner">
           <div className="dashboard-header__text">
-            <span className="eyebrow">{config.eyebrow}</span>
             <h1 className="dashboard-header__title">
               {config.title}
-              {view !== 'karte' && <span className="dashboard-header__page">{page.label}</span>}
-              {showScope && <span className="dashboard-header__scope">{state.scopeName}</span>}
+              {context && <span className="visually-hidden"> – {context}</span>}
             </h1>
-            <p className="dashboard-header__lead">{view === 'karte' ? config.description : `${menu.views[view]}.`}</p>
+            {/* What the page shows, in the words of its menu entry */}
+            <p className="dashboard-header__lead">{menu.views[view]}.</p>
           </div>
           <div className="dashboard-header__meta">
             <Badge icon={Clock}>Datenstand {formatDate(datenstand)}</Badge>

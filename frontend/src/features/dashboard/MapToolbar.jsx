@@ -1,12 +1,11 @@
 import SegmentedControl from '../../components/ui/SegmentedControl';
-import { BASES, GRANULARITIES, QUANTITIES, hasData, isAvailable } from '../../config/dashboards';
+import { BASES, GRANULARITIES, QUANTITIES, isAvailable } from '../../config/dashboards';
 import { SMOOTHINGS } from '../../lib/heatmap';
-import TechFilters from './TechFilters';
 
 // One setting of the toolbar: its name above it
-function Group({ label, htmlFor, children, wide = false }) {
+function Group({ label, htmlFor, children }) {
   return (
-    <div className={`map-toolbar__group${wide ? ' is-wide' : ''}`}>
+    <div className="map-toolbar__group">
       {htmlFor ? (
         <label className="map-toolbar__label" htmlFor={htmlFor}>
           {label}
@@ -23,18 +22,12 @@ function Group({ label, htmlFor, children, wide = false }) {
 const titleOf = (metric) => (metric.basis === 'dichte' ? `${metric.heat.legend} (${metric.heat.unit})` : `${metric.legend} (${metric.unit})`);
 
 /**
- * The settings of the map in a band between its title and the map, like the toolbar of a map app: technology, Kennzahl
- * in two steps (Leistung or Kapazität, then absolut, je km² or je Einwohner), resolution (for the continuous map its
- * smoothing) in a row, the active technology's filters (Solar: Anlagenart, Leistung) below them.
+ * How the map shows the technology chosen above it (SelectionBar): in a band between its title and the map, like the
+ * toolbar of a map app – the Kennzahl in two steps (Leistung or Kapazität, then absolut, je km² or je Einwohner), the
+ * resolution (for the continuous map its smoothing) in a row. Chosen options in green, like every setting of a card.
  */
 export default function MapToolbar({
-  config,
   technology,
-  onTechnology,
-  subtypes,
-  onSubtypes,
-  leistung,
-  onLeistung,
   metrics,
   metric,
   onMetric,
@@ -43,7 +36,6 @@ export default function MapToolbar({
   smoothing,
   onSmoothing,
 }) {
-  const filtered = Boolean(technology.subtypes || technology.leistung);
   // The Kennzahl's two rows, the same for every technology – also where a row has a single choice (Erzeuger: only
   // Leistung; plants: only absolut). A new quantity keeps the basis where it has one.
   const quantities = QUANTITIES.filter((q) => metrics.some((m) => m.quantity === q.id));
@@ -51,31 +43,8 @@ export default function MapToolbar({
   const metricOf = (quantity, basis) =>
     metrics.find((m) => m.quantity === quantity && m.basis === basis) ?? metrics.find((m) => m.quantity === quantity);
   return (
-    <div className="map-toolbar" role="group" aria-label="Ansicht anpassen">
+    <div className="map-toolbar" role="group" aria-label="Darstellung der Karte">
       <div className="map-toolbar__row">
-        <Group label="Technologie" wide>
-          <div className="map-toolbar__chips">
-            {config.technologies.map((tech) => {
-              const Icon = tech.icon;
-              const active = tech.id === technology.id;
-              return (
-                <button
-                  key={tech.id}
-                  type="button"
-                  className={`tech-chip${active ? ' is-active' : ''}`}
-                  aria-pressed={active}
-                  aria-controls={active && filtered ? `filter-${tech.id}` : undefined}
-                  onClick={() => onTechnology(tech.id)}
-                >
-                  <Icon size={15} aria-hidden="true" />
-                  <span className="tech-chip__label">{tech.label}</span>
-                  {!hasData(tech) && <span className="tech-chip__soon">bald</span>}
-                </button>
-              );
-            })}
-          </div>
-        </Group>
-
         <Group label="Kennzahl">
           <SegmentedControl
             label="Kennzahl"
@@ -117,12 +86,7 @@ export default function MapToolbar({
             />
           </Group>
         )}
-
       </div>
-
-      {filtered && (
-        <TechFilters technology={technology} subtypes={subtypes} onSubtypes={onSubtypes} leistung={leistung} onLeistung={onLeistung} inline />
-      )}
     </div>
   );
 }

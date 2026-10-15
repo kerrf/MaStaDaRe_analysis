@@ -1,8 +1,8 @@
 /*
  * The design over the components' own styles: warm paper with the content on lighter cards behind clear borders, a line
- * in the topic's colour over the key figures and the analyses, forest green for what is chosen, the maps and previews
- * framed like the plates of an atlas, no icon tiles. Navigation and footer stay plain. The colours, the font and the
- * shapes themselves are tokens (tokens.css).
+ * in the topic's colour over the key figures and the analyses, forest green for what is chosen (the technology in the
+ * topic's colour), the maps and previews framed like the plates of an atlas, no icon tiles. Navigation and footer stay
+ * plain. The colours, the font and the shapes themselves are tokens (tokens.css).
  *
  * Every override is the original selector behind "html": one element more, so it wins whichever stylesheet loads later.
  */
@@ -65,23 +65,8 @@ html .segmented__option.is-active {
   color: #fff;
 }
 
-html .tech-switch__option.is-active {
-  background: var(--brand-600);
-  color: #fff;
-}
-
-html .tech-chip,
-html .map-toolbar .tech-chip {
-  border-color: var(--border);
-  background: var(--surface-card);
-}
-
-html .tech-chip.is-active {
-  border-color: var(--brand-600);
-  background: var(--brand-50);
-  color: var(--brand-700);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
+/* The technology and its filters are chosen in the topic's colour instead (SelectionBar, dashboard.css): what a page
+   shows, apart from the green of how it shows it */
 
 /* ------------------------------------------------------------- Sections */
 html .card {
@@ -157,17 +142,8 @@ html .cta-band {
 }
 
 /* ------------------------------------------------------------- Dashboards */
-html .dashboard-header {
-  background: var(--surface-page);
-  border-bottom: 1px solid var(--border);
-}
-
 html .dashboard-header__title {
   color: var(--brand-700);
-}
-
-html .dashboard-tabs__tab.is-active {
-  border-bottom-width: 3px;
 }
 
 /* The map as a plate of the atlas: a neat line around it */

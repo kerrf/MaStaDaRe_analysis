@@ -54,6 +54,8 @@
 
   /* Chart series (Ausbau im Zeitverlauf) */
   --series-solar: #f2b200;
+  /* Solar on open land in the Zubau charts: the solar yellow, a shade deeper than the rooftops' */
+  --series-solar-freiflaeche: #c99300;
   /* Solar on open land, next to the rooftops' --series-solar */
   --series-freiflaeche: #b25a06;
   --series-wind-land: #5ea66b;

@@ -1,87 +1,97 @@
 import { useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin } from 'lucide-react';
 import { BUNDESLAENDER } from '../../config/regions';
 import { ScopeSlot } from './scopeSlot';
 
-// One field of the bar: its name above the choice, the whole field opens the list; chosen: in the green of chosen buttons
-function Field({ id, name, set, children }) {
+const LAENDER = BUNDESLAENDER.map((b) => ({ value: b.code, label: b.name }));
+
+// A step of the path below Deutschland: the list of its level, showing the choice or asking for one. state: 'current'
+// – the area the page shows, in the green of chosen buttons; 'parent' – on the way to it; 'open' – not chosen (yet).
+// disabled: not before the step above (title: why)
+function Step({ name, value, options, placeholder, state, disabled = false, title, onChange }) {
   return (
-    <div className={`scope-bar__field${set ? ' is-set' : ''}`}>
-      <label className="scope-bar__name" htmlFor={id}>
-        {name}
-      </label>
-      {children}
-    </div>
+    <li className={`scope-bar__step is-${state}`}>
+      <ChevronRight size={16} aria-hidden="true" className="scope-bar__sep" />
+      <span className="scope-bar__field">
+        <select
+          aria-label={name}
+          className="scope-bar__select"
+          value={value ?? ''}
+          disabled={disabled}
+          title={title}
+          onChange={(e) => onChange(e.target.value || null)}
+        >
+          <option value="">{placeholder}</option>
+          {options?.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={15} aria-hidden="true" className="scope-bar__chevron" />
+      </span>
+    </li>
   );
 }
 
-// Deutschland › Bundesland › Landkreis (› Gemeinde, where the page has one: onSelectGemeinde), as one control in the
-// dashboard's header (ScopeSlot): where the page looks, not part of what it shows. kreisOptions and gemeindeOptions: the
-// Landkreise of the selected Land, the Gemeinden of the Kreis ({ ags, name }), null while loading.
+// The area of the page as a path, Deutschland › Bundesland › Landkreis (› Gemeinde, where the page has one:
+// onSelectGemeinde), in the dashboard's header (ScopeSlot): where every page looks, apart from what it shows. The area
+// shown stands out in green, the steps on the way to it are lighter, those still open dashed. kreisOptions and
+// gemeindeOptions: the Landkreise of the selected Land, the Gemeinden of the Kreis ({ ags, name }), null while loading.
 export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope, gemeinde, gemeindeOptions, onSelectGemeinde }) {
   const slot = useContext(ScopeSlot);
+  const current = gemeinde ? 'gemeinde' : kreis ? 'kreis' : region ? 'land' : 'de';
+  const stateOf = (level, chosen) => (level === current ? 'current' : chosen ? 'parent' : 'open');
   const bar = (
-    <nav className="scope-bar" aria-label="Gebietsauswahl">
-      <div className={`scope-bar__field scope-bar__field--root${region ? '' : ' is-set'}`}>
-        <span className="scope-bar__name">Gebiet</span>
-        <button
-          type="button"
-          className="scope-bar__root"
-          aria-current={region ? undefined : 'page'}
-          title={region ? 'Zurück zu ganz Deutschland' : undefined}
-          onClick={() => onSelectScope(null)}
-        >
-          <MapPin size={15} aria-hidden="true" />
-          Deutschland
-        </button>
-      </div>
-      <Field id="scope-bundesland" name="Bundesland" set={Boolean(region)}>
-        <select id="scope-bundesland" className="scope-bar__select" value={region?.code ?? ''} onChange={(e) => onSelectScope(e.target.value || null)}>
-          <option value="">Bundesland wählen</option>
-          {BUNDESLAENDER.map((b) => (
-            <option key={b.code} value={b.code}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field id="scope-landkreis" name="Landkreis" set={Boolean(kreis)}>
-        <select
-          id="scope-landkreis"
-          className="scope-bar__select"
-          value={kreis ?? ''}
+    <nav className="scope-bar" aria-label="Gebiet">
+      <span className="scope-bar__label" aria-hidden="true">
+        Gebiet
+      </span>
+      <ol className="scope-bar__path">
+        <li className={`scope-bar__step is-${current === 'de' ? 'current' : 'parent'}`}>
+          <button
+            type="button"
+            className="scope-bar__root"
+            aria-current={current === 'de' ? 'location' : undefined}
+            title={current === 'de' ? undefined : 'Zurück zu ganz Deutschland'}
+            onClick={() => onSelectScope(null)}
+          >
+            <MapPin size={15} aria-hidden="true" />
+            Deutschland
+          </button>
+        </li>
+        <Step
+          name="Bundesland"
+          value={region?.code}
+          options={LAENDER}
+          placeholder="Bundesland wählen"
+          state={stateOf('land', region)}
+          onChange={(code) => onSelectScope(code)}
+        />
+        <Step
+          name="Landkreis"
+          value={kreis}
+          options={kreisOptions?.map((k) => ({ value: k.ags, label: k.name }))}
+          placeholder="Landkreis wählen"
+          state={stateOf('kreis', kreis)}
           disabled={!region || !kreisOptions}
           title={region ? undefined : 'Zuerst ein Bundesland wählen'}
-          onChange={(e) => onSelectScope(region.code, e.target.value || null)}
-        >
-          <option value="">Landkreis wählen</option>
-          {kreisOptions?.map((k) => (
-            <option key={k.ags} value={k.ags}>
-              {k.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      {onSelectGemeinde && (
-        <Field id="scope-gemeinde" name="Gemeinde" set={Boolean(gemeinde)}>
-          <select
-            id="scope-gemeinde"
-            className="scope-bar__select"
-            value={gemeinde ?? ''}
+          onChange={(ags) => onSelectScope(region.code, ags)}
+        />
+        {onSelectGemeinde && (
+          <Step
+            name="Gemeinde"
+            value={gemeinde}
+            options={gemeindeOptions?.map((g) => ({ value: g.ags, label: g.name }))}
+            placeholder={kreis ? 'Ganzer Landkreis' : 'Gemeinde wählen'}
+            state={stateOf('gemeinde', gemeinde)}
             disabled={!kreis || !gemeindeOptions}
             title={kreis ? undefined : 'Zuerst einen Landkreis wählen'}
-            onChange={(e) => onSelectGemeinde(e.target.value || null)}
-          >
-            <option value="">{kreis ? 'Ganzer Landkreis' : 'Gemeinde wählen'}</option>
-            {gemeindeOptions?.map((g) => (
-              <option key={g.ags} value={g.ags}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
+            onChange={onSelectGemeinde}
+          />
+        )}
+      </ol>
     </nav>
   );
   // In the header once it is there (the same render that puts it there, before the page is painted)

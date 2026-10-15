@@ -50,7 +50,7 @@ function Dropdown({ id, label, active, open, onOpen, onClose, children }) {
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
 
   const hover = (e) => {
-    if (e.pointerType !== 'mouse' || window.matchMedia('(max-width: 900px)').matches) return;
+    if (e.pointerType !== 'mouse' || window.matchMedia('(max-width: 1000px)').matches) return;
     clearTimeout(leaveTimer.current);
     onOpen();
   };

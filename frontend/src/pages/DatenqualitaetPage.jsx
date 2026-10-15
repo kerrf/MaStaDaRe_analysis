@@ -54,10 +54,7 @@ export default function DatenqualitaetPage() {
             <ArrowLeft size={15} aria-hidden="true" /> Übersicht
           </Link>
           <div className="page-header__row">
-            <div>
-              <span className="eyebrow">Datenqualität</span>
-              <h1 className="page-header__title">Datenqualität des MaStR</h1>
-            </div>
+            <h1 className="page-header__title">Datenqualität des MaStR</h1>
             <Badge tone="soon">Im Aufbau</Badge>
           </div>
           <p className="page-header__lead">

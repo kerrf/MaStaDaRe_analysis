@@ -238,10 +238,11 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* 36 px high in all, like every setting of a card */
 .segmented__option {
   flex: 1 1 0;
   min-width: 0;
-  height: 32px;
+  height: 28px;
   padding: 0 10px;
   border: 0;
   border-radius: 7px;
@@ -336,7 +337,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  height: 40px;
+  height: 36px;
   padding: 0 12px 0 8px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);

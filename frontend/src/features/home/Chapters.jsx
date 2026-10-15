@@ -125,7 +125,6 @@ const CHAPTERS = [
   {
     topic: 'erzeuger',
     number: '01',
-    eyebrow: 'Stromerzeugung',
     title: 'Erzeuger',
     to: '/erzeuger',
     cta: 'Karte der Erzeuger',
@@ -140,7 +139,6 @@ const CHAPTERS = [
   {
     topic: 'speicher',
     number: '02',
-    eyebrow: 'Stromspeicher',
     title: 'Speicher',
     to: '/speicher',
     cta: 'Karte der Speicher',
@@ -155,7 +153,6 @@ const CHAPTERS = [
   {
     topic: 'gas',
     number: '03',
-    eyebrow: 'Gasinfrastruktur',
     title: 'Gas',
     to: '/gas',
     cta: 'Karte der Gasanlagen',
@@ -174,9 +171,8 @@ export default function Chapters() {
       {CHAPTERS.map((c) => (
         <article key={c.topic} className="chapter" data-topic={c.topic} aria-labelledby={`kapitel-${c.topic}`}>
           <div className="chapter__text">
-            <span className="chapter__eyebrow">
-              <span className="tabular">{c.number}</span> {c.eyebrow}
-            </span>
+            {/* The chapter's number above its title, the dashboard's name: one title, as in the navigation */}
+            <span className="chapter__eyebrow tabular">{c.number}</span>
             <h3 id={`kapitel-${c.topic}`} className="chapter__title">
               {c.title}
             </h3>

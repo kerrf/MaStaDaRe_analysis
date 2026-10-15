@@ -106,7 +106,7 @@ export default function TargetsOverview() {
         <p className="targets-overview__more">
           Wie weit ist Ihr Landkreis, Ihre Gemeinde?{' '}
           <Link to="/erzeuger/kommune" className="home-link">
-            Landkreis/Gemeinde ansehen <ArrowRight size={14} aria-hidden="true" />
+            Regionen im Detail ansehen <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </p>
       </ChartFoot>

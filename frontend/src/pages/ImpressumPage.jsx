@@ -18,7 +18,6 @@ export default function ImpressumPage() {
     <div className="page">
       <header className="page-header">
         <div className="container page-header__inner">
-          <span className="eyebrow">Rechtliches</span>
           <h1 className="page-header__title">Impressum</h1>
         </div>
       </header>

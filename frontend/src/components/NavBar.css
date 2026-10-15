@@ -160,7 +160,7 @@
 }
 
 /* The pages of a dashboard: icon, name and what the page shows */
-@media (min-width: 901px) {
+@media (min-width: 1001px) {
   .navbar__menu:has(.navbar__menuItem--page) {
     min-width: 320px;
   }
@@ -250,7 +250,7 @@
   display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .navbar__menuBtn {
     display: inline-grid;
   }

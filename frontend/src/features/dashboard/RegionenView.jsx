@@ -3,6 +3,7 @@ import RegionProfile from './RegionProfile';
 import RegionTable from './RegionTable';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
+import { selectionOf } from './useDashboardState';
 
 // The page "Regionen" of a dashboard: the Steckbrief of the scope (every technology, ranked and compared), and its parts
 // side by side (Länder of Germany, Kreise of a Land, Gemeinden of a Kreis) for a technology's analyses
@@ -10,9 +11,9 @@ export default function RegionenView({ config, state }) {
   const { region, kreisAgs, kreisOptions, selectScope } = state;
   const withTables = config.technologies.filter((t) => regionTablesOf(t).length);
   // The active technology, or the first with tables (Speicher: the batteries while the map shows Pumpspeicher), so the
-  // table is always there; the selection (Anlagenart, Leistung) only goes with the technology it belongs to
+  // table is always there, with its own selection (Anlagenart, Leistung)
   const technology = withTables.find((t) => t.id === state.technology.id) ?? withTables[0];
-  const selectionQuery = technology === state.technology ? state.selectionQuery : '';
+  const selectionQuery = selectionOf(technology, state.searchParams).query;
 
   return (
     <>
