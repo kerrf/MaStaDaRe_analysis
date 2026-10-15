@@ -22,7 +22,7 @@ has to hold everything (`src/config/views.js`):
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
 | Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
-| Zubau & Registrierungen | `/erzeuger/zubau` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – Germany-wide | `ZubauView.jsx` |
+| Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units | `AnlagenView.jsx` |
 | Regionen im Vergleich | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
 
@@ -32,12 +32,11 @@ analysis says on which page it is (`view` on the analysis). The map page loads L
 
 The choice of the area (`ScopeBar.jsx`: Deutschland, Bundesland, Landkreis and, on the pages with `gemeinde`, the
 Gemeinde) sits in the header above the tabs, apart from the cards that show the data: named fields side by side as one
-control, the chosen ones in the green of chosen buttons. A page renders its `ScopeBar` where it likes – or not, like
-Anlagen of the Speicher, which is Germany-wide – and the bar goes into the header through a portal (`ScopeSlot` in
+control, the chosen ones in the green of chosen buttons. A page renders its `ScopeBar` where it likes – or not – and the bar goes into the header through a portal (`ScopeSlot` in
 `scopeSlot.js`, provided by `Dashboard.jsx`).
 
 `useDashboardState.js` reads the state all pages share from the URL – scope, technology and its filters – and keeps it
-when switching pages (`hrefOf(view)`; Zubau is Germany-wide and has no scope). Each technology's filters have their own
+when switching pages (`hrefOf(view)`; on Zubau down to the Kreis: its views have no Gemeinden). Each technology's filters have their own
 parameters, so the Steckbrief and the timeline can read solar's choice while wind is active (`selectionOf`).
 
 ### URL state
@@ -132,8 +131,7 @@ the analysis' `groups` (tokens `--series-lithium` … `--series-unbekannt`, gas:
 
 ### Analyses one below the other (`AnalysisPanel.jsx`)
 
-On the Zubau page: one link per analysis at the top (`AnalysesNav.jsx`, jumps there); on every page each analysis as a
-card of its own that starts with a clear head – accent bar, tinted band, icon (`icon` of the analysis), title, what it
+On every page each analysis as a card of its own that starts with a clear head – accent bar, tinted band, icon (`icon` of the analysis), title, what it
 shows, its switches on the right (`tools`). Timelines, registrations, the registration delay, PV-Speicher and the table
 per region all use it.
 
@@ -155,7 +153,10 @@ One card per technology with area stats (`statsPath`) for the scope: Anlagen, Le
 ### Registrierungen im MaStR (`RegistrationsAnalysis.jsx`, kind `registrations`)
 
 Units registered per year or month (`Registrierungsdatum`) since the first registration (2019, when the register
-started), Germany-wide, one technology at a time (a switch, not stacked): `/zubau/registrierungen` from
+started), in the scope (Deutschland, Land or Kreis, `?region=`): one technology at a time (a switch; Speicher, Gas) or, with `registrations.stacked`, stacked
+like the Ausbau with the legend to hide one (Erzeuger: Solar Gebäude and Solar Freifläche alone at first, `hidden` on
+the others; the Abstand keeps solar as one, `delay`): `/zubau/registrierungen?technology=…` (only the card's
+technologies: a URL of its own per set of series, never an older cached answer without a new one) from
 `mrt.registrierungen` (`aggregate_registrierungen.sql`: per month and, with `month` null, per year; `units` registered in
 the period, `total` all up to its end; `?yearly=true` only the years), every unit the register lists whatever its
 status. The same time controls as the Ausbau im Zeitverlauf (below): aggregiert (all registered so far), Jährlich or
@@ -186,15 +187,16 @@ class, with or without solar). All values add up; the page sums the chosen Anlag
 
 In the "Analysen" section, below the Zubau: the same analyses for every Land, Kreis or Gemeinde below the scope (a Land
 lists its Kreise or Gemeinden, a Kreis its Gemeinden), one column per orientation or size class. The cells of a row are
-shaded against each other on the dashboard's ramp, like the rose: an area's largest category is its darkest. Sortable by
-every column, searchable by name or key, 50 rows at a time; the CSV holds every row found, in the chosen values plus
+shaded against each other on the dashboard's ramp, like the rose: an area's largest category is its darkest. Sorted by name at
+first, so the order stays when the values change; sortable by every column, searchable by name or key, 50 rows at a time; the CSV holds every row found, in the chosen values plus
 both totals.
 
 The controls look like what they choose: the analysis (Ausrichtung / Anlagengröße) as tabs in the header, the rows as
-the labelled dropdown "Gebiete", the cells as the labelled unit switch "Werte" (Anteil %, Leistung MW, Anzahl), search
-and CSV as tools on the right.
+the labelled dropdown "Gebiete", the cells in two steps – "Werte" (Leistung MW, for batteries Kapazität MWh, or Anzahl)
+and "Darstellung" (Wert, or Anteil % of the area's total) – search and CSV as tools on the right.
 
-On the Regionen page, below the Steckbrief, for the technology chosen there.
+On the Regionen page, below the Steckbrief, for the technology chosen there – or the first one with a table (Speicher:
+Batteriespeicher, with the size classes by capacity, `/battery/size-distribution/regions`).
 
 Data: `{path of the card}/regions?level=…&within=…` (e.g. `/solar/orientation/regions?level=gemeinde&within=09`),
 `{ columns: [{ key, label, hint }], rows: [{ region, units: [...], power: [...] }] }` with the values in the order of
@@ -282,13 +284,17 @@ the map. The Analysen section only shows when it has something (Gas: nothing yet
 
 ### Ausbau im Zeitverlauf (`timeline` on an analysis)
 
-An analysis with `timeline` is drawn full-width above the other cards (`TimelineAnalysis.jsx`), Germany-wide whatever
-the scope. Data: `/zubau/zeitverlauf?technology=…` from `mrt.zubau_zeitverlauf` (`aggregate_zubau.sql`), one row per
-series and month plus one per year (`month` null), with `added` (Zubau) and `installed` (Bestand at the period's end).
+An analysis with `timeline` is drawn full-width above the other cards (`TimelineAnalysis.jsx`), in the scope:
+Deutschland, a Land or a Kreis. Data: `/zubau/zeitverlauf?region=…&technology=…` from `mrt.zubau_zeitverlauf_regions`
+(`aggregate_zubau_zeitverlauf_regions.sql`; the Registrierungen and the Abstand likewise from `…_regions`), one row per
+region, series and month plus one per year (`month` null), with `added` (Zubau) and `installed` (Bestand at the period's end).
 Views: Zubau (what went into operation per period, bars) or Bestand (in operation at its end, bars or a curve of stacked
 areas – switched on, always bars first), per year (from–to, or every year since `since` with one click) or per month
-(the last 12 months, a year or all months since `since`). The controls and the periods are shared with the
-Registrierungen: `TimeControls.jsx` and `timeView.js` (`useTimeView`, `indexRows`, `buildPeriods`). Years and months
+(the last 12 months, a year or all months since `since`), or as Jahresvergleich: Jan … Dez along the bottom and a
+column per year, up to six years (`buildComparison`, `YearComparison.jsx` on `GroupedBarChart`; the Zubau of the series
+shown, added up – choosing it switches aggregiert off, aggregiert on goes back to Monatlich). The controls and the
+periods are shared with the Registrierungen: `TimeControls.jsx` and `timeView.js` (`useTimeView`, `indexRows`,
+`buildPeriods`). Years and months
 are chosen in dropdowns of their own (`components/ui/ListSelect.jsx`: the list floats above the page, scrolls, opens
 upwards where there is more room), not the browser's `<select>`, whose list came out cut off. The Registrierungen
 start with the dashboard's first technology, whatever the map shows. Series are stacked in config
@@ -297,11 +303,25 @@ axis starts near its lowest point (`curveFloor`: 35 → 40 reads from 30) when t
 lie wholly below the axis are named under the chart, which also switches the axis back to 0. The chart itself (`components/charts/StackedChart.jsx`) is plain SVG, no chart library. On the Zubau page the
 timeline has its own Netto/Brutto switch for solar (`leistungOption`, `onLeistung`).
 
-- Erzeuger: Solar, Wind an Land, Wind auf See in MW (`Bruttoleistung`; Solar as `Nettonennleistung`, series
-  `solar_netto`, while the Leistung is Netto, the default).
-- Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage) and, in a second chart, their
-  power in MW (`Bruttoleistung`, series `…speicher_leistung`), by size class and with the plausibility check of
+- Erzeuger: Solar Gebäude and Solar Freifläche (`solar_gebaeude`, `solar_freiflaeche`; two yellows, `--series-solar`
+  and `--series-solar-freiflaeche`), Wind an Land, Wind auf See and Wasserkraft (`hidden`: off at first) in MW
+  (`Bruttoleistung`; solar as `Nettonennleistung`, series `…_netto`, while the Leistung is Netto, the default). The start
+  page shows solar as one (`solar`, `solar_netto`) and no Wasserkraft.
+- Speicher: battery capacity in MWh (`NutzbareSpeicherkapazitaet` of the Speicheranlage) or, switched in the card's
+  head (`timeline.measures`), their power in MW (`Bruttoleistung`, series `source: …speicher_leistung`), by size class
+  and with the plausibility check of
   battery-charts.de.
+
+**Geplante (genehmigte) Anlagen** (Erzeuger, between the Registrierungen and the Abstand) is the same chart for units
+in planning (`EinheitBetriebsstatus` 31) by their planned commissioning date (`GeplantesInbetriebnahmedatum`):
+`/zubau/geplant?region=…&technology=…` from `mrt.geplant_zeitverlauf_regions`. `timeline.planned` turns the time axis
+forward (`now`, `thisMonth()` in `timeView.js`): this year ("ab Oktober") and the next five at first, "Nächste 12
+Monate", the Jahresvergleich from this year on, nothing marked as running; aggregiert adds up all planned to the
+period's end.
+Wind (an Land, auf See) alone at first – nearly every planned turbine has its permit (`GenMastrNummer`) in the
+register; solar and Wasserkraft off (`hidden`). Only dates from the current month on (that of the nightly refresh) –
+a date that has passed means planned but never reported in operation, mostly small solar units – and none after 2040
+(`aggregate_geplant_zeitverlauf_regions.sql`).
 
 ### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
 

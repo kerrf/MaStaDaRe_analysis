@@ -16,14 +16,48 @@ const LEVELS = [
   { id: 'gemeinde', one: 'Gemeinde', many: 'Gemeinden', digits: 8 },
 ].map((level) => ({ ...level, topology: GRANULARITIES.find((g) => g.id === level.id).topology }));
 
-// What the cells show; unit: in the switch and the CSV headers
-const MODES = [
-  { id: 'anteil', label: 'Anteil', unit: '%', title: 'Anteil an der Leistung des Gebiets' },
-  { id: 'leistung', label: 'Leistung', unit: 'MW', title: 'Leistung in MW' },
-  { id: 'anzahl', label: 'Anzahl', unit: 'Anzahl', title: 'Anzahl der Anlagen' },
+// What a table adds up (the dataset's measures, field: the row's array): the power, for batteries also the capacity
+const POWER_ONLY = [{ field: 'power', label: 'Leistung', unit: 'MW' }];
+// What the cells show, in two steps: the quantity – a measure (Leistung, Kapazität) or the number (field 'units') –
+// and how – its value or its share of the area's total. unit: in the switch and the CSV headers
+const quantitiesOf = (measures, unitsLabel) => [
+  ...measures.map((m) => ({ id: m.field, label: m.label, unit: m.unit, title: `${m.label} in ${m.unit}` })),
+  { id: 'units', label: 'Anzahl', unit: '', title: `Anzahl der ${unitsLabel}` },
 ];
+const DISPLAYS = [
+  { id: 'wert', label: 'Wert', title: 'Der Wert selbst' },
+  { id: 'anteil', label: 'Anteil', unit: '%', title: 'Anteil am Gesamtwert des Gebiets' },
+];
+
+// A labelled switch of the toolbar ("Werte", "Darstellung"); an option's unit small beside its name
+function ValueSwitch({ id, label, options, value, onChange }) {
+  return (
+    <div className="region-table__field">
+      <span className="region-table__field-label" id={id}>
+        {label}
+      </span>
+      <div className="region-table__values" role="radiogroup" aria-labelledby={id}>
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={o.id === value}
+            title={o.title}
+            className={`region-table__value${o.id === value ? ' is-active' : ''}`}
+            onClick={() => onChange(o.id)}
+          >
+            {o.label}
+            {o.unit && <small>{o.unit}</small>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 const PAGE = 50; // rows at a time; the CSV has all of them
-const BY_TOTAL = { column: 'total', descending: true };
+// By name at first: the order stays when the values change (Werte, Darstellung)
+const BY_NAME = { column: 'name', descending: false };
 
 const sum = (values) => values.reduce((total, value) => total + value, 0);
 const formatPower = (mw) => formatNumber(mw, mw >= 100 ? 0 : mw >= 10 ? 1 : 2);
@@ -59,12 +93,18 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
   const datasets = regionTablesOf(technology);
   const [datasetId, setDatasetId] = useState(null);
   const [levelId, setLevelId] = useState(null);
-  const [mode, setMode] = useState('anteil');
-  const [sort, setSort] = useState(BY_TOTAL); // column: 'name', 'total' or the index of a column
+  const [quantityId, setQuantity] = useState(null);
+  const [display, setDisplay] = useState('anteil');
+  const [sort, setSort] = useState(BY_NAME); // column: 'name', 'total' or the index of a column
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
 
   const dataset = datasets.find((d) => d.id === datasetId) ?? datasets[0];
+  const measures = dataset?.measures ?? POWER_ONLY;
+  const quantities = quantitiesOf(measures, dataset?.unitsLabel ?? 'Anlagen');
+  // The chosen quantity, if this analysis has it (else its first measure)
+  const quantity = quantities.find((q) => q.id === quantityId) ?? quantities[0];
+  const isCount = quantity.id === 'units';
   // Only the levels below the scope: a Land lists its Kreise or Gemeinden, a Kreis its Gemeinden
   const within = scopeKey === 'DE' ? null : scopeKey;
   const levels = LEVELS.filter((level) => level.digits > (within?.length ?? 0));
@@ -79,23 +119,23 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
   const rows = useMemo(() => {
     if (!table.data || !shapes.data) return [];
     const names = new Map(shapes.data.features.map((f) => [f.properties.ags, f.properties.name]));
+    const fields = ['units', ...measures.map((m) => m.field)];
+    // Per quantity (units, power, capacity): the values per column and their total
     return table.data.rows.map((row) => ({
       ags: row.region,
       name: names.get(row.region) ?? row.region,
-      power: row.power,
-      units: row.units,
-      totalPower: sum(row.power),
-      totalUnits: sum(row.units),
+      values: Object.fromEntries(fields.map((f) => [f, row[f] ?? []])),
+      totals: Object.fromEntries(fields.map((f) => [f, sum(row[f] ?? [])])),
     }));
-  }, [table.data, shapes.data]);
+  }, [table.data, shapes.data, measures]);
 
-  // The value of a cell and of the Gesamt column in the chosen mode
+  // The value of a cell (the quantity, or its share of the area's total) and of the Gesamt column (always the total)
   const [valueOf, totalOf] = useMemo(() => {
-    if (mode === 'anteil')
-      return [(row, i) => (row.totalPower ? row.power[i] / row.totalPower : 0), (row) => row.totalPower];
-    if (mode === 'leistung') return [(row, i) => row.power[i], (row) => row.totalPower];
-    return [(row, i) => row.units[i], (row) => row.totalUnits];
-  }, [mode]);
+    const field = quantity.id;
+    const totalOf = (row) => row.totals[field];
+    if (display === 'anteil') return [(row, i) => (totalOf(row) ? (row.values[field][i] ?? 0) / totalOf(row) : 0), totalOf];
+    return [(row, i) => row.values[field][i] ?? 0, totalOf];
+  }, [quantity.id, display]);
 
   // The colours of a row: relative to each other within the area, its largest category the darkest
   const colorsOf = (row) =>
@@ -121,7 +161,10 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
 
   if (!dataset) return null;
 
-  const modeInfo = MODES.find((m) => m.id === mode);
+  const cellUnit = display === 'anteil' ? '%' : quantity.unit || 'Anzahl';
+  // The cells' format: a share, a power or capacity, a number
+  const formatTotal = (value) => (isCount ? formatNumber(value) : formatPower(value));
+  const formatCell = (value) => (display === 'anteil' ? formatShare(value) : formatTotal(value));
   const reset = (apply) => (value) => {
     apply(value);
     setLimit(PAGE);
@@ -141,15 +184,15 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
           columns.map((column, i) => {
             const value = valueOf(row, i);
             return [
-              `${column.label} (${modeInfo.unit})`,
-              mode === 'anteil' ? round(value * 100, 2) : mode === 'leistung' ? round(value, 3) : value,
+              `${column.label} (${cellUnit})`,
+              display === 'anteil' ? round(value * 100, 2) : isCount ? value : round(value, 3),
             ];
           }),
         ),
-        'Gesamt Leistung (MW)': round(row.totalPower, 3),
-        'Gesamt Anzahl': row.totalUnits,
+        ...Object.fromEntries(measures.map((m) => [`Gesamt ${m.label} (${m.unit})`, round(row.totals[m.field], 3)])),
+        'Gesamt Anzahl': row.totals.units,
       })),
-      `${fileBase}_${dataset.id}_${level.id}_${scopeKey.toLowerCase()}_${mode}`,
+      [fileBase, dataset.id, level.id, scopeKey.toLowerCase(), isCount ? 'anzahl' : quantity.id, display].join('_'),
     );
   };
 
@@ -178,7 +221,8 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
             className={`region-table__tab${d.id === dataset.id ? ' is-active' : ''}`}
             onClick={() => {
               reset(setDatasetId)(d.id);
-              setSort(BY_TOTAL); // the other analysis has other columns
+              // The other analysis has other columns: a sort by one of them goes back to the names
+              setSort((prev) => (typeof prev.column === 'number' ? BY_NAME : prev));
             }}
           >
             {d.label}
@@ -198,28 +242,15 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
               ))}
             </select>
           </label>
-          {/* The cells */}
-          <div className="region-table__field">
-            <span className="region-table__field-label" id={`${panelId}-values`}>
-              Werte
-            </span>
-            <div className="region-table__values" role="radiogroup" aria-labelledby={`${panelId}-values`}>
-              {MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={m.id === mode}
-                  title={m.title}
-                  className={`region-table__value${m.id === mode ? ' is-active' : ''}`}
-                  onClick={() => setMode(m.id)}
-                >
-                  {m.label}
-                  {m.unit !== m.label && <small>{m.unit}</small>}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* The cells, in two steps: what, then as value or share */}
+          <ValueSwitch id={`${panelId}-values`} label="Werte" options={quantities} value={quantity.id} onChange={setQuantity} />
+          <ValueSwitch
+            id={`${panelId}-display`}
+            label="Darstellung"
+            options={DISPLAYS}
+            value={display}
+            onChange={setDisplay}
+          />
           {/* Tools */}
           <div className="region-table__tools">
             <label className="region-table__search">
@@ -280,7 +311,7 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
                       </SortHeader>
                     ))}
                     <SortHeader column="total" sort={sort} onSort={sortBy} className="region-table__total">
-                      Gesamt{mode === 'anzahl' ? '' : ' (MW)'}
+                      Gesamt{isCount ? '' : ` (${quantity.unit})`}
                     </SortHeader>
                   </tr>
                 </thead>
@@ -304,16 +335,12 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
                           const background = colorFor(value);
                           return (
                             <td key={column.key} style={{ background, color: inkOn(background) }}>
-                              {mode === 'anteil'
-                                ? formatShare(value)
-                                : mode === 'leistung'
-                                  ? formatPower(value)
-                                  : formatNumber(value)}
+                              {formatCell(value)}
                             </td>
                           );
                         })}
                         <td className="region-table__total">
-                          {mode === 'anzahl' ? formatNumber(totalOf(row)) : formatPower(totalOf(row))}
+                          {formatTotal(totalOf(row))}
                         </td>
                       </tr>
                     );

@@ -4,11 +4,20 @@ import { API_BASE_URL } from '../../config/site';
 import { statsUrl } from '../../lib/data';
 
 const technology = (config, id) => config.technologies.find((t) => t.id === id);
-export const ERZEUGER_TIMELINE = ERZEUGER.analyses.find((a) => a.timeline).timeline;
-export const SPEICHER_TIMELINE = SPEICHER.analyses.find((a) => a.timeline).timeline;
+// Solar and wind ("Zubau von Solar- und Windleistung"): solar as one series (the dashboard splits it into Gebäude and
+// Freifläche), the wind as the dashboard shows it at first, without Wasserkraft
+const erzeugerTimeline = ERZEUGER.analyses.find((a) => a.timeline).timeline;
+const SOLAR = { id: 'solar', netto: 'solar_netto', label: 'Solar', color: 'var(--series-solar)' };
+export const ERZEUGER_TIMELINE = {
+  ...erzeugerTimeline,
+  series: [SOLAR, ...erzeugerTimeline.series.filter((s) => !s.hidden && !s.id.startsWith('solar'))],
+};
+// The batteries' timeline by their capacity: the first of its measures (Kapazität, Leistung)
+const speicherTimeline = SPEICHER.analyses.find((a) => a.timeline).timeline;
+export const SPEICHER_TIMELINE = { ...speicherTimeline, ...speicherTimeline.measures?.[0] };
 
-// The API series a timeline series shows by default (solar: Netto)
-export const sourceOf = (series) => series.netto ?? series.id;
+// The API series a timeline series shows by default (solar: Netto; the batteries' power: its source)
+export const sourceOf = (series) => series.netto ?? series.source ?? series.id;
 
 export const URLS = {
   solar: statsUrl(technology(ERZEUGER, 'solar').statsPath, 'bundesland'),

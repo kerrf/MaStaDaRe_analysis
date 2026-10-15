@@ -88,10 +88,10 @@ function Columns({ width, categories, series, axes, active, onActive }) {
   );
   const yOf = (side, value) => TOP + PLOT * (1 - value / scale[side].top);
   const height = TOP + PLOT + LABELS;
-  // The axis' numbers in its series' colour, or a darker one for text (ink)
+  // The axis' numbers in its own ink, else its series' colour, or a darker one for text (ink)
   const colorOf = (side) => {
     const s = series.find((one) => one.axis === side);
-    return s.ink ?? s.color;
+    return axes[side].ink ?? s.ink ?? s.color;
   };
 
   // The value above a column, in its axis' unit ("1,2" under GW, "345" under Tsd. Anlagen), where every one fits
@@ -155,7 +155,15 @@ function Columns({ width, categories, series, axes, active, onActive }) {
               const text = showValues && valueText(s.axis, value);
               return (
                 <g key={s.id}>
-                  <rect x={x} y={TOP + PLOT - h} width={column} height={h} rx={2} style={{ fill: s.color }} />
+                  <rect
+                    x={x}
+                    y={TOP + PLOT - h}
+                    width={column}
+                    height={h}
+                    rx={2}
+                    style={{ fill: s.color }}
+                    opacity={c.faded?.[s.id] ? 0.45 : undefined}
+                  />
                   {text && (
                     <text className="bar-chart__value" x={x + column / 2} y={TOP + PLOT - h - 4} textAnchor="middle">
                       {text}
@@ -191,13 +199,15 @@ function Columns({ width, categories, series, axes, active, onActive }) {
 }
 
 /**
- * Columns for a few categories, two series side by side, each on an axis of its own: e.g. the power (left) and the
- * number of units (right) per size class. The axes share their grid lines; hovering a category shows its values.
+ * Columns for a few categories, series side by side, each on an axis of its own: e.g. the power (left) and the number
+ * of units (right) per size class, or the years of a Jahresvergleich (all left). The axes share their grid lines;
+ * hovering a category shows its values.
  *
- * categories: [{ key, label, values: { [series.id]: number }, details: [{ id, text }] (the tooltip's value per series) }]
+ * categories: [{ key, label, title (the tooltip's, default the label), values: { [series.id]: number }, details:
+ *             [{ id, text }] (the tooltip's value per series), faded: { [series.id]: true } (drawn light: not complete) }]
  * series:     [{ id, label, color, ink (its axis' numbers, if darker than the columns), axis: 'left' | 'right' }]
- * axes:       { left: { label, kind: 'power', unit: 'MW' }, right: { label, kind: 'count' } } – power in its unit (GW
- *             from 1,000 MW), counts in thousands from 10,000 and millions from a million
+ * axes:       { left: { label, kind: 'power', unit: 'MW', ink }, right: { label, kind: 'count' } } – power in its unit
+ *             (GW from 1,000 MW), counts in thousands from 10,000 and millions from a million; ink: its numbers' colour
  */
 export default function GroupedBarChart({ categories, series, axes, label }) {
   const frameRef = useRef(null);
@@ -210,7 +220,7 @@ export default function GroupedBarChart({ categories, series, axes, label }) {
       {width > 0 && <Columns width={width} categories={categories} series={series} axes={axes} active={active} onActive={setActive} />}
       {current && (
         <div className="bar-chart__tooltip" role="presentation">
-          <div className="bar-chart__tooltip-title">{current.label}</div>
+          <div className="bar-chart__tooltip-title">{current.title ?? current.label}</div>
           {series.map((s) => (
             <div key={s.id} className="bar-chart__tooltip-row">
               <span className="bar-chart__swatch" style={{ background: s.color }} />

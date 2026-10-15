@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import GroupedBarChart from '../../components/charts/GroupedBarChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import { ChartFoot } from '../../components/ui/CsvLink';
+import SegmentedControl from '../../components/ui/SegmentedControl';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
@@ -26,9 +27,11 @@ const axesOf = (measure, unitsLabel) => ({
 
 // Units and power per size class of the active technology in the scope (mrt.size_distribution, the batteries'
 // mrt.battery_size_distribution, the gas sites by their power or working gas), as columns. measure: 'power', 'capacity'
-// or 'arbeitsgas'; unitsLabel: what the units are called; note: a footnote below the chart; fileBase: of its CSV
-// ("mastr_solar")
-export default function SizeDistribution({ path, region, query, measure: measureId = 'power', unitsLabel = 'Anlagen', note, fileBase }) {
+// or 'arbeitsgas' to start with; measures: those to switch between (batteries and gas storages: their capacity or
+// working gas, and their power – the classes stay by the capacity); unitsLabel: what the units are called; note: a
+// footnote below the chart; fileBase: of its CSV ("mastr_solar")
+export default function SizeDistribution({ path, region, query, measure: initial = 'power', measures, unitsLabel = 'Anlagen', note, fileBase }) {
+  const [measureId, setMeasureId] = useState(initial);
   const measure = MEASURES[measureId];
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
 
@@ -65,6 +68,14 @@ export default function SizeDistribution({ path, region, query, measure: measure
             </span>
           ))}
         </div>
+        {measures?.length > 1 && (
+          <SegmentedControl
+            label="Messgröße"
+            options={measures.map((id) => ({ id, label: MEASURES[id].label, title: `${MEASURES[id].label} in ${MEASURES[id].unit}` }))}
+            value={measureId}
+            onChange={setMeasureId}
+          />
+        )}
       </div>
       <GroupedBarChart
         categories={categories}

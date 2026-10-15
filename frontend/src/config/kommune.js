@@ -152,6 +152,8 @@ export const KOMMUNE = {
       kind: 'zubau',
       title: 'Heim-, Gewerbe- und Großspeicher',
       field: 'installed_capacity',
+      // Beside each kind's capacity in the legend: its power
+      also: { field: 'installed_power', format: mw },
       series: [
         { id: 'heimspeicher', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
         { id: 'gewerbespeicher', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
@@ -184,6 +186,7 @@ export const KOMMUNE = {
         subtitle: 'Kapazität und Anzahl der Speicher je Größenklasse (Kapazität der Speicheranlage)',
         path: '/battery/size-distribution',
         measure: 'capacity',
+        measures: ['capacity', 'power'],
       },
     ],
     goals: 'storage',

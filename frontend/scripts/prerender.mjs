@@ -254,9 +254,9 @@ const KOMMUNE_PAGES = [
     ofGemeinde: batteryOfGemeinde,
     noun: 'Batteriespeicher',
     other: { config: ERZEUGER, label: 'Photovoltaik' },
-    columns: ['Speicher', 'Kapazität'],
-    cells: (row) => [formatNumber(row.total_units), capacity(row.total_capacity)],
-    numbers: (row) => `${formatNumber(row.total_units)} Batteriespeicher mit ${capacity(row.total_capacity)} nutzbarer Kapazität, ${formatNumber(row.relative_population_capacity, 2)} kWh je Einwohner`,
+    columns: ['Speicher', 'Kapazität', 'Leistung'],
+    cells: (row) => [formatNumber(row.total_units), capacity(row.total_capacity), power(row.total_power)],
+    numbers: (row) => `${formatNumber(row.total_units)} Batteriespeicher mit ${capacity(row.total_capacity)} nutzbarer Kapazität und ${power(row.total_power)} Leistung, ${formatNumber(row.relative_population_capacity, 2)} kWh je Einwohner`,
     pairs: (row) => [
       ['Batteriespeicher', formatNumber(row.total_units)],
       ['Kapazität', capacity(row.total_capacity)],
@@ -291,7 +291,7 @@ for (const kind of KOMMUNE_PAGES) {
         `<h1>${esc(landTitle)}</h1><p class="prerender__lead">${esc(`${land.name}: ${landNumbers}. ${KOMMUNE[config.id].finderLead}`)}</p>` +
         table(
           ['Landkreis', ...kind.columns],
-          own.map((k) => [link(viewPath(config.basePath, 'kommune', land.code, k.ags), k.name), ...(kind.of.has(k.ags) ? kind.cells(kind.of.get(k.ags)) : ['–', '–'])]),
+          own.map((k) => [link(viewPath(config.basePath, 'kommune', land.code, k.ags), k.name), ...(kind.of.has(k.ags) ? kind.cells(kind.of.get(k.ags)) : kind.columns.map(() => '–'))]),
         ) +
         `<h2>${esc(kind.other.label)}</h2>${list([link(viewPath(kind.other.config.basePath, 'kommune', land.code), `${land.name}: ${kind.other.label} nach Landkreis`)])}`,
     });
@@ -316,7 +316,7 @@ for (const kind of KOMMUNE_PAGES) {
           (row ? figures([...kind.pairs(row), ...(einwohner ? [['Einwohner', formatNumber(einwohner)]] : [])]) : '') +
           (gemeinden.length > 1
             ? `<h2>Gemeinden in ${esc(k.name)}</h2>` +
-              table(['Gemeinde', ...kind.columns], gemeinden.map((g) => [esc(g.name), ...(g.row ? kind.cells(g.row) : ['–', '–'])]))
+              table(['Gemeinde', ...kind.columns], gemeinden.map((g) => [esc(g.name), ...(g.row ? kind.cells(g.row) : kind.columns.map(() => '–'))]))
             : '') +
           `<h2>Mehr zu ${esc(k.name)}</h2>` +
           list([

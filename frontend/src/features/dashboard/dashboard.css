@@ -1240,36 +1240,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   border-top: 1px solid var(--border);
 }
 
-.analyses-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.analyses-nav__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 14px 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-card);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink-secondary);
-  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
-
-.analyses-nav__item svg {
-  color: var(--accent-strong);
-}
-
-.analyses-nav__item:hover {
-  border-color: var(--accent);
-  color: var(--ink-primary);
-}
-
 .analysis {
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -1523,11 +1493,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
-.dashboard-analyses__empty {
-  font-size: 14px;
-  color: var(--ink-muted);
-}
-
 /* Zubau im Zeitverlauf: a full-width chart card above the others */
 .timeline__leistung {
   display: flex;
@@ -1739,6 +1704,32 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .timeline-legend__item.is-off {
   color: var(--ink-muted);
   text-decoration: line-through;
+}
+
+/* Jahresvergleich (YearComparison.jsx): the years above the columns, the latest one darkest */
+.year-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.year-comparison__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+
+.year-comparison__key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: -1px;
 }
 
 .timeline__note {

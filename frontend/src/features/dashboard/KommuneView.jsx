@@ -290,7 +290,8 @@ function KommunePanel({ profile, what, scope, row, split, peers, parentRow, pare
             {split.map((s) => (
               <li key={s.id}>
                 <span className="kommune-split__dot" style={{ background: s.color }} />
-                {s.label} <strong>{size.format(s.value)}</strong> · {formatPercent(s.share)}
+                {s.label} <strong>{size.format(s.value)}</strong>
+                {s.also != null && ` · ${profile.split.also.format(s.also)}`} · {formatPercent(s.share)}
               </li>
             ))}
           </ul>
@@ -678,7 +679,10 @@ export default function KommuneView({ config, state }) {
     if (!splitZubau.data?.length) return null;
     const latest = Math.max(...splitZubau.data.map((r) => r.year));
     const now = splitZubau.data.filter((r) => r.year === latest);
-    const values = kinds.map((k) => ({ ...k, value: now.find((r) => r[profile.timeline.key] === k.id)?.[profile.split.field] ?? 0 }));
+    const values = kinds.map((k) => {
+      const row = now.find((r) => r[profile.timeline.key] === k.id);
+      return { ...k, value: row?.[profile.split.field] ?? 0, also: profile.split.also && (row?.[profile.split.also.field] ?? 0) };
+    });
     const total = values.reduce((t, v) => t + v.value, 0);
     return total ? values.map((v) => ({ ...v, share: v.value / total })) : null;
   }, [panel.row, profile, splitByFreiflaeche, gemeindeAgs, gemeindeFF.data, kreisFF.data, kreisAgs, sizeField, splitZubau.data]);
@@ -872,6 +876,7 @@ export default function KommuneView({ config, state }) {
                   region={state.scopeKey}
                   query={query}
                   measure={a.measure}
+                  measures={a.measures}
                   unitsLabel={profile.unitsLabel}
                   note={a.note}
                   fileBase={`mastr_${technology.id}`}

@@ -23,9 +23,10 @@ const inTime = (row) => (row.vorab + row.bis_1_monat) / row.units;
 
 // Abstand zwischen Inbetriebnahmen und Registierung: how long after going into operation units were registered, per year of commissioning, as
 // shares of the units – one technology at a time, Germany-wide (mrt.registrierungsverzug)
-export default function RegistrationDelayAnalysis({ analysis, anchor }) {
+// region, scopeName: the scope ("DE", a Land or Kreis key) and its name
+export default function RegistrationDelayAnalysis({ analysis, region = 'DE', scopeName = 'Deutschland', anchor }) {
   const { path, series } = analysis.delay;
-  const data = useJson(`${API_BASE_URL}${path}`);
+  const data = useJson(`${API_BASE_URL}${path}?region=${region}`);
   // Always the first technology to start with (Solar, Batteriespeicher, Gaserzeuger), whatever the map shows: Pumpspeicher,
   // with a handful of registrations a year, would look like an empty chart
   const [selectedId, setSelectedId] = useState(series[0].id);
@@ -54,7 +55,7 @@ export default function RegistrationDelayAnalysis({ analysis, anchor }) {
   const csv = view?.periods.length
     ? {
         name: 'registrierungsverzug',
-        filename: fileName('mastr_registrierungsverzug', selected.id),
+        filename: fileName('mastr_registrierungsverzug', selected.id, region),
         rows: () =>
           view.rows.map((row) => ({
             'Jahr der Inbetriebnahme': row.year,
@@ -73,7 +74,7 @@ export default function RegistrationDelayAnalysis({ analysis, anchor }) {
       id={anchor}
       icon={analysis.icon}
       title={analysis.title}
-      lead="Deutschland · Zeit von der Inbetriebnahme bis zur Registrierung im MaStR, Anteile der Einheiten je Inbetriebnahmejahr"
+      lead={`${scopeName} · Zeit von der Inbetriebnahme bis zur Registrierung im MaStR, Anteile der Einheiten je Inbetriebnahmejahr`}
       className="registrations"
       tools={
         <SegmentedControl

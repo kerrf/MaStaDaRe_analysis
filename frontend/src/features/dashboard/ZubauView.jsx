@@ -1,12 +1,14 @@
 import RegistrationDelayAnalysis from './RegistrationDelayAnalysis';
+import ScopeBar from './ScopeBar';
 import RegistrationsAnalysis from './RegistrationsAnalysis';
 import TimelineAnalysis from './TimelineAnalysis';
-import AnalysesNav from './AnalysesNav';
 import { selectionOf } from './useDashboardState';
 
-// The page "Zubau & Registrierungen" of a dashboard, Germany-wide: Ausbau im Zeitverlauf, Registrierungen im MaStR and
-// Abstand zwischen Inbetriebnahmen und Registierung, one below the other
+// The page "Zubau & Registrierungen" of a dashboard, in Deutschland, a Land or a Kreis (the Gebiet in the header, like the
+// other pages; no Gemeinde): Ausbau im Zeitverlauf, Registrierungen im MaStR and Abstand zwischen Inbetriebnahmen und
+// Registierung, one below the other
 export default function ZubauView({ config, state }) {
+  const { region, kreisAgs, kreisOptions, selectScope, scopeKey, scopeName } = state;
   const analyses = config.analyses.filter((a) => a.view === 'zubau');
   // The solar Leistung (Netto or Brutto) of the timeline: solar's choice in the URL, switchable on the timeline itself
   const solar = config.technologies.find((t) => t.leistung);
@@ -15,7 +17,7 @@ export default function ZubauView({ config, state }) {
 
   return (
     <div className="dashboard-page">
-      <AnalysesNav links={analyses.map((a) => ({ id: `analyse-${a.id}`, title: a.title, icon: a.icon }))} />
+      <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
       {analyses.map((a) => {
         const anchor = `analyse-${a.id}`;
         if (a.timeline) {
@@ -26,14 +28,20 @@ export default function ZubauView({ config, state }) {
               leistung={leistung}
               leistungOption={solar?.leistung}
               onLeistung={onLeistung}
+              region={scopeKey}
+              scopeName={scopeName}
               anchor={anchor}
               fileBase={`mastr_${config.id}`}
             />
           );
         }
-        if (a.kind === 'registrations') return <RegistrationsAnalysis key={a.id} analysis={a} anchor={anchor} />;
+        if (a.kind === 'registrations') {
+          return <RegistrationsAnalysis key={a.id} analysis={a} region={scopeKey} scopeName={scopeName} anchor={anchor} />;
+        }
         if (a.kind === 'registration-delay') {
-          return <RegistrationDelayAnalysis key={a.id} analysis={a} anchor={anchor} />;
+          return (
+            <RegistrationDelayAnalysis key={a.id} analysis={a} region={scopeKey} scopeName={scopeName} anchor={anchor} />
+          );
         }
         return null;
       })}

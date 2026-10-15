@@ -43,12 +43,22 @@ export const hasData = (technology) => Boolean(technology.statsPath || technolog
 // Id of an option's footnote below the map (e.g. the Leistung of solar), which its control and the map title point to
 export const footnoteId = (option) => `fussnote-${option.param}`;
 
-// The analyses of a technology that have a table per region (RegionTable): the endpoints of their cards, with /regions
+// The analyses of a technology that have a table per region (RegionTable): the endpoints of their cards, with /regions.
+// measures: what the cells can add up (default the power in MW; batteries also their capacity, from `regions` of the
+// analysis); unitsLabel: what the number counts
 export function regionTablesOf(technology) {
   const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
+  const sizes = technology.analyses?.find((a) => a.kind === 'sizes' && a.regions);
   return [
     orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: `${orientation.path}/regions` },
     technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: `${technology.sizesPath}/regions` },
+    sizes && {
+      id: 'groesse',
+      label: sizes.regions.label,
+      path: `${sizes.path}/regions`,
+      measures: sizes.regions.measures,
+      unitsLabel: sizes.unitsLabel,
+    },
   ].filter(Boolean);
 }
 
@@ -85,26 +95,28 @@ export const isAvailable = (granularity, technology) =>
 
 // Analyses on more than one dashboard. view: the page of the dashboard that shows them (config/views.js).
 
-// Registrierungen im MaStR per year and Abstand zwischen Inbetriebnahmen und Registierung, Germany-wide, one technology at a time
-// (mrt.registrierungen, mrt.registrierungsverzug). series: the technologies of the switch, as the API names them.
-const registrations = (series) => [
-  {
-    id: 'registrierungen',
-    title: 'Registrierungen im MaStR',
-    kind: 'registrations',
-    view: 'zubau',
-    icon: ClipboardList,
-    registrations: { path: '/zubau/registrierungen', series },
-  },
-  {
-    id: 'registrierungsverzug',
-    title: 'Abstand zwischen Inbetriebnahmen und Registierung',
-    kind: 'registration-delay',
-    view: 'zubau',
-    icon: Timer,
-    delay: { path: '/zubau/registrierungsverzug', series },
-  },
-];
+// Registrierungen im MaStR per year or month, in the scope (mrt.registrierungen_regions). series: the technologies, as
+// the API names them – one at a time (a switch), or with `stacked` stacked like the Ausbau, a click on the legend hiding
+// one (`hidden`: off at first)
+const registrationsOf = (series, { stacked = false } = {}) => ({
+  id: 'registrierungen',
+  title: 'Registrierungen im MaStR',
+  kind: 'registrations',
+  view: 'zubau',
+  icon: ClipboardList,
+  registrations: { path: '/zubau/registrierungen', series, stacked },
+});
+
+// Abstand zwischen Inbetriebnahmen und Registierung, in the scope (mrt.registrierungsverzug_regions), one technology at
+// a time
+const delayOf = (series) => ({
+  id: 'registrierungsverzug',
+  title: 'Abstand zwischen Inbetriebnahmen und Registierung',
+  kind: 'registration-delay',
+  view: 'zubau',
+  icon: Timer,
+  delay: { path: '/zubau/registrierungsverzug', series },
+});
 
 // Solar units and batteries at the same Lokation, Germany-wide (mrt.pv_speicher): for solar and for the batteries
 const PV_SPEICHER = {
@@ -259,14 +271,74 @@ export const ERZEUGER = {
         quantity: 'Leistung',
         since: 2000,
         // A series with `netto` follows the solar Leistung: that series of the API while it is Netto (AC), the default
+        // Solar per Anlagenart: Gebäude (also steckerfertige and sonstige) at the bottom, Freifläche a deeper yellow
         series: [
-          { id: 'solar', netto: 'solar_netto', label: 'Solar', color: 'var(--series-solar)' },
+          { id: 'solar_gebaeude', netto: 'solar_gebaeude_netto', label: 'Solar Gebäude', color: 'var(--series-solar)' },
+          {
+            id: 'solar_freiflaeche',
+            netto: 'solar_freiflaeche_netto',
+            label: 'Solar Freifläche',
+            color: 'var(--series-solar-freiflaeche)',
+          },
           { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)' },
           { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)' },
+          // Off at first: next to solar and wind hardly visible
+          { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
         ],
       },
     },
-    ...registrations([
+    // Stacked like the Ausbau, solar (Gebäude, Freifläche) alone at first: it has by far the most registrations
+    registrationsOf(
+      [
+        { id: 'solar_gebaeude', label: 'Solar Gebäude', color: 'var(--series-solar)' },
+        { id: 'solar_freiflaeche', label: 'Solar Freifläche', color: 'var(--series-solar-freiflaeche)' },
+        { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)', hidden: true },
+        { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
+      ],
+      { stacked: true },
+    ),
+    // Units in planning (EinheitBetriebsstatus 31) by their planned commissioning date, like the Ausbau
+    // (mrt.geplant_zeitverlauf_regions): wind (an Land, auf See) alone at first – nearly every planned wind turbine has
+    // its permit in the register; solar is noisy (many planned dates long past) and off at first
+    {
+      id: 'geplant',
+      title: 'Geplante (genehmigte) Anlagen',
+      icon: Construction,
+      view: 'zubau',
+      timeline: {
+        // From the current month on (the chart's years from this one)
+        path: '/zubau/geplant',
+        planned: true,
+        unit: 'MW',
+        quantity: 'Leistung',
+        series: [
+          {
+            id: 'solar_gebaeude',
+            netto: 'solar_gebaeude_netto',
+            label: 'Solar Gebäude',
+            color: 'var(--series-solar)',
+            hidden: true,
+          },
+          {
+            id: 'solar_freiflaeche',
+            netto: 'solar_freiflaeche_netto',
+            label: 'Solar Freifläche',
+            color: 'var(--series-solar-freiflaeche)',
+            hidden: true,
+          },
+          { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)' },
+          { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)' },
+          { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
+        ],
+        note:
+          'Einheiten „in Planung“ im Marktstammdatenregister, nach dem geplanten Inbetriebnahmedatum, wie es die Betreiber ' +
+          'angeben; fast alle geplanten Windenergieanlagen haben ihre Genehmigung im Register. Nur Termine ab dem ' +
+          'laufenden Monat: Ist ein Termin verstrichen, wurde die Anlage geplant, aber nie als in Betrieb gemeldet – das ' +
+          'betrifft vor allem viele kleine Solaranlagen. Termine nach 2040 (eine Handvoll, meist Tippfehler) sind nicht ' +
+          'enthalten.',
+      },
+    },
+    delayOf([
       { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
       { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
       { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
@@ -314,8 +386,17 @@ export const SPEICHER = {
           view: 'anlagen',
           path: '/battery/size-distribution',
           measure: 'capacity',
+          measures: ['capacity', 'power'],
           unitsLabel: 'Speicher',
-          what: 'Kapazität und Speicher je Größenklasse der Speicheranlage',
+          what: 'Kapazität oder Leistung und Speicher je Größenklasse der Speicheranlage',
+          // Regionen im Vergleich: a table of every area per class (/battery/size-distribution/regions)
+          regions: {
+            label: 'Speichergröße',
+            measures: [
+              { field: 'capacity', label: 'Kapazität', unit: 'MWh' },
+              { field: 'power', label: 'Leistung', unit: 'MW' },
+            ],
+          },
         },
         {
           id: 'arten',
@@ -327,6 +408,7 @@ export const SPEICHER = {
           what: 'Anteile nach Batterietechnologie und AC/DC-Kopplung',
           measures: [
             { id: 'capacity', label: 'Kapazität', field: 'total_capacity', unit: 'MWh' },
+            { id: 'power', label: 'Leistung', field: 'total_power', unit: 'MW' },
             { id: 'units', label: 'Anzahl', field: 'total_units' },
           ],
           groups: [
@@ -420,46 +502,48 @@ export const SPEICHER = {
   analyses: [
     {
       id: 'timeline',
-      title: 'Ausbau im Zeitverlauf: Kapazität',
+      title: 'Ausbau im Zeitverlauf',
       icon: ChartColumnIncreasing,
       view: 'zubau',
-      // Battery capacity by size class, like battery-charts.de (RWTH Aachen)
+      // The batteries by size class, like battery-charts.de (RWTH Aachen): their capacity or their power (Bruttoleistung,
+      // as on the map), switched in the head of the card. A series keeps its id in both (its legend stays as it is);
+      // source: the technology of the API, where it is another
       timeline: {
         path: '/zubau/zeitverlauf',
-        unit: 'MWh',
-        quantity: 'Batteriekapazität',
         since: 2013,
-        series: [
-          { id: 'grossspeicher', label: 'Großspeicher', color: 'var(--series-grossspeicher)' },
-          { id: 'gewerbespeicher', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
-          { id: 'heimspeicher', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
+        measures: [
+          {
+            id: 'kapazitaet',
+            label: 'Kapazität',
+            unit: 'MWh',
+            quantity: 'Batteriekapazität',
+            series: [
+              { id: 'grossspeicher', label: 'Großspeicher', color: 'var(--series-grossspeicher)' },
+              { id: 'gewerbespeicher', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
+              { id: 'heimspeicher', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
+            ],
+          },
+          {
+            id: 'leistung',
+            label: 'Leistung',
+            unit: 'MW',
+            quantity: 'Batterieleistung',
+            series: [
+              { id: 'grossspeicher', source: 'grossspeicher_leistung', label: 'Großspeicher', color: 'var(--series-grossspeicher)' },
+              { id: 'gewerbespeicher', source: 'gewerbespeicher_leistung', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
+              { id: 'heimspeicher', source: 'heimspeicher_leistung', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
+            ],
+          },
         ],
         note: BATTERY_NOTE,
       },
     },
-    {
-      id: 'timeline-leistung',
-      title: 'Ausbau im Zeitverlauf: Leistung',
-      icon: Zap,
-      view: 'zubau',
-      // The same batteries by their power (Bruttoleistung, as on the map)
-      timeline: {
-        path: '/zubau/zeitverlauf',
-        unit: 'MW',
-        quantity: 'Batterieleistung',
-        since: 2013,
-        series: [
-          { id: 'grossspeicher_leistung', label: 'Großspeicher', color: 'var(--series-grossspeicher)' },
-          { id: 'gewerbespeicher_leistung', label: 'Gewerbespeicher', color: 'var(--series-gewerbespeicher)' },
-          { id: 'heimspeicher_leistung', label: 'Heimspeicher', color: 'var(--series-heimspeicher)' },
-        ],
-        note: BATTERY_NOTE,
-      },
-    },
-    ...registrations([
-      { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
-      { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
-    ]),
+    ...[registrationsOf, delayOf].map((of) =>
+      of([
+        { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
+        { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
+      ]),
+    ),
     // Batteries at solar units: how many solar units have one, and how much capacity per kW of solar
     PV_SPEICHER,
   ],
@@ -584,8 +668,9 @@ export const GAS = {
           view: 'anlagen',
           path: '/gas/speicher/size-distribution',
           measure: 'arbeitsgas',
+          measures: ['arbeitsgas', 'power'],
           unitsLabel: 'Speicher',
-          what: 'Arbeitsgas und Speicher je Größenklasse',
+          what: 'Arbeitsgas oder Ausspeicherleistung und Speicher je Größenklasse',
         },
         {
           id: 'speicherart',
@@ -597,6 +682,7 @@ export const GAS = {
           what: 'Anteile der Speicherarten',
           measures: [
             { id: 'capacity', label: 'Arbeitsgas', field: 'total_capacity', unit: 'GWh' },
+            { id: 'power', label: 'Leistung', field: 'total_power', unit: 'MW' },
             { id: 'units', label: 'Anzahl', field: 'total_units' },
           ],
           groups: [{ id: 'speicherart', title: 'Gasspeicherart', colors: colorsOf(GAS_SPEICHERARTEN) }],
@@ -620,10 +706,12 @@ export const GAS = {
   metrics: [{ id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Leistung', unit: 'MW', digits: 0 }],
   tooltipRows: [],
   kpis: [],
-  analyses: registrations([
-    { id: 'gaserzeuger', label: 'Gaserzeuger', color: 'var(--topic-gas)' },
-    { id: 'gasspeicher', label: 'Gasspeicher', color: 'var(--topic-gas-strong)' },
-  ]),
+  analyses: [registrationsOf, delayOf].map((of) =>
+    of([
+      { id: 'gaserzeuger', label: 'Gaserzeuger', color: 'var(--topic-gas)' },
+      { id: 'gasspeicher', label: 'Gasspeicher', color: 'var(--topic-gas-strong)' },
+    ]),
+  ),
 };
 
 export const NUMERIC_FIELDS = [

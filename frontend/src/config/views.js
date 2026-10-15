@@ -7,7 +7,8 @@ export const VIEWS = {
   karte: { id: 'karte', label: 'Karte', icon: MapIcon, path: '', scoped: true },
   // One Landkreis and its Gemeinden in depth, on a detailed map (KommuneView)
   kommune: { id: 'kommune', label: 'Regionen im Detail', icon: Landmark, path: 'kommune', scoped: true, gemeinde: true },
-  zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: false },
+  // In Deutschland, a Land or a Kreis (no Gemeinde: the monthly series stop at the Kreise)
+  zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: true },
   // gemeinde: the page can show a single Gemeinde of the Kreis too (?gemeinde=…)
   anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true, gemeinde: true },
   // Steckbrief of an area and its parts side by side
