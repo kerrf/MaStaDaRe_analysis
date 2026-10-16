@@ -1,4 +1,5 @@
-import { footnoteId, hasData } from '../../config/dashboards';
+import { hasData } from '../../config/dashboards';
+import { useFootnote } from './footnoteContext';
 import TechFilters from './TechFilters';
 import { selectionOf } from './useDashboardState';
 
@@ -22,7 +23,8 @@ export default function SelectionBar({
 }) {
   const { subtypes, leistung } = selectionOf(technology, state.searchParams);
   const filtered = filters && Boolean(technology.subtypes || technology.leistung);
-  const note = technology.leistung?.note;
+  // What the Leistung means: a remark at the page's bottom (footnotes), marked at its switch
+  useFootnote('leistung', filtered ? technology.leistung?.note : null);
   return (
     <section className={`selection-bar${inCard ? ' selection-bar--in-card' : ''}`} aria-label="Technologie und Filter">
       <div className="selection-bar__row">
@@ -58,11 +60,6 @@ export default function SelectionBar({
           leistung={leistung}
           onLeistung={(id) => state.setLeistungOf(technology, id)}
         />
-      )}
-      {filtered && note && (
-        <p id={footnoteId(technology.leistung)} className="selection-bar__note">
-          <sup className="footnote-ref">1</sup> {note}
-        </p>
       )}
     </section>
   );

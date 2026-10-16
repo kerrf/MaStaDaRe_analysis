@@ -1201,19 +1201,10 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   padding-inline: 20px;
 }
 
-.selection-bar--in-card .selection-bar__note {
-  padding-left: calc(10rem + 36px);
-}
-
 .selection-bar--in-card + .map-toolbar {
   border-top-color: var(--border);
 }
 
-@media (max-width: 720px) {
-  .selection-bar--in-card .selection-bar__note {
-    padding-left: 20px;
-  }
-}
 
 /* Under the filters in their tint, without a seam between them */
 .selection-bar__note {
@@ -1232,6 +1223,70 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   font-weight: 700;
   line-height: 0;
   color: var(--accent-strong);
+}
+
+.footnote-ref a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footnote-ref a:hover {
+  text-decoration: underline;
+}
+
+/* The page's remarks (footnotes.jsx): one place at the bottom of every page, below a rule, numbered like their marks */
+.page-footnotes {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.page-footnotes__title {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.page-footnotes__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-footnotes__list li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  gap: 6px;
+  max-width: 90ch;
+  padding: 4px 8px 4px 0;
+  border-radius: var(--radius-sm);
+  scroll-margin-top: 96px;
+  transition: background var(--dur) var(--ease);
+}
+
+/* Jumped to from its mark: lit up for a moment */
+.page-footnotes__list li:target {
+  background: var(--accent-soft);
+}
+
+.page-footnotes__number {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--accent-strong);
+}
+
+.page-footnotes__list p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-secondary);
 }
 
 /* Multiple choice (Anlagenart): an option per box, ticked in the topic's colour (or the colour of its sites) */

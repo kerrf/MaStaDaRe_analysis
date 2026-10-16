@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
-import { footnoteId } from '../../config/dashboards';
+import { footnoteAnchor } from './footnoteContext';
+import { FootnoteRef } from './footnotes';
 
 // One filter of the active technology: its name, then its options
 function FilterRow({ id, label, footnote, children }) {
@@ -7,11 +8,7 @@ function FilterRow({ id, label, footnote, children }) {
     <div className="tech-filters__row">
       <span id={id} className="tech-filters__label">
         {label}
-        {footnote && (
-          <sup className="footnote-ref" aria-hidden="true">
-            {footnote}
-          </sup>
-        )}
+        {footnote && <FootnoteRef id={footnote} />}
       </span>
       {children}
     </div>
@@ -93,10 +90,10 @@ export default function TechFilters({ technology, subtypes, onSubtypes, leistung
           </FilterRow>
         )}
         {technology.leistung && (
-          <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && '1'}>
+          <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && 'leistung'}>
             <OptionSwitch
               labelledBy={`${id}-leistung`}
-              describedBy={technology.leistung.note ? footnoteId(technology.leistung) : undefined}
+              describedBy={technology.leistung.note ? footnoteAnchor('leistung') : undefined}
               option={technology.leistung}
               value={leistung}
               onChange={onLeistung}

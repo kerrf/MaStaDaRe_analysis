@@ -18,6 +18,8 @@ import MapRail from './MapRail';
 import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
+import { useFootnote } from './footnoteContext';
+import { FootnoteRef } from './footnotes';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
@@ -342,6 +344,8 @@ export default function MapView({ config, state }) {
   const metricLegend = leistung ? `${metric.legend} · ${leistung.label}` : metric.legend;
   const mapTitle = isSites ? 'Standorte' : isHeatmap ? (leistung ? `${metric.heat.legend} · ${leistung.label}` : metric.heat.legend) : metricLegend;
   const leistungNote = technology.leistung?.note;
+  // The technology's remark (e.g. where offshore wind lies): with the page's other remarks at its bottom
+  useFootnote(`hinweis-${technology.id}`, technology.note);
   const layerLabel = isSites ? `${plantsLevel.label}${selectionNote}` : `${granularity.label}${selectionNote}`;
   // The table of the map: its areas or plants, or the points the continuous map spreads (kW or kWh, each with the width
   // of its kernel)
@@ -378,11 +382,7 @@ export default function MapView({ config, state }) {
           <div>
             <h2 className="card__title">
               {technology.label}: {mapTitle}
-              {leistungNote && !isSites && (
-                <sup className="footnote-ref" aria-hidden="true">
-                  1
-                </sup>
-              )}
+              {leistungNote && !isSites && <FootnoteRef id="leistung" />}
             </h2>
             <div className="card__subtitle">
               {scopeLabel} · {layerLabel}
@@ -560,7 +560,6 @@ export default function MapView({ config, state }) {
               </Link>
             </span>
           </span>
-          {technology.note && <p className="map-card__footnote">{technology.note}</p>}
         </footer>
       </section>
     </>
