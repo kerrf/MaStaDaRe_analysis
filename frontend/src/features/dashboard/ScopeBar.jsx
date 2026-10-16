@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight, MapPin } from 'lucide-react';
+import { ChevronRight, MapPin } from 'lucide-react';
+import ListSelect from '../../components/ui/ListSelect';
 import { BUNDESLAENDER } from '../../config/regions';
 import { ScopeSlot } from './scopeSlot';
 
@@ -14,22 +15,15 @@ function Step({ name, value, options, placeholder, state, disabled = false, titl
     <li className={`scope-bar__step is-${state}`}>
       <ChevronRight size={16} aria-hidden="true" className="scope-bar__sep" />
       <span className="scope-bar__field">
-        <select
-          aria-label={name}
+        <ListSelect
+          label={name}
           className="scope-bar__select"
           value={value ?? ''}
           disabled={disabled}
           title={title}
-          onChange={(e) => onChange(e.target.value || null)}
-        >
-          <option value="">{placeholder}</option>
-          {options?.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={15} aria-hidden="true" className="scope-bar__chevron" />
+          onChange={(v) => onChange(v || null)}
+          options={[{ value: '', label: placeholder }, ...(options ?? [])]}
+        />
       </span>
     </li>
   );

@@ -219,7 +219,7 @@
   cursor: default;
 }
 
-.scope-bar__step.is-current .scope-bar__chevron {
+.scope-bar__step.is-current .list-select__chevron {
   color: #fff;
 }
 
@@ -241,7 +241,7 @@
   border-color: var(--brand-500);
 }
 
-.scope-bar__step.is-parent .scope-bar__chevron {
+.scope-bar__step.is-parent .list-select__chevron {
   color: var(--brand-600);
 }
 
@@ -263,10 +263,6 @@
 .scope-bar__select:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-
-.scope-bar__select:disabled + .scope-bar__chevron {
-  opacity: 0.55;
 }
 
 .scope-bar__select:focus-visible,
@@ -1211,6 +1207,12 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 
 .selection-bar--in-card + .map-toolbar {
   border-top-color: var(--border);
+}
+
+@media (max-width: 720px) {
+  .selection-bar--in-card .selection-bar__note {
+    padding-left: 20px;
+  }
 }
 
 /* Under the filters in their tint, without a seam between them */
@@ -2232,6 +2234,14 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-muted);
+}
+
+/* The dropdown inside the field's frame */
+.region-table__field .list-select {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .region-table__field select {
