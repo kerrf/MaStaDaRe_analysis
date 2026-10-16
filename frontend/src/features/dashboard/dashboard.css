@@ -1493,7 +1493,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
-/* Zubau im Zeitverlauf: a full-width chart card above the others */
+/* Ausbau im Zeitverlauf: a full-width chart card above the others */
 .timeline__leistung {
   display: flex;
   align-items: center;
