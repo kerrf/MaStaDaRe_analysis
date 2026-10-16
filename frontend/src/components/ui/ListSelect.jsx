@@ -121,7 +121,8 @@ export default function ListSelect({ value, options, onChange, label, className 
     if (!open) return undefined;
     let frame = 0;
     const follow = (e) => {
-      if (menu.current?.contains(e.target)) return;
+      // The window resizing has no node as its target; scrolling inside the list moves nothing
+      if (e.target instanceof Node && menu.current?.contains(e.target)) return;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(measure);
     };
