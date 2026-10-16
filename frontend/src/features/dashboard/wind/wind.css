@@ -509,3 +509,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The ranking beside the orientation map: names of areas need more room than degrees of latitude */
+.orientation-ranking li {
+  grid-template-columns: 10.5rem minmax(0, 1fr) 5.4rem;
+}
+
+.orientation-ranking .wind-profile__lat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

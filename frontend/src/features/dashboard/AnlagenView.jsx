@@ -1,4 +1,5 @@
 import AnalysisCard from './AnalysisCard';
+import OrientationMap from './OrientationMap';
 import OrientationTiltAnalysis from './OrientationTiltAnalysis';
 import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import ScopeBar from './ScopeBar';
@@ -27,7 +28,7 @@ export default function AnlagenView({ config, state }) {
   const query = selectionOf(technology, state.searchParams).query;
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
-  const panels = analyses.filter((a) => a.kind === 'orientation-tilt' || a.kind === 'pv-speicher');
+  const panels = analyses.filter((a) => ['orientation-tilt', 'orientation-map', 'pv-speicher'].includes(a.kind));
   // The batteries at solar units follow solar's choice (Anlagenart, Leistung) where the dashboard has solar
   const solar = config.technologies.find((t) => t.id === 'solar');
   const pv = solar ? selectionOf(solar, state.searchParams) : { subtypes: null, leistung: null };
@@ -68,6 +69,15 @@ export default function AnlagenView({ config, state }) {
             region={state.scopeKey}
             scopeName={state.scopeName}
             query={query}
+            fileBase={`mastr_${technology.id}`}
+            anchor={`analyse-${a.id}`}
+          />
+        ) : a.kind === 'orientation-map' ? (
+          <OrientationMap
+            key={a.id}
+            query={query}
+            scopeKey={state.scopeKey}
+            scopeName={state.scopeName}
             fileBase={`mastr_${technology.id}`}
             anchor={`analyse-${a.id}`}
           />

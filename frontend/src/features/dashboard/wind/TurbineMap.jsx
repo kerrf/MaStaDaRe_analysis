@@ -3,8 +3,8 @@ import ChartPlaceholder from '../../../components/ui/ChartPlaceholder';
 import { ChartFoot } from '../../../components/ui/CsvLink';
 import SegmentedControl from '../../../components/ui/SegmentedControl';
 import { GRANULARITIES } from '../../../config/dashboards';
-import { regionName } from '../../../config/regions';
 import { fileName, round } from '../../../lib/files';
+import { useTopology } from '../../../lib/data';
 import { formatNumber } from '../../../lib/format';
 import GeoPlot from './GeoPlot';
 import { VARIABLES, quantile } from './turbines';
@@ -75,6 +75,9 @@ export default function TurbineMap({ turbines, scopeKey, fileBase }) {
   }, [data, rows, variable, digits, mode]);
 
   const color = stats ? colorScale(stats.lo, stats.hi) : null;
+  // The areas' names for the CSV, from their boundaries (cached with the map)
+  const boundaries = useTopology(TOPOLOGY[level]);
+  const names = useMemo(() => new Map((boundaries.data?.features ?? []).map((f) => [f.properties.ags, f.properties.name])), [boundaries.data]);
 
   const dots = useMemo(() => {
     if (mode !== 'punkte' || !data || !rows || !color) return null;
@@ -139,7 +142,7 @@ export default function TurbineMap({ turbines, scopeKey, fileBase }) {
     rows: () =>
       [...stats.areas]
         .map(([key, area]) => ({
-          [level === 'bundesland' ? 'Bundesland' : 'Landkreis']: regionName(key) ?? key,
+          [level === 'bundesland' ? 'Bundesland' : 'Landkreis']: names.get(key) ?? key,
           Schlüssel: key,
           Anlagen: area.n,
           [`Median ${variable.label} (${variable.unit})`]: round(area.median, 2),
