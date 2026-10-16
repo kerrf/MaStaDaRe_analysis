@@ -84,6 +84,8 @@ VIEW_FILES = [
     "aggregate_registrierungsverzug_regions.sql",
     # Units in planning by their planned commissioning date, per Bundesland and Landkreis (and Deutschland)
     "aggregate_geplant_zeitverlauf_regions.sql",
+    # Every wind turbine on its own: hub height, rotor, power, year, place, manufacturer (the Anlagen page of wind)
+    "aggregate_wind_turbines.sql",
 ]
 
 

@@ -1,11 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.analyses import HeatmapPoint, SizeDistribution
 from app.models.regions import RegionLevel, WindRegionStats
+from app.models.wind import WindTurbine
 from app.schemas.analyses import (
     HeatmapPoints,
     Region,
@@ -64,3 +66,12 @@ def get_size_distribution_regions(
 ):
     """Turbines and power per size class for every Land, Kreis or Gemeinde (optionally within one)."""
     return SizeDistribution.table(db, "wind", scope.level, scope.within, lage)
+
+
+@router.get("/turbines", response_model=None)
+def get_turbines(db: Annotated[Session, Depends(get_db)]):
+    """Every wind turbine on its own (not per Windpark), in operation, planned and decommissioned, as columns: status,
+    Lage, year (planned: the year planned), hub height and rotor diameter (m), power (kW), Gemeindeschlüssel (number),
+    coordinates and manufacturer (index into "hersteller"). The page filters by area, Lage and status itself."""
+    # Straight to JSON: FastAPI's encoder would walk every one of the 440,000 values first
+    return JSONResponse(WindTurbine.columns(db))
