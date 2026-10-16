@@ -78,6 +78,7 @@ export function scopeAnalysesOf(technology) {
 export const QUANTITIES = [
   { id: 'leistung', label: 'Leistung' },
   { id: 'kapazitaet', label: 'Kapazität' },
+  { id: 'anzahl', label: 'Anzahl' },
 ];
 export const BASES = [
   { id: 'absolut', label: 'Absolut' },
@@ -137,7 +138,6 @@ export const SOLAR_SIZES_NOTE =
 export const ERZEUGER = {
   id: 'erzeuger',
   basePath: '/erzeuger',
-  eyebrow: 'Stromerzeugung',
   title: 'Erzeuger',
   description: 'Installierte Leistung von Stromerzeugungsanlagen – bundesweit, je Bundesland und kleinräumig nach Postleitzahl.',
   ramp: RAMPS.orange,
@@ -165,7 +165,7 @@ export const ERZEUGER = {
         ],
       },
       // Which power the solar values show, passed as ?leistung=… (the first option is the default, like in the API).
-      // The note is a footnote below the map, marked ¹ at the switch and in the map title.
+      // The note is a footnote below the choice of technology (SelectionBar), marked ¹ at the switch and in the map title.
       leistung: {
         param: 'leistung',
         label: 'Leistung',
@@ -363,7 +363,6 @@ const BATTERY_NOTE =
 export const SPEICHER = {
   id: 'speicher',
   basePath: '/speicher',
-  eyebrow: 'Stromspeicher',
   title: 'Speicher',
   description: 'Kapazität und Leistung von Batterie- und Pumpspeichern – vom Heimspeicher bis zum Großspeicher.',
   ramp: RAMPS.blue,
@@ -575,7 +574,6 @@ const colorsOf = (options) => Object.fromEntries(options.map((o) => [o.id, o.col
 export const GAS = {
   id: 'gas',
   basePath: '/gas',
-  eyebrow: 'Gasinfrastruktur',
   title: 'Gas',
   description:
     'Gaserzeuger und Gasspeicher an ihren Standorten – von der Biomethananlage bis zum LNG-Terminal, vom Kavernen- bis zum Porenspeicher.',
@@ -714,8 +712,125 @@ export const GAS = {
   ),
 };
 
+// The Spannungsebenen of the Netzanschlüsse, each with the transformation below it (aggregate_netzanschluesse.sql): the
+// filter of the map (?spannung=…), and the Netzebenen 1–7 of the analyses by their code in the MaStR
+export const NETZEBENEN = [
+  { code: '348', ebene: 'hoechstspannung', label: 'Höchstspannung', ne: 1 },
+  { code: '349', ebene: 'hoechstspannung', label: 'Umspannung Höchst-/Hochspannung', ne: 2 },
+  { code: '350', ebene: 'hochspannung', label: 'Hochspannung', ne: 3 },
+  { code: '351', ebene: 'hochspannung', label: 'Umspannung Hoch-/Mittelspannung', ne: 4 },
+  { code: '352', ebene: 'mittelspannung', label: 'Mittelspannung', ne: 5 },
+  { code: '353', ebene: 'mittelspannung', label: 'Umspannung Mittel-/Niederspannung', ne: 6 },
+  { code: '354', ebene: 'niederspannung', label: 'Niederspannung', ne: 7 },
+];
+
+// The main technology of a Lokation with its Netzanschlusspunkte (the one with the most power), in the API's names
+export const NETZ_TECHNOLOGIEN = [
+  { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
+  { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
+  { id: 'wasser', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
+  { id: 'speicher', label: 'Speicher', color: 'var(--series-netz-speicher)' },
+  { id: 'biomasse', label: 'Biomasse', color: 'var(--series-netz-biomasse)' },
+  { id: 'erdgas', label: 'Erdgas', color: 'var(--series-netz-erdgas)' },
+  { id: 'kohle', label: 'Kohle', color: 'var(--series-netz-kohle)' },
+  { id: 'sonstige', label: 'Sonstige', color: 'var(--series-netz-sonstige)' },
+];
+
+const NETZ_NOTE =
+  'Netzanschlusspunkte aus dem Gesamtdatenexport des MaStR (Stand 26.09.2026), verortet über die Einheiten ihrer Lokation. ' +
+  'Große Kraftwerke sind nur mit ihrem Bundesland veröffentlicht: sie zählen für das Land, nicht für einen Kreis.';
+
+export const NETZ = {
+  id: 'netz',
+  basePath: '/netz',
+  title: 'Netzanschlüsse',
+  description:
+    'Netzanschlusspunkte der Stromerzeugung im Marktstammdatenregister – je Spannungsebene, Netzbetreiber, Bundesland, ' +
+    'Landkreis und Gemeinde.',
+  ramp: RAMPS.rose,
+  defaultGranularity: 'bundesland',
+  // The row of the selection bar (SelectionBar): what is connected, its filter the Spannungsebene
+  technologyLabel: 'Anschlüsse',
+  technologies: [
+    {
+      id: 'stromerzeugung',
+      label: 'Stromerzeugung',
+      icon: Zap,
+      // mrt.netz_region_stats: one row per Spannungsebene, the API sums the chosen (?spannung=…; ?ebene= is the map's
+      // resolution)
+      statsPath: '/netz/dashboard-stats',
+      granularities: REGION_LEVELS,
+      subtypes: {
+        param: 'spannung',
+        label: 'Spannungsebene',
+        options: [
+          { id: 'hoechstspannung', label: 'Höchstspannung' },
+          { id: 'hochspannung', label: 'Hochspannung' },
+          { id: 'mittelspannung', label: 'Mittelspannung' },
+          { id: 'niederspannung', label: 'Niederspannung' },
+        ],
+      },
+      note: NETZ_NOTE,
+    },
+  ],
+  // The points, and the power of their units
+  metrics: [
+    { id: 'total_units', quantity: 'anzahl', basis: 'absolut', legend: 'Netzanschlusspunkte', unit: 'Punkte', digits: 0 },
+    { id: 'relative_area_units', quantity: 'anzahl', basis: 'flaeche', legend: 'Netzanschlusspunkte je Fläche', unit: 'je km²', digits: 2 },
+    {
+      id: 'relative_population_units',
+      quantity: 'anzahl',
+      basis: 'einwohner',
+      legend: 'Netzanschlusspunkte je Einwohner',
+      unit: 'je 1.000 Einw.',
+      digits: 1,
+    },
+    { id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Angeschlossene Leistung', unit: 'MW', digits: 1 },
+    { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+    { id: 'relative_population_power', quantity: 'leistung', basis: 'einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
+  ],
+  tooltipRows: [
+    { key: 'total_units', label: 'Netzanschlusspunkte', digits: 0 },
+    { key: 'total_power', label: 'Leistung', unit: 'MW', digits: 1 },
+    { key: 'relative_area_units', label: 'je km²', digits: 2 },
+    { key: 'relative_population_units', label: 'je 1.000 Einw.', digits: 1 },
+  ],
+  kpis: [
+    { id: 'points', kind: 'sum', field: 'total_units', label: 'Netzanschlusspunkte', icon: Zap },
+    { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Angeschlossene Leistung', icon: Gauge },
+    // Points whose first unit went into operation in the last 12 months (added_12m_units of mrt.netz_region_stats)
+    { id: 'new', kind: 'sum', field: 'added_12m_units', label: 'Neu (12 Monate)', icon: TrendingUp },
+    { id: 'planned', kind: 'sum', field: 'planned_units', label: 'In Planung', icon: Construction },
+  ],
+  // The page Spannungsebenen & Netzbetreiber, in the scope (mrt.netz_anschluesse)
+  analyses: [
+    {
+      id: 'netzebenen',
+      title: 'Netzanschlüsse je Netzebene',
+      kind: 'netzebenen',
+      view: 'spannungsebenen',
+      path: '/netz/ebenen',
+      icon: Layers,
+      note: NETZ_NOTE,
+    },
+    {
+      id: 'netzbetreiber',
+      title: 'Netzbetreiber',
+      kind: 'netzbetreiber',
+      view: 'spannungsebenen',
+      path: '/netz/netzbetreiber',
+      icon: Trophy,
+      note: NETZ_NOTE,
+    },
+  ],
+};
+
 export const NUMERIC_FIELDS = [
   'total_units',
+  'relative_area_units',
+  'relative_population_units',
+  'added_12m_units',
+  'planned_units',
   'added_12m_power',
   'added_12m_capacity',
   'pump_power',

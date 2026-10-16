@@ -6,7 +6,7 @@ import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
-import { GRANULARITIES, footnoteId } from '../../config/dashboards';
+import { GRANULARITIES } from '../../config/dashboards';
 import { KOMMUNE } from '../../config/kommune';
 import { BUNDESLAENDER, findBundeslandByAgs, isKreisKey } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -23,8 +23,8 @@ import KommuneTargets from './KommuneTargets';
 import MapLegend from './MapLegend';
 import OrientationRose from './OrientationRose';
 import ScopeBar from './ScopeBar';
+import SelectionBar from './SelectionBar';
 import SizeDistribution from './SizeDistribution';
-import TechFilters from './TechFilters';
 import { selectionOf } from './useDashboardState';
 
 const GEMEINDEN_TOPOLOGY = GRANULARITIES.find((g) => g.id === 'gemeinde').topology;
@@ -513,7 +513,7 @@ const CHARTS = { ausrichtung: OrientationRose, groesse: SizeDistribution };
  * Gemeinde in a table. Picking a Gemeinde (map, table, list, scope bar) narrows everything to it.
  */
 export default function KommuneView({ config, state }) {
-  const { region, kreisAgs, kreisFeature, kreisName, gemeindeAgs, kreise, searchParams, setParam } = state;
+  const { region, kreisAgs, kreisFeature, kreisName, gemeindeAgs, kreise, searchParams } = state;
   const profile = KOMMUNE[config.id];
   const technology = config.technologies.find((t) => t.id === profile.technology);
   const selection = selectionOf(technology, searchParams);
@@ -747,23 +747,8 @@ export default function KommuneView({ config, state }) {
   return (
     <>
       {scopeBar}
-      {profile.filters && (
-        <section className="selection-bar" aria-label="Auswahl">
-          <TechFilters
-            technology={technology}
-            subtypes={subtypes}
-            onSubtypes={(ids) => setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','))}
-            leistung={selection.leistung}
-            onLeistung={(id) => setParam(technology.leistung.param, id, technology.leistung.options[0].id)}
-            inline
-          />
-          {technology.leistung?.note && (
-            <p id={footnoteId(technology.leistung)} className="selection-bar__note">
-              <sup className="footnote-ref">1</sup> {technology.leistung.note}
-            </p>
-          )}
-        </section>
-      )}
+      {/* The dashboard's technology of the page, alone, and its filters where the page has them: like on every page */}
+      <SelectionBar technologies={[technology]} state={state} active={technology} filters={profile.filters} />
 
       <div className="kommune">
         <KommunePanel {...panel} profile={profile} what={what} split={split} onSelect={selectGemeinde} nationalRow={nationalRow} />

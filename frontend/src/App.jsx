@@ -9,6 +9,7 @@ import NotFoundPage from './pages/NotFoundPage';
 const ErzeugerPage = lazy(() => import('./pages/ErzeugerPage'));
 const SpeicherPage = lazy(() => import('./pages/SpeicherPage'));
 const GasPage = lazy(() => import('./pages/GasPage'));
+const NetzPage = lazy(() => import('./pages/NetzPage'));
 const DatenqualitaetPage = lazy(() => import('./pages/DatenqualitaetPage'));
 const InfoPage = lazy(() => import('./pages/InfoPage'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
@@ -42,6 +43,7 @@ export default function App() {
           {dashboardRoutes('erzeuger', ErzeugerPage)}
           {dashboardRoutes('speicher', SpeicherPage)}
           {dashboardRoutes('gas', GasPage)}
+          {dashboardRoutes('netz', NetzPage)}
           <Route path="datenqualitaet" element={<DatenqualitaetPage />} />
           <Route path="info" element={<InfoPage />} />
           <Route path="impressum" element={<ImpressumPage />} />

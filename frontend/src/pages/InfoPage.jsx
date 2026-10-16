@@ -112,7 +112,6 @@ export default function InfoPage() {
     <div className="page">
       <header className="page-header">
         <div className="container page-header__inner">
-          <span className="eyebrow">Info</span>
           <h1 className="page-header__title">Info &amp; Methodik</h1>
           <p className="page-header__lead">
             Woher die Daten kommen, wie die Kennzahlen berechnet werden und was bei der Interpretation zu beachten ist.

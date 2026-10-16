@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
 import { ChartFoot } from '../../components/ui/CsvLink';
-import { STATES_TOPOLOGY } from '../../config/dashboards';
+import { NETZ, NETZEBENEN, NETZ_TECHNOLOGIEN, STATES_TOPOLOGY } from '../../config/dashboards';
 import { withoutOffshore } from '../../config/regions';
-import { useOutline, useStats, useTopology } from '../../lib/data';
+import { useJson, useOutline, useStats, useTopology } from '../../lib/data';
 import { round } from '../../lib/files';
 import { formatAmount } from '../../lib/format';
 import { linesToPath, project, toSvg } from '../../lib/svgMap';
-import { ERZEUGER_TIMELINE, SPEICHER_TIMELINE, URLS, sourceOf } from './homeData';
+import { ERZEUGER_TIMELINE, SPEICHER_TIMELINE, URLS, sourceOf, sum } from './homeData';
 
 // Zubau per year of a dashboard's timeline, stacked like on the dashboard (the latest year lighter: still running).
 // filename: of its CSV
@@ -56,6 +56,56 @@ function ZubauChart({ timeline, label, filename }) {
           {[...timeline.series].reverse().map((s) => (
             <span key={s.id}>
               <i style={{ background: s.color }} /> {s.label}
+            </span>
+          ))}
+        </div>
+      </ChartFoot>
+    </>
+  );
+}
+
+// The Spannungsebenen of the Netzanschlüsse (each with the transformation below it), as the map's filter names them
+const SPANNUNGSEBENEN = NETZ.technologies[0].subtypes.options;
+
+// The power connected at each Spannungsebene, stacked by the main technology of the Lokationen, like the table of the
+// dashboard's page Spannungsebenen & Netzbetreiber
+function NetzebenenChart() {
+  const ebenen = useJson(URLS.netzebenen);
+  const periods = useMemo(() => {
+    if (ebenen.status !== 'ready') return null;
+    return SPANNUNGSEBENEN.map(({ id, label }) => {
+      const codes = NETZEBENEN.filter((e) => e.ebene === id).map((e) => e.code);
+      const rows = ebenen.data.filter((row) => codes.includes(row.spannungsebene));
+      return {
+        key: id,
+        label,
+        tick: label,
+        values: Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [t.id, sum(rows.filter((row) => row.technologie === t.id), 'leistung')])),
+        punkte: sum(rows, 'punkte'),
+      };
+    });
+  }, [ebenen.status, ebenen.data]);
+
+  if (!periods) return <div className="chapter__loading skeleton" />;
+  return (
+    <>
+      <StackedChart periods={periods} series={NETZ_TECHNOLOGIEN} kind="bars" unit="MW" label="Angeschlossene Leistung je Spannungsebene, nach Technologie" />
+      <ChartFoot
+        csv={{
+          name: 'netzebenen-start',
+          filename: 'mastr_netz_spannungsebenen',
+          rows: () =>
+            periods.map((p) => ({
+              Spannungsebene: p.label,
+              Netzanschlusspunkte: p.punkte,
+              ...Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [`Leistung ${t.label} (MW)`, round(p.values[t.id])])),
+            })),
+        }}
+      >
+        <div className="chapter__legend">
+          {NETZ_TECHNOLOGIEN.map((t) => (
+            <span key={t.id}>
+              <i style={{ background: t.color }} /> {t.label}
             </span>
           ))}
         </div>
@@ -125,7 +175,6 @@ const CHAPTERS = [
   {
     topic: 'erzeuger',
     number: '01',
-    eyebrow: 'Stromerzeugung',
     title: 'Erzeuger',
     to: '/erzeuger',
     cta: 'Karte der Erzeuger',
@@ -140,7 +189,6 @@ const CHAPTERS = [
   {
     topic: 'speicher',
     number: '02',
-    eyebrow: 'Stromspeicher',
     title: 'Speicher',
     to: '/speicher',
     cta: 'Karte der Speicher',
@@ -155,7 +203,6 @@ const CHAPTERS = [
   {
     topic: 'gas',
     number: '03',
-    eyebrow: 'Gasinfrastruktur',
     title: 'Gas',
     to: '/gas',
     cta: 'Karte der Gasanlagen',
@@ -164,6 +211,19 @@ const CHAPTERS = [
       'und alten Lagerstätten – jede Anlage an ihrem Standort.',
     caption: 'Gasspeicher, die Kreisfläche nach Arbeitsgas',
     visual: <GasStorageMap />,
+  },
+  {
+    topic: 'netz',
+    number: '04',
+    title: 'Netzanschlüsse',
+    to: '/netz',
+    cta: 'Karte der Netzanschlüsse',
+    text:
+      'Wo die Anlagen ans Netz gehen: knapp sechs Millionen Netzanschlusspunkte der Stromerzeugung, vom Hausanschluss in ' +
+      'der Niederspannung bis zum Kraftwerk an der Höchstspannung – je Bundesland, Landkreis und Gemeinde, nach Netzebene ' +
+      'und Technologie, dazu die größten Netzbetreiber.',
+    caption: 'Angeschlossene Leistung je Spannungsebene, nach Technologie',
+    visual: <NetzebenenChart />,
   },
 ];
 
@@ -174,9 +234,8 @@ export default function Chapters() {
       {CHAPTERS.map((c) => (
         <article key={c.topic} className="chapter" data-topic={c.topic} aria-labelledby={`kapitel-${c.topic}`}>
           <div className="chapter__text">
-            <span className="chapter__eyebrow">
-              <span className="tabular">{c.number}</span> {c.eyebrow}
-            </span>
+            {/* The chapter's number above its title, the dashboard's name: one title, as in the navigation */}
+            <span className="chapter__eyebrow tabular">{c.number}</span>
             <h3 id={`kapitel-${c.topic}`} className="chapter__title">
               {c.title}
             </h3>

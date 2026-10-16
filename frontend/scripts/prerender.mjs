@@ -36,7 +36,7 @@ await build({
 });
 const { dashboards, views, regions, seo, format, site, kommune } = await import(pathToFileURL(path.join(MODULES, 'modules.mjs')).href);
 
-const { ERZEUGER, SPEICHER, GAS } = dashboards;
+const { ERZEUGER, SPEICHER, GAS, NETZ } = dashboards;
 const { VIEWS, DASHBOARD_MENUS, viewPath } = views;
 const { BUNDESLAENDER } = regions;
 const { canonicalUrl, documentTitle, dashboardTitle, kommuneTitle } = seo;
@@ -144,7 +144,9 @@ const frame = (main) =>
 // { path, title (as in the browser), description, robots?, jsonLd?, sitemap (default true), data (lastmod: Datenstand), main }
 const pages = [];
 const MENUS = Object.fromEntries(DASHBOARD_MENUS.map((menu) => [menu.id, menu]));
-const CONFIGS = [ERZEUGER, SPEICHER, GAS];
+const CONFIGS = [ERZEUGER, SPEICHER, GAS, NETZ];
+// The dashboards with a page per Land (below)
+const LAND_PAGES = [ERZEUGER, SPEICHER];
 
 // Start page
 const solarTotal = sum(solarLaender, 'total_power');
@@ -178,7 +180,7 @@ for (const config of CONFIGS) {
     const pageTitle = dashboardTitle(config.title, view !== 'karte' && VIEWS[view].label);
     const description = view === 'karte' ? config.description : `${config.title}: ${text}. Interaktive Auswertungen auf Basis des Marktstammdatenregisters.`;
     const below =
-      view === 'karte' && config.id !== 'gas'
+      view === 'karte' && LAND_PAGES.includes(config)
         ? `<h2>Nach Bundesland</h2>${list(BUNDESLAENDER.map((land) => link(viewPath(config.basePath, 'karte', land.code), land.name)))}`
         : view === 'kommune'
           ? `<h2>Landkreise nach Bundesland</h2>${list(BUNDESLAENDER.map((land) => link(viewPath(config.basePath, 'kommune', land.code), land.name)))}`
@@ -200,7 +202,7 @@ for (const config of CONFIGS) {
 // The map of every Land (Erzeuger, Speicher)
 const ofLand = (rows, land) => (rows ?? []).find((row) => row.bundesland === land.ags);
 for (const land of BUNDESLAENDER) {
-  for (const config of [ERZEUGER, SPEICHER]) {
+  for (const config of LAND_PAGES) {
     const solar = ofLand(solarLaender, land);
     const wind = ofLand(windLaender, land);
     const battery = ofLand(batteryLaender, land);

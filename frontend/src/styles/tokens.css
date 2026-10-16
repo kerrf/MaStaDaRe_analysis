@@ -41,6 +41,9 @@
   --topic-gas: #0e8a7e;
   --topic-gas-strong: #0b675e;
   --topic-gas-soft: #e3f5f2;
+  --topic-netz: #c0365b;
+  --topic-netz-strong: #8c1d3d;
+  --topic-netz-soft: #fcebf0;
 
   /* Status */
   --warn-bg: #fff8eb;
@@ -84,6 +87,13 @@
   --series-ac: #104281;
   --series-dc: #86b6ef;
   --series-unbekannt: #d3c7b1;
+  /* Netzanschlüsse by the main technology of their Lokation: the Erzeuger's colours, storage in violet beside the water's
+     blue, the fossil fuels in browns and greys */
+  --series-netz-speicher: #8453d6;
+  --series-netz-biomasse: #4f9a3a;
+  --series-netz-erdgas: #8a6a45;
+  --series-netz-kohle: #45403b;
+  --series-netz-sonstige: #b9ab8f;
   /* Time from commissioning to registration: grey early, green within the deadline, then warmer the later */
   --delay-early: #98a2b3;
   --delay-in-time: #3f9b63;

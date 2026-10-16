@@ -63,7 +63,7 @@ export default function HomePage() {
 
       <section className="container home-section" aria-labelledby="dashboards-title">
         <div className="home-intro">
-          <span className="eyebrow">Drei Dashboards</span>
+          <span className="eyebrow">Vier Dashboards</span>
           <h2 id="dashboards-title" className="home-intro__title">
             Wo, wie viel und wie schnell
           </h2>
@@ -88,7 +88,8 @@ export default function HomePage() {
               <dt>Aktualität</dt>
               <dd>
                 Jede Nacht holt ein Abgleich alle geänderten Einheiten über die Webdienste des Registers. Aktueller Datenstand:{' '}
-                {formatDate(datenstand)}.
+                {formatDate(datenstand)}. Die Netzanschlusspunkte stammen aus dem Gesamtdatenexport des Registers (Stand
+                26.09.2026).
               </dd>
             </div>
             <div>

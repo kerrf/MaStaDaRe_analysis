@@ -1,4 +1,4 @@
-import { ChartColumnIncreasing, Landmark, Map as MapIcon, MapPinned, Ruler } from 'lucide-react';
+import { ChartColumnIncreasing, Landmark, Map as MapIcon, MapPinned, Ruler, UtilityPole } from 'lucide-react';
 
 // The pages of a dashboard: the map, and one page per kind of analysis, so no page has to hold everything. path: after
 // the dashboard's basePath ("/erzeuger/zubau"). scoped: the page shows a Land or Kreis (URL /<view>/<land>/<kreis>);
@@ -13,6 +13,15 @@ export const VIEWS = {
   anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true, gemeinde: true },
   // Steckbrief of an area and its parts side by side
   regionen: { id: 'regionen', label: 'Regionen im Vergleich', icon: MapPinned, path: 'regionen', scoped: true },
+  // The Netzanschlüsse of an area by Netzebene, technology and grid operator (NetzView), in Deutschland, a Land or a Kreis
+  spannungsebenen: {
+    id: 'spannungsebenen',
+    label: 'Spannungsebenen & Netzbetreiber',
+    short: 'Spannungsebenen',
+    icon: UtilityPole,
+    path: 'spannungsebenen',
+    scoped: true,
+  },
 };
 export const VIEW_PATHS = new Set(Object.values(VIEWS).map((view) => view.path).filter(Boolean));
 
@@ -50,6 +59,15 @@ export const DASHBOARD_MENUS = [
       karte: 'Gaserzeuger und Gasspeicher an ihren Standorten',
       zubau: 'Registrierungen und Meldefristen',
       anlagen: 'Größenklassen und Technologien der Gaserzeuger, Größen und Arten der Gasspeicher',
+    },
+  },
+  {
+    id: 'netz',
+    label: 'Netzanschlüsse',
+    basePath: '/netz',
+    views: {
+      karte: 'Netzanschlusspunkte der Stromerzeugung je Land, Kreis, Gemeinde',
+      spannungsebenen: 'Netzanschlüsse je Netzebene und Technologie, die größten Netzbetreiber',
     },
   },
 ];

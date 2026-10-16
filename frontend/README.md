@@ -13,26 +13,38 @@ Public, user-facing documentation (method, map usage, sources, licences) lives o
 `src/pages/InfoPage.jsx` → `/info`. `TodoNote`s there and in `src/config/dashboards.js` (`todos`) are only rendered by
 `npm run dev`, never in production.
 
-## Dashboards (`/erzeuger`, `/speicher`, `/gas`) and their pages
+## Dashboards (`/erzeuger`, `/speicher`, `/gas`, `/netz`) and their pages
 
 Everything a dashboard shows is configured in `src/config/dashboards.js`. Each dashboard has several pages, so no page
 has to hold everything (`src/config/views.js`):
 
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
-| Karte | `/erzeuger/:land?/:kreis?` | KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
+| Karte | `/erzeuger/:land?/:kreis?` | the choice of technology, KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
 | Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units | `AnlagenView.jsx` |
 | Regionen im Vergleich | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
+| Spannungsebenen & Netzbetreiber | `/netz/spannungsebenen/:land?/:kreis?` | the Netzanschlüsse per Netzebene 1–7 with the mix of their technologies, and the largest grid operators – in Deutschland, a Land or a Kreis | `NetzView.jsx` |
 
-Erzeuger and Speicher have all five, Gas the map, Zubau and Anlagen (`DASHBOARD_MENUS`, which also holds the texts of the menus
-in the nav bar). `Dashboard.jsx` is the shell: header (dashboard, page, scope), tabs to the other pages, the page. Each
-analysis says on which page it is (`view` on the analysis). The map page loads Leaflet; the other pages don't.
+Erzeuger and Speicher have the first five, Gas the map, Zubau and Anlagen, the Netzanschlüsse the map and Spannungsebenen &
+Netzbetreiber (`DASHBOARD_MENUS`, which also holds the texts of the menus in the nav bar). `Dashboard.jsx` is the shell:
+the header – the settings of every page, a light band apart from what the pages show – with the dashboard's one title
+(no eyebrow above it: one title per section, like in the navigation), the page's text of its menu entry as the lead,
+the area (`ScopeBar`) and the pages as folder tabs along its bottom edge, the current one with the page's paper and the
+topic's colour line, open to the page below. Each analysis says on which page it is (`view` on the analysis). The map
+page loads Leaflet; the other pages don't.
 
-The choice of the area (`ScopeBar.jsx`: Deutschland, Bundesland, Landkreis and, on the pages with `gemeinde`, the
-Gemeinde) sits in the header above the tabs, apart from the cards that show the data: named fields side by side as one
-control, the chosen ones in the green of chosen buttons. A page renders its `ScopeBar` where it likes – or not – and the bar goes into the header through a portal (`ScopeSlot` in
+The settings come in four layers, each above what it changes: the area in the header, the page (tabs), what the page
+shows – the technology and its filters (`SelectionBar.jsx`, at the top of the page) – and how a card shows it
+(Kennzahl, Bezug, Auflösung, Zeitraster: in the card). The area and the settings of a card are chosen in green, the
+technology and its filters in the topic's colour, so the layers read apart.
+
+The choice of the area (`ScopeBar.jsx`) is a path in the header above the tabs: Deutschland › Bundesland › Landkreis
+(› Gemeinde on the pages with `gemeinde`), each step a list of its level. The area the page shows is filled in the
+green of chosen buttons, the steps on the way to it are light green (Deutschland a button back), the steps still open
+dashed, those not possible yet faded. Each list is as wide as its choice where the browser can (`field-sizing`). A
+page renders its `ScopeBar` where it likes – or not – and the bar goes into the header through a portal (`ScopeSlot` in
 `scopeSlot.js`, provided by `Dashboard.jsx`).
 
 `useDashboardState.js` reads the state all pages share from the URL – scope, technology and its filters – and keeps it
@@ -51,6 +63,7 @@ parameters, so the Steckbrief and the timeline can read solar's choice while win
 | `?ebene=` | Resolution id from `GRANULARITIES`, default = `defaultGranularity` |
 | `?anlagenart=gebaeude` | Solar sub-selection (comma separated). No parameter = all options |
 | `?lage=an_land` | Wind: an Land or auf See. No parameter = both |
+| `?spannung=hochspannung` | Netzanschlüsse: Spannungsebenen (comma separated). No parameter = all |
 | `?gemeinde=` | A Gemeinde of the Kreis (8-digit key), on the pages with `gemeinde` in `VIEWS` (Anlagen, Landkreis/Gemeinde) |
 
 Defaults are never written to the URL.
@@ -84,15 +97,16 @@ subtypes: { param: 'anlagenart', label: 'Anlagenart', options: [{ id: 'gebaeude'
 leistung: { param: 'leistung', label: 'Leistung', options: [{ id: 'netto', … }, { id: 'brutto', … }], note: '…' }
 ```
 
-The active technology's filters are a layer of their own below all technology chips ("Filter für Solar",
-`TechFilters.jsx`, in the map's `ControlPanel` and in the `SelectionBar` of the Anlagen and Regionen im Vergleich
-pages), hanging off the choice of technology on an accent line: `SubtypePicker` checkboxes (at least
-one stays selected; an option with a `color` shows it in its box) and the small `OptionSwitch` Netto (AC) / Brutto
-(DC). The `note` of `leistung` is a footnote below the map, marked ¹ at the switch and in the map title
-(`footnoteId`). Off the map the choice is a tray like the map's settings band (`SelectionBar.jsx`, sunken, apart from
-the white cards of the data): "Technologie" above the chips, the filters in one row below, the footnote last – on every
-dashboard's Anlagen page the same, also with a single technology (Speicher). Regionen im Detail puts its solar filters
-in the same tray.
+The technology and its filters are one bar at the top of every page that has a choice of them – Karte, Regionen im
+Detail, Anlagen, Regionen im Vergleich – the same everywhere (`SelectionBar.jsx`): a tray with the names in a column on
+the left, "Technologie" (the Netzanschlüsse: `technologyLabel`, "Anschlüsse") with the chips, the chosen one filled in
+the topic's colour; below it the chosen technology's filters ("Filter für Solar", `TechFilters.jsx`) in a row of their
+own, tinted in the topic's colour and hanging off the choice by the colour line on the left: `SubtypePicker` boxes (at
+least one stays selected; an option with a `color` shows it in its box) and the `OptionSwitch` Netto (AC) / Brutto
+(DC), every option as high as the others. The `note` of `leistung` is the footnote below them, marked ¹ at the switch
+and in the map title (`footnoteId`). Also with a single technology (Speicher; Regionen im Detail: the dashboard's one).
+A technology's selection comes from its own parameters, so a page can show another one than the URL's (Anlagen: the
+batteries while the map is on Pumpspeicher) with its filters (`setSubtypesOf`, `setLeistungOf`).
 
 Solar: both go to every solar request as the same parameters as in the page URL
 (`?anlagenart=freiflaeche&leistung=brutto`, only what differs from the default: all Anlagenarten, Netto – the API has
@@ -325,9 +339,9 @@ a date that has passed means planned but never reported in operation, mostly sma
 
 ### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
 
-The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, the
-settings in a band below it (technology, Kennzahl, Bezug, resolution in a row, the technology's filters on a line
-hanging off it), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, how the
+map shows the technology chosen above the card in a band below it (Kennzahl, Bezug, resolution or smoothing, in a
+row, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
 analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
@@ -374,12 +388,32 @@ found opens its Kreis with it picked.
   Gemeinden), Ausrichtung and Anlagengröße (their endpoints take Gemeinde keys too) and every Gemeinde in a sortable
   table with CSV export. A click on a Gemeinde – map, list, table, scope bar – picks it (`?gemeinde=`); again: the Kreis.
 
+### Netzanschlüsse (`NETZ`, `NetzView.jsx`)
+
+The Netzanschlusspunkte der Stromerzeugung of the bulk export (`raw.grid_connection_points`, Stand of the export – the
+nightly update doesn't touch them), each in the place of the units of its Lokation, of every kind
+(`backend/app/etl/queries/aggregate_netzanschluesse.sql`). A point is in operation while a unit of its Lokation is; its
+power is that of those units (Netto, else Brutto), split evenly where a Lokation has several points. The largest power
+plants are published with their Land only (no Gemeinde, postcode or coordinates): they count for the Land, not for a
+Kreis – the Land's row is more than its Kreise.
+
+- **Karte**: one "technology", Stromerzeugung, with the Spannungsebenen as its filter (`?spannung=`, each with the
+  transformation below it: Höchstspannung = Netzebene 1–2, …, Niederspannung = 7; `mrt.netz_region_stats`, a row per
+  Spannungsebene like the solar Anlagenarten). Kennzahl Anzahl (points) or Leistung, absolut, je km², je 1.000
+  Einwohner; KPIs: points, power, new in 12 months, in planning.
+- **Spannungsebenen & Netzbetreiber** (`/netz/ebenen`, `/netz/netzbetreiber`, `mrt.netz_anschluesse`): a table of
+  the Netzebenen 1–7 with points, power, power per point, in planning, and a bar of the main technologies of their
+  Lokationen (`NETZ_TECHNOLOGIEN`, by power or by number); the 15 largest grid operators by power or number, the rest
+  in one row, all in the CSV. Deutschland includes the pump and hydro power plants in Luxemburg and Österreich on the
+  German grid, which the map can't show.
+
 ## Start page (`pages/HomePage.jsx`, `features/home/`)
 
-After the hero: the register in four large numbers (`RegisterFigures.jsx`: solar, wind, batteries, gas storages, live
-from the dashboards' endpoints), one chapter per dashboard with a live chart of its data (`Chapters.jsx`: the Zubau of
-both timelines per year, the gas storages as circles on a small SVG map, `lib/svgMap.js`), then where the numbers come
-from. What it requests is in `homeData.js`.
+After the hero: the register in five large numbers (`RegisterFigures.jsx`: solar, wind, batteries, gas storages,
+Netzanschlusspunkte, live from the dashboards' endpoints), one chapter per dashboard with a live chart of its data
+(`Chapters.jsx`: the Zubau of both timelines per year, the gas storages as circles on a small SVG map, `lib/svgMap.js`,
+the power connected per Spannungsebene by technology), then where the numbers come from. What it requests is in
+`homeData.js`.
 
 ## Analytics (`components/layout/AppLayout.jsx`, `lib/usage.js`)
 
@@ -447,8 +481,9 @@ below, they fade out. The legend shows the scale, the smoothing in km and the va
 Only the absolute Kennzahlen have a `heat` entry (`config/dashboards.js`): per km² and per inhabitant aren't offered
 there, the Bezug reads „Dichte“.
 
-The Kennzahl of the map is chosen in two rows, the same for every dashboard (`MapToolbar.jsx`): Kennzahl – Leistung or
-Kapazität (`QUANTITIES`) – then Bezug – Absolut, je km², je Einwohner (`BASES`). Each metric names its `quantity` and
+The Kennzahl of the map is chosen in two rows, the same for every dashboard (`MapToolbar.jsx`): Kennzahl – Leistung,
+Kapazität or Anzahl (`QUANTITIES`; Anzahl: the Netzanschlusspunkte) – then Bezug – Absolut, je km², je Einwohner
+(`BASES`). Each metric names its `quantity` and
 `basis`; a row with a single choice still shows (Erzeuger: Leistung; plants: Absolut), and a new Kennzahl keeps the
 Bezug where it has one. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
 

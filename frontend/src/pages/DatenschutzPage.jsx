@@ -12,7 +12,6 @@ export default function DatenschutzPage() {
     <div className="page">
       <header className="page-header">
         <div className="container page-header__inner">
-          <span className="eyebrow">Rechtliches</span>
           <h1 className="page-header__title">Datenschutzerklärung</h1>
           <p className="page-header__lead">Welche Daten beim Besuch dieser Seite anfallen – kurz und transparent.</p>
         </div>

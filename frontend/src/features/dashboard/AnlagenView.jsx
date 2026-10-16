@@ -21,7 +21,8 @@ export default function AnlagenView({ config, state }) {
   const technologies = config.technologies.filter((t) => ofPage(t.analyses).some(isCard) || (forAll && !t.plantsPath));
   // The active one, or the first that has something here (Speicher: batteries while the map shows Pumpspeicher)
   const technology = technologies.find((t) => t.id === state.technology.id) ?? technologies[0] ?? state.technology;
-  const query = technology === state.technology ? state.selectionQuery : '';
+  // Its selection (Anlagenart, Leistung), also where it isn't the URL's technology
+  const query = selectionOf(technology, state.searchParams).query;
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
   const panels = analyses.filter((a) => a.kind === 'orientation-tilt' || a.kind === 'pv-speicher');

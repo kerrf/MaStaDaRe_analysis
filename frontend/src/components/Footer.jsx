@@ -13,6 +13,7 @@ const COLUMNS = [
       { label: 'Erzeuger', to: '/erzeuger' },
       { label: 'Speicher', to: '/speicher' },
       { label: 'Gas', to: '/gas' },
+      { label: 'Netzanschlüsse', to: '/netz' },
       { label: 'Datenqualität', to: '/datenqualitaet' },
     ],
   },

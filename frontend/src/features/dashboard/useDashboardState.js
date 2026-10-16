@@ -187,19 +187,21 @@ export default function useDashboardState(config, view) {
     },
     [setParam, config.id, config.technologies],
   );
-  const setSubtypes = useCallback(
-    (ids) => {
-      trackEvent('Filter', { filter: technology.subtypes.param, auswahl: ids.join(',') });
-      setParam(technology.subtypes.param, ids.join(','), technology.subtypes.options.map((o) => o.id).join(','));
+  // A technology's subtypes and Leistung, in its own parameters: of any technology, not only the one in the URL (Anlagen
+  // shows the batteries while the map is on Pumpspeicher)
+  const setSubtypesOf = useCallback(
+    (tech, ids) => {
+      trackEvent('Filter', { filter: tech.subtypes.param, auswahl: ids.join(',') });
+      setParam(tech.subtypes.param, ids.join(','), tech.subtypes.options.map((o) => o.id).join(','));
     },
-    [setParam, technology],
+    [setParam],
   );
-  const setLeistung = useCallback(
-    (id) => {
-      trackEvent('Filter', { filter: technology.leistung.param, auswahl: id });
-      setParam(technology.leistung.param, id, technology.leistung.options[0].id);
+  const setLeistungOf = useCallback(
+    (tech, id) => {
+      trackEvent('Filter', { filter: tech.leistung.param, auswahl: id });
+      setParam(tech.leistung.param, id, tech.leistung.options[0].id);
     },
-    [setParam, technology],
+    [setParam],
   );
 
   return {
@@ -224,8 +226,8 @@ export default function useDashboardState(config, view) {
     redirect,
     setParam,
     setTechnology,
-    setSubtypes,
-    setLeistung,
+    setSubtypesOf,
+    setLeistungOf,
     selectScope,
     exitScope,
     hrefOf,

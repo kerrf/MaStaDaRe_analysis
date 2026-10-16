@@ -10,13 +10,14 @@ const amount = (value, unit) => {
   return `${scaled.value} ${scaled.unit}`;
 };
 
-// The register today in four large numbers, each leading to its dashboard. While loading, a dash.
+// The register today in five large numbers, each leading to its dashboard. While loading, a dash.
 export default function RegisterFigures() {
   const solar = useStats(URLS.solar);
   const wind = useStats(URLS.wind);
   const batteries = useStats(URLS.batteries);
   const zubau = useStats(URLS.zubau);
   const storages = useStats(URLS.gasStorages);
+  const netz = useStats(URLS.netz);
 
   const ready = (...states) => states.every((state) => state.status === 'ready');
   const running = storages.data?.filter((s) => s.status === 'in Betrieb') ?? [];
@@ -52,6 +53,13 @@ export default function RegisterFigures() {
       label: 'Gasspeicher',
       value: ready(storages) && formatNumber(running.length),
       context: ready(storages) && `${amount(sum(running, 'total_capacity'), 'GWh')} Arbeitsgas`,
+    },
+    {
+      topic: 'netz',
+      to: '/netz',
+      label: 'Netzanschlusspunkte',
+      value: ready(netz) && formatCount(sum(netz.data, 'total_units')),
+      context: ready(netz) && `${amount(sum(netz.data, 'total_power'), 'MW')} angeschlossene Leistung`,
     },
   ];
 

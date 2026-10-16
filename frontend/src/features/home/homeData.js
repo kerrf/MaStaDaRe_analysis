@@ -1,5 +1,5 @@
 // What the start page reads: the dashboards' own endpoints, so it shows the same numbers as they do
-import { ERZEUGER, SPEICHER } from '../../config/dashboards';
+import { ERZEUGER, NETZ, SPEICHER } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
 import { statsUrl } from '../../lib/data';
 
@@ -24,6 +24,9 @@ export const URLS = {
   wind: statsUrl(technology(ERZEUGER, 'wind').statsPath, 'bundesland'),
   batteries: statsUrl(technology(SPEICHER, 'batterie').statsPath, 'bundesland'),
   gasStorages: `${API_BASE_URL}/gas/speicher`,
+  // The Netzanschlusspunkte der Stromerzeugung per Land, and per Netzebene and technology in Deutschland
+  netz: statsUrl(NETZ.technologies[0].statsPath, 'bundesland'),
+  netzebenen: `${API_BASE_URL}${NETZ.analyses.find((a) => a.kind === 'netzebenen').path}?region=DE`,
   // Zubau per year of both timelines in one request
   zubau: `${API_BASE_URL}/zubau/zeitverlauf?yearly=true&${[...ERZEUGER_TIMELINE.series, ...SPEICHER_TIMELINE.series]
     .map((s) => `technology=${sourceOf(s)}`)

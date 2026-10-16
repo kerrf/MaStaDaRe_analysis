@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { footnoteId } from '../../config/dashboards';
 
-// One filter of the active technology: its name on the left, its options on the right
+// One filter of the active technology: its name, then its options
 function FilterRow({ id, label, footnote, children }) {
   return (
     <div className="tech-filters__row">
@@ -74,33 +74,36 @@ function OptionSwitch({ labelledBy, describedBy, option, value, onChange }) {
   );
 }
 
-// The active technology's own filters, a layer below the choice of technology that hangs off it: they narrow down the
-// technology (Solar: Anlagenart, Leistung), they are not another technology. inline: in one row (the map's toolbar).
-export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung, inline = false }) {
+// The active technology's own filters, a row below the choice of technology that hangs off it (SelectionBar): they
+// narrow down the technology (Solar: Anlagenart, Leistung), they are not another technology. In the topic's colour like
+// the chosen technology, every option as high as the others.
+export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {
   const Icon = technology.icon;
   const id = `filter-${technology.id}`;
   return (
-    <div id={id} className={`tech-filters${inline ? ' tech-filters--inline' : ''}`} role="group" aria-labelledby={`${id}-title`}>
-      <div id={`${id}-title`} className="tech-filters__title">
+    <div id={id} className="tech-filters" role="group" aria-labelledby={`${id}-title`}>
+      <div id={`${id}-title`} className="selection-bar__label tech-filters__title">
         <Icon size={14} aria-hidden="true" />
         Filter für {technology.label}
       </div>
-      {technology.subtypes && (
-        <FilterRow id={`${id}-arten`} label={technology.subtypes.label}>
-          <SubtypePicker labelledBy={`${id}-arten`} subtypes={technology.subtypes} selected={subtypes} onChange={onSubtypes} />
-        </FilterRow>
-      )}
-      {technology.leistung && (
-        <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && '1'}>
-          <OptionSwitch
-            labelledBy={`${id}-leistung`}
-            describedBy={technology.leistung.note ? footnoteId(technology.leistung) : undefined}
-            option={technology.leistung}
-            value={leistung}
-            onChange={onLeistung}
-          />
-        </FilterRow>
-      )}
+      <div className="tech-filters__items">
+        {technology.subtypes && (
+          <FilterRow id={`${id}-arten`} label={technology.subtypes.label}>
+            <SubtypePicker labelledBy={`${id}-arten`} subtypes={technology.subtypes} selected={subtypes} onChange={onSubtypes} />
+          </FilterRow>
+        )}
+        {technology.leistung && (
+          <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && '1'}>
+            <OptionSwitch
+              labelledBy={`${id}-leistung`}
+              describedBy={technology.leistung.note ? footnoteId(technology.leistung) : undefined}
+              option={technology.leistung}
+              value={leistung}
+              onChange={onLeistung}
+            />
+          </FilterRow>
+        )}
+      </div>
     </div>
   );
 }
