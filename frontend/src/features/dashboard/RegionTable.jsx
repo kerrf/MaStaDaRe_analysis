@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, Table2 } from 'lucide-react';
+import ListSelect from '../../components/ui/ListSelect';
 import { GRANULARITIES, regionTablesOf } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
 import { trackEvent } from '../../lib/usage';
@@ -232,16 +233,18 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
       <div className="region-table__panel" id={panelId} role="tabpanel">
         <div className="region-table__toolbar">
           {/* The rows */}
-          <label className="region-table__field">
-            <span className="region-table__field-label">Gebiete</span>
-            <select value={level.id} onChange={(e) => reset(setLevelId)(e.target.value)}>
-              {levels.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.many}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="region-table__field">
+            <span className="region-table__field-label" aria-hidden="true">
+              Gebiete
+            </span>
+            <ListSelect
+              label="Gebiete"
+              className="timeline__select"
+              value={level.id}
+              onChange={(id) => reset(setLevelId)(id)}
+              options={levels.map((l) => ({ value: l.id, label: l.many }))}
+            />
+          </div>
           {/* The cells, in two steps: what, then as value or share */}
           <ValueSwitch id={`${panelId}-values`} label="Werte" options={quantities} value={quantity.id} onChange={setQuantity} />
           <ValueSwitch

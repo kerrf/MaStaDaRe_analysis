@@ -1,4 +1,5 @@
-import { footnoteId, hasData } from '../../config/dashboards';
+import { hasData } from '../../config/dashboards';
+import { useFootnote } from './footnoteContext';
 import TechFilters from './TechFilters';
 import { selectionOf } from './useDashboardState';
 
@@ -10,7 +11,7 @@ import { selectionOf } from './useDashboardState';
  * technologies: those the page has something for – also a single one, so every page looks the same; active: the one the
  * page shows (default: the URL's). Its selection comes from the URL, its own parameters. filters: whether the page
  * narrows the technology down by them (Regionen im Detail of the batteries doesn't). label: the row's name (the
- * Netzanschlüsse: "Anschlüsse").
+ * Netzanschlüsse: "Anschlüsse"). inCard: as the top bands of a card (the map's), without a frame of its own.
  */
 export default function SelectionBar({
   technologies,
@@ -18,12 +19,14 @@ export default function SelectionBar({
   active: technology = state.technology,
   filters = true,
   label = 'Technologie',
+  inCard = false,
 }) {
   const { subtypes, leistung } = selectionOf(technology, state.searchParams);
   const filtered = filters && Boolean(technology.subtypes || technology.leistung);
-  const note = technology.leistung?.note;
+  // What the Leistung means: a remark at the page's bottom (footnotes), marked at its switch
+  useFootnote('leistung', filtered ? technology.leistung?.note : null);
   return (
-    <section className="selection-bar" aria-label="Technologie und Filter">
+    <section className={`selection-bar${inCard ? ' selection-bar--in-card' : ''}`} aria-label="Technologie und Filter">
       <div className="selection-bar__row">
         <span id="selection-technologie" className="selection-bar__label">
           {label}
@@ -57,11 +60,6 @@ export default function SelectionBar({
           leistung={leistung}
           onLeistung={(id) => state.setLeistungOf(technology, id)}
         />
-      )}
-      {filtered && note && (
-        <p id={footnoteId(technology.leistung)} className="selection-bar__note">
-          <sup className="footnote-ref">1</sup> {note}
-        </p>
       )}
     </section>
   );

@@ -1,0 +1,522 @@
+/* The analyses of every wind turbine on its own (page Anlagen, technology wind) */
+
+/* Which turbines and what their colour says: a band like the toolbar of a card */
+.wind-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 28px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.wind-controls__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.wind-controls__label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.wind-controls__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wind-controls__count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.wind-chip {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.wind-chip:hover {
+  border-color: var(--brand-500);
+  color: var(--ink-primary);
+}
+
+.wind-chip.is-on {
+  border-color: var(--brand-600);
+  background: var(--brand-600);
+  color: #fff;
+}
+
+.wind-chip:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+
+.wind-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.wind-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+.wind-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wind-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ------------------------------------------------------------- Scatter */
+.scatter {
+  position: relative;
+  width: 100%;
+}
+
+.scatter__canvas,
+.scatter__axes {
+  position: absolute;
+  inset: 0;
+}
+
+.scatter__axes {
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.scatter__grid {
+  stroke: var(--border-subtle);
+}
+
+.scatter__baseline {
+  stroke: var(--border-strong);
+}
+
+.scatter__tick {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-muted);
+}
+
+.scatter__axis-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: var(--ink-secondary);
+}
+
+.scatter__hover {
+  fill: none;
+  stroke: var(--ink-primary);
+  stroke-width: 2;
+}
+
+.scatter__tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 190px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  font-size: 12.5px;
+  pointer-events: none;
+}
+
+.scatter__tooltip-title {
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.scatter__tooltip-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 14px;
+  color: var(--ink-secondary);
+}
+
+.scatter__tooltip-row b {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.scatter__tooltip-row small {
+  flex-basis: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------------- Pairplot */
+/* Names above and at the left, three columns of square cells */
+.pairs {
+  display: grid;
+  grid-template-columns: 7.5rem repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.pairs__row {
+  display: contents;
+}
+
+.pairs__head,
+.pairs__side {
+  align-self: end;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.pairs__head {
+  text-align: center;
+}
+
+.pairs__side {
+  align-self: center;
+  text-align: right;
+}
+
+.pairs__head span,
+.pairs__side span {
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.pairs__cell {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+}
+
+.pairs__cell .scatter {
+  height: 100%;
+}
+
+.pairs__cell--hist {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px 4px;
+}
+
+.pairs__cell--hist svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.pairs__range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+/* The correlation: the stronger, the deeper the green behind it */
+.pairs__corr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: color-mix(in srgb, var(--brand-600) calc(var(--strength) * 26%), var(--surface-card));
+}
+
+.pairs__r {
+  font-size: clamp(22px, 3.4vw, 38px);
+  font-weight: 750;
+  color: var(--ink-primary);
+}
+
+.pairs__n {
+  font-size: 11.5px;
+  color: var(--ink-secondary);
+}
+
+@media (max-width: 640px) {
+  .pairs {
+    grid-template-columns: 4.5rem repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .pairs__head,
+  .pairs__side {
+    font-size: 11px;
+  }
+
+  .pairs__head span,
+  .pairs__side span {
+    display: none;
+  }
+
+  .pairs__r {
+    font-size: 18px;
+  }
+
+  .pairs__n {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------- Growth */
+.growth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+}
+
+.growth-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.growth-figure figcaption {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.growth {
+  position: relative;
+}
+
+.growth svg {
+  display: block;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.growth__band {
+  opacity: 0.16;
+}
+
+.growth__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.growth__line.is-ahead {
+  stroke-dasharray: 5 4;
+}
+
+.growth__ahead {
+  fill: var(--surface-sunken);
+}
+
+.growth__cursor {
+  stroke: var(--ink-muted);
+  stroke-dasharray: 3 3;
+}
+
+.growth__dot {
+  stroke: var(--surface-card);
+  stroke-width: 2;
+}
+
+@media (max-width: 900px) {
+  .growth-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ------------------------------------------------------------- Map */
+.wind-map__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.wind-map__controls .segmented__option {
+  flex: 0 0 auto;
+  padding: 0 12px;
+}
+
+.wind-map {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.wind-map__map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wind-map__scale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.wind-map__ramp {
+  width: min(240px, 50%);
+  height: 10px;
+  border-radius: 5px;
+}
+
+.geo-plot {
+  position: relative;
+  width: 100%;
+}
+
+.geo-plot__svg,
+.geo-plot__dots {
+  position: absolute;
+  inset: 0;
+}
+
+.geo-plot__dots {
+  pointer-events: none;
+}
+
+.geo-plot__area {
+  fill: var(--surface-sunken);
+  stroke: var(--surface-card);
+  stroke-width: 0.8;
+  cursor: default;
+}
+
+.geo-plot__area.is-empty {
+  fill: var(--map-nodata, #e9e3d6);
+}
+
+.geo-plot__area.is-under-dots {
+  fill: #f1ece1;
+  stroke: var(--border);
+}
+
+.geo-plot__area.is-hover {
+  stroke: var(--ink-primary);
+  stroke-width: 1.6;
+}
+
+/* South to north: the rows of latitude, the north on top like the map */
+.wind-profile {
+  margin: 0;
+}
+
+.wind-profile figcaption {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.wind-profile__lead {
+  margin: 2px 0 10px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.wind-profile__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wind-profile__rows li {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr) 4.6rem;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.wind-profile__track {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-sunken);
+}
+
+.wind-profile__band {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 4px;
+  background: var(--border);
+}
+
+.wind-profile__median {
+  position: absolute;
+  top: -1px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border: 2px solid var(--surface-card);
+  border-radius: 50%;
+}
+
+.wind-profile__value {
+  text-align: right;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+@media (max-width: 900px) {
+  .wind-map {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The ranking beside the orientation map: names of areas need more room than degrees of latitude */
+.orientation-ranking li {
+  grid-template-columns: 10.5rem minmax(0, 1fr) 5.4rem;
+}
+
+.orientation-ranking .wind-profile__lat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

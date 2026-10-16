@@ -1,9 +1,12 @@
 import AnalysisCard from './AnalysisCard';
+import OrientationMap from './OrientationMap';
 import OrientationTiltAnalysis from './OrientationTiltAnalysis';
 import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
 import { selectionOf } from './useDashboardState';
+import { WindPanels, WindSizeCard } from './wind/WindAnalyses';
+import useWindAnalyses from './wind/useWindAnalyses';
 
 const ofPage = (analyses) => (analyses ?? []).filter((a) => a.view === 'anlagen');
 // Analyses of a single technology in the scope: as cards, two side by side
@@ -25,10 +28,15 @@ export default function AnlagenView({ config, state }) {
   const query = selectionOf(technology, state.searchParams).query;
   const analyses = [...ofPage(config.analyses), ...ofPage(technology.analyses)];
   const cards = analyses.filter(isCard);
-  const panels = analyses.filter((a) => a.kind === 'orientation-tilt' || a.kind === 'pv-speicher');
+  const panels = analyses.filter((a) => ['orientation-tilt', 'orientation-map', 'pv-speicher'].includes(a.kind));
   // The batteries at solar units follow solar's choice (Anlagenart, Leistung) where the dashboard has solar
   const solar = config.technologies.find((t) => t.id === 'solar');
   const pv = solar ? selectionOf(solar, state.searchParams) : { subtypes: null, leistung: null };
+  // Wind: every turbine on its own – the card beside the size classes, the panels below (wind/WindAnalyses)
+  const isWind = technology.id === 'wind';
+  const wind = useWindAnalyses({ state, lagen: isWind ? selectionOf(technology, state.searchParams).subtypes : null, enabled: isWind });
+  const windCard = isWind && <WindSizeCard turbines={wind.turbines} scopeName={state.scopeName} fileBase="mastr_wind" />;
+  const cardCount = cards.length + (windCard ? 1 : 0);
 
   return (
     <>
@@ -44,11 +52,13 @@ export default function AnlagenView({ config, state }) {
         />
       )}
       {technologies.length > 0 && <SelectionBar technologies={technologies} state={state} active={technology} />}
-      {cards.length > 0 && (
-        <div id="analyse-anlagen" className={`analyses-grid${cards.length > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>
+      {isWind && wind.controls}
+      {cardCount > 0 && (
+        <div id="analyse-anlagen" className={`analyses-grid${cardCount > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>
           {cards.map((a) => (
             <AnalysisCard key={a.id} analysis={a} technology={technology} region={state.scopeKey} scopeName={state.scopeName} query={query} />
           ))}
+          {windCard}
         </div>
       )}
       {panels.map((a) =>
@@ -62,10 +72,20 @@ export default function AnlagenView({ config, state }) {
             fileBase={`mastr_${technology.id}`}
             anchor={`analyse-${a.id}`}
           />
+        ) : a.kind === 'orientation-map' ? (
+          <OrientationMap
+            key={a.id}
+            query={query}
+            scopeKey={state.scopeKey}
+            scopeName={state.scopeName}
+            fileBase={`mastr_${technology.id}`}
+            anchor={`analyse-${a.id}`}
+          />
         ) : (
           <PvSpeicherAnalysis key={a.id} analysis={a} subtypes={pv.subtypes} leistung={pv.leistung} ramp={config.ramp} anchor={`analyse-${a.id}`} />
         ),
       )}
+      {isWind && <WindPanels turbines={wind.turbines} scopeName={state.scopeName} scopeKey={state.scopeKey} fileBase="mastr_wind" />}
     </>
   );
 }

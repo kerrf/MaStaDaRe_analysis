@@ -15,6 +15,7 @@ import RegionenView from './RegionenView';
 import ZubauView from './ZubauView';
 import { ScopeSlot } from './scopeSlot';
 import useDashboardState from './useDashboardState';
+import { Footnotes, FootnotesProvider } from './footnotes';
 import './dashboard.css';
 
 // The map pulls in Leaflet: only for the map page
@@ -113,9 +114,13 @@ export default function Dashboard({ config, view }) {
 
       <div className="container dashboard-body">
         <ScopeSlot.Provider value={scopeSlot}>
-          <Suspense fallback={<PageLoader />}>
-            <Page config={config} state={state} />
-          </Suspense>
+          {/* Every remark of the page in one place, at its bottom */}
+          <FootnotesProvider key={view}>
+            <Suspense fallback={<PageLoader />}>
+              <Page config={config} state={state} />
+            </Suspense>
+            <Footnotes />
+          </FootnotesProvider>
         </ScopeSlot.Provider>
         {/* Notes for development (config todos): only in `npm run dev`, not for visitors */}
         {import.meta.env.DEV && view === 'karte' && config.todos?.map((todo) => <TodoNote key={todo}>{todo}</TodoNote>)}

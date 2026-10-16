@@ -31,6 +31,7 @@ ROUTES=(
   "/wind/dashboard-stats?level=bundesland"
   /wind/size-distribution
   "/wind/size-distribution/regions?level=bundesland"
+  /wind/turbines
   "/water/dashboard-stats?level=bundesland"
   /water/size-distribution
   "/water/size-distribution/regions?level=bundesland"

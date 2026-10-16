@@ -1,3 +1,4 @@
+import ListSelect from '../../components/ui/ListSelect';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASES, GRANULARITIES, QUANTITIES, isAvailable } from '../../config/dashboards';
 import { SMOOTHINGS } from '../../lib/heatmap';
@@ -64,15 +65,18 @@ export default function MapToolbar({
         </Group>
 
         {!technology.plantsPath && (
-          <Group label="Räumliche Auflösung" htmlFor="map-granularity">
-            <select id="map-granularity" className="timeline__select map-toolbar__select" value={granularity.id} onChange={(e) => onGranularity(e.target.value)}>
-              {GRANULARITIES.map((g) => (
-                <option key={g.id} value={g.id} disabled={!isAvailable(g, technology)}>
-                  {g.label}
-                  {!isAvailable(g, technology) ? ' – nicht verfügbar' : ''}
-                </option>
-              ))}
-            </select>
+          <Group label="Räumliche Auflösung">
+            <ListSelect
+              label="Räumliche Auflösung"
+              className="timeline__select map-toolbar__select"
+              value={granularity.id}
+              onChange={onGranularity}
+              options={GRANULARITIES.map((g) => ({
+                value: g.id,
+                label: isAvailable(g, technology) ? g.label : `${g.label} – nicht verfügbar`,
+                disabled: !isAvailable(g, technology),
+              }))}
+            />
           </Group>
         )}
 

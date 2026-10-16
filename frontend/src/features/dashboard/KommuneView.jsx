@@ -4,6 +4,7 @@ import AggregateControl from '../../components/charts/AggregateControl';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
 import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
+import ListSelect from '../../components/ui/ListSelect';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
 import { GRANULARITIES } from '../../config/dashboards';
@@ -765,16 +766,16 @@ export default function KommuneView({ config, state }) {
               </div>
             </div>
             <div className="kommune-map-card__tools">
-              <label className="kommune-map-card__field">
-                <span>Kennzahl</span>
-                <select className="timeline__select" value={metric.id} onChange={(e) => setMetricId(e.target.value)}>
-                  {profile.metrics.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="kommune-map-card__field">
+                <span aria-hidden="true">Kennzahl</span>
+                <ListSelect
+                  label="Kennzahl"
+                  className="timeline__select"
+                  value={metric.id}
+                  onChange={setMetricId}
+                  options={profile.metrics.map((m) => ({ value: m.id, label: m.label }))}
+                />
+              </div>
               <label className="kommune-map-card__field">
                 <span>Deckkraft</span>
                 <input type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />

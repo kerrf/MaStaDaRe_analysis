@@ -197,6 +197,8 @@ export const ERZEUGER = {
           path: '/solar/orientation-tilt', // mrt.solar_orientation_tilt
           icon: Compass,
         },
+        // Where the modules face, per Land or Kreis on a map (OrientationMap, /solar/orientation/regions)
+        { id: 'ausrichtung-karte', title: 'Ausrichtung nach Region', kind: 'orientation-map', view: 'anlagen' },
         PV_SPEICHER,
       ],
     },

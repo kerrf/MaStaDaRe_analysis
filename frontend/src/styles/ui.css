@@ -293,35 +293,116 @@
 /* A dropdown of its own (ListSelect.jsx): the button takes the look of the selects around it (its className), the
    list floats above the page, scrolls within itself and never hands its scrolling on to the page */
 .list-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   text-align: left;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The chevron is part of the button (clicks anywhere open it), not a background picture */
+.list-select.list-select {
+  background-image: none;
+  padding-right: 10px;
+}
+
+.list-select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-select__chevron {
+  flex: none;
+  color: var(--ink-muted);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.list-select[aria-expanded='true'] .list-select__chevron {
+  transform: rotate(180deg);
+}
+
+.list-select.is-placeholder .list-select__value {
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+.list-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .list-select__menu {
   position: fixed;
   z-index: 3100;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.list-select__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--ink-muted);
+}
+
+.list-select__search input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-primary);
+  outline: none;
+}
+
+.list-select__list {
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0;
   padding: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-lg);
   outline: none;
 }
 
 .list-select__option {
-  padding: 6px 12px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--ink-secondary);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
+}
+
+.list-select__option.is-placeholder {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+.list-select__option[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .list-select__option.is-active {
@@ -336,6 +417,12 @@
 
 .list-select__option[aria-selected='true'].is-active {
   background: var(--brand-100);
+}
+
+.list-select__empty {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
 }
 
 /* ----------------------------------------------------------------- Switch */
