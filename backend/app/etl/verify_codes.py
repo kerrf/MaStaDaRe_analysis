@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 from collections import Counter, defaultdict
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 
@@ -40,6 +41,12 @@ TARGETS = {
     "storage": ("raw.storage_units", "GetEinheitStromSpeicher", codes.STORAGE),
     "gas_producer": ("raw.gas_producer_units", "GetEinheitGasErzeuger", codes.GAS_PRODUCER),
     "gas_storage": ("raw.gas_storage_units", "GetEinheitGasSpeicher", codes.GAS_STORAGE),
+    "biomass": ("raw.biomass_units", "GetEinheitBiomasse", codes.BIOMASS),
+    "combustion": ("raw.combustion_units", "GetEinheitVerbrennung", codes.COMBUSTION),
+    "nuclear": ("raw.nuclear_units", "GetEinheitKernkraft", codes.NUCLEAR),
+    "geothermal": ("raw.geothermal_units", "GetEinheitGeothermieGrubengasDruckentspannung", codes.GEOTHERMAL),
+    "consumer": ("raw.consumer_units", "GetEinheitStromVerbraucher", codes.CONSUMER),
+    "gas_consumer": ("raw.gas_consumer_units", "GetEinheitGasVerbraucher", codes.GAS_CONSUMER),
 }
 
 
@@ -77,6 +84,19 @@ def sample_units(table: str, column: str, multi: bool) -> list[tuple[str, str]]:
         WHERE rn <= :n"""
     with engine.connect() as conn:
         return [tuple(r) for r in conn.execute(text(sql), {"n": SAMPLES_PER_CODE})]
+
+
+def present_only(spec: codes.CodeSpec, table: str) -> codes.CodeSpec:
+    """The spec without the columns the table doesn't have (the nuclear units have no FernsteuerbarkeitDv)."""
+    schema, name = table.split(".")
+    sql = "SELECT column_name FROM information_schema.columns WHERE table_schema = :schema AND table_name = :name"
+    with engine.connect() as conn:
+        present = set(conn.execute(text(sql), {"schema": schema, "name": name}).scalars())
+    return replace(
+        spec,
+        columns={column: catalog for column, catalog in spec.columns.items() if column in present},
+        booleans=tuple(column for column in spec.booleans if column in present),
+    )
 
 
 def load_rows(table: str, ids: set[str], columns: list[str]) -> dict[str, dict]:
@@ -155,6 +175,7 @@ def analyse(spec: codes.CodeSpec, rows: dict[str, dict], answers: dict[str, dict
 
 def report(target: str, suggest: bool) -> int:
     table, method, spec = TARGETS[target]
+    spec = present_only(spec, table)
     api = MastrApi()
     used_before, _ = api.quota()
 

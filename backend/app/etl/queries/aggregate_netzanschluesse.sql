@@ -1,0 +1,273 @@
+CREATE SCHEMA IF NOT EXISTS mrt;
+
+DROP MATERIALIZED VIEW IF EXISTS mrt.netz_region_stats;
+DROP MATERIALIZED VIEW IF EXISTS mrt.netz_anschluesse;
+
+-- Netzanschlüsse der Stromerzeugung: the Netzanschlusspunkte of the Stromerzeugungslokationen (raw.grid_connection_points,
+-- Lokationtyp 1, from the bulk export), each in the place of its Lokation's units (every kind of generating unit). The
+-- largest power plants are published with their Land only (no Gemeindeschlüssel, postcode or coordinates): their points
+-- count for the Land, not for a Kreis or Gemeinde. A point is in operation while a unit of its Lokation is
+-- (EinheitBetriebsstatus 35); its power is that of those units (Nettonennleistung, else Bruttoleistung), a Lokation with
+-- several points splits it evenly among them. In planning: a point "noch in Planung" without a unit in operation. New:
+-- its first unit in operation for less than 12 months.
+-- Spannungsebenen, as Netzebenen 1–7 and grouped with the transformation below each voltage:
+--   hoechstspannung: Höchstspannung (348, Netzebene 1) and Umspannung Höchst-/Hochspannung (349, 2)
+--   hochspannung:    Hochspannung (350, 3) and Umspannung Hoch-/Mittelspannung (351, 4)
+--   mittelspannung:  Mittelspannung (352, 5) and Umspannung Mittel-/Niederspannung (353, 6)
+--   niederspannung:  Niederspannung (354, 7)
+
+-- The map: one row per Spannungsebene and region, like the Anlagenarten of solar (the API sums the ones chosen). Every
+-- row carries its region's whole area and population, so the values per km² and per inhabitant add up as well. Offshore
+-- (wind at sea) is a region of its own on every level.
+CREATE MATERIALIZED VIEW mrt.netz_region_stats AS
+WITH laender (code, land) AS (
+    -- The Länder of the units (Bundesland, MaStR codes) by their key, for the units without a Gemeinde
+    VALUES ('1400', '12'), ('1401', '11'), ('1402', '08'), ('1403', '09'), ('1404', '04'), ('1405', '06'), ('1406', '02'),
+        ('1407', '13'), ('1408', '03'), ('1409', '05'), ('1410', '07'), ('1411', '01'), ('1412', '10'), ('1413', '14'),
+        ('1414', '15'), ('1415', '16')
+),
+units AS (
+    SELECT "LokationMaStRNummer" AS lok, "Gemeindeschluessel" AS ags, "Bundesland" AS bundesland,
+        "EinheitBetriebsstatus" AS status, "Inbetriebnahmedatum" AS seit, COALESCE("Nettonennleistung", "Bruttoleistung") AS kw
+    FROM raw.solar_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'offshore' ELSE "Gemeindeschluessel" END,
+        "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum", COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.wind_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.water_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.storage_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.biomass_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.combustion_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.nuclear_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
+        COALESCE("Nettonennleistung", "Bruttoleistung")
+    FROM raw.geothermal_units
+),
+lokationen AS (
+    -- Per Lokation: its place (Gemeinde, else Land), the power in operation (kW) and since when
+    SELECT
+        u.lok,
+        min(u.ags) AS ags,
+        min(laender.land) AS land,
+        sum(u.kw) FILTER (WHERE u.status = '35') AS kw,
+        min(u.seit) FILTER (WHERE u.status = '35') AS seit,
+        COALESCE(bool_or(u.status = '35'), false) AS in_betrieb
+    FROM units u
+    LEFT JOIN laender ON laender.code = u.bundesland
+    WHERE u.lok IS NOT NULL
+    GROUP BY u.lok
+),
+punkte AS (
+    SELECT
+        l.ags,
+        COALESCE(LEFT(l.ags, 2), l.land) AS land,
+        CASE
+            WHEN p."Spannungsebene" IN ('348', '349') THEN 'hoechstspannung'
+            WHEN p."Spannungsebene" IN ('350', '351') THEN 'hochspannung'
+            WHEN p."Spannungsebene" IN ('352', '353') THEN 'mittelspannung'
+            WHEN p."Spannungsebene" = '354' THEN 'niederspannung'
+        END AS ebene,
+        l.in_betrieb,
+        l.kw / count(*) OVER (PARTITION BY p."LokationMaStRNummer") AS kw,
+        l.seit,
+        p."NochInPlanung" = '1' AS geplant
+    FROM raw.grid_connection_points p
+    JOIN lokationen l ON l.lok = p."LokationMaStRNummer"
+    WHERE p."Lokationtyp" = '1' AND (l.ags IS NOT NULL OR l.land IS NOT NULL)
+),
+gemeinde_netz_agg AS (
+    -- 1. Pre-aggregate to 1 row per Gemeinde (or the sea, or a Land for the points without a Gemeinde) and Spannungsebene
+    SELECT
+        ags,
+        land,
+        ebene,
+        count(*) FILTER (WHERE in_betrieb) AS total_units,
+        sum(kw) FILTER (WHERE in_betrieb) AS total_power,
+        count(*) FILTER (WHERE in_betrieb AND seit > CURRENT_DATE - INTERVAL '12 months') AS added_12m_units,
+        sum(kw) FILTER (WHERE in_betrieb AND seit > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power,
+        count(*) FILTER (WHERE NOT in_betrieb AND geplant) AS planned_units
+    FROM punkte
+    WHERE ebene IS NOT NULL
+    GROUP BY 1, 2, 3
+),
+joined AS (
+    -- 2. Every Gemeinde and the sea with every Spannungsebene: its area and population also without points. FULL JOIN:
+    --    points in a Gemeinde merged after the geodata (unknown key) still count for Landkreis and Bundesland.
+    SELECT
+        COALESCE(g.ags, n.ags) AS ags,
+        n.land,
+        COALESCE(g.ebene, n.ebene) AS ebene,
+        n.total_units,
+        n.total_power,
+        n.added_12m_units,
+        n.added_12m_power,
+        n.planned_units,
+        g.qkm,
+        g.einwohner
+    FROM (
+        SELECT ags, qkm, einwohner, ebene
+        FROM (
+            SELECT ags, qkm, einwohner FROM geo.gemeinden
+            UNION ALL
+            SELECT 'offshore', qkm, NULL FROM geo.offshore
+        ) areas
+        CROSS JOIN (VALUES ('hoechstspannung'), ('hochspannung'), ('mittelspannung'), ('niederspannung')) AS ebenen (ebene)
+    ) g
+    FULL JOIN gemeinde_netz_agg n ON n.ags = g.ags AND n.ebene = g.ebene
+),
+regions AS (
+    -- Without a Gemeinde: the Land, no Landkreis or Gemeinde (see the HAVING below)
+    SELECT
+        ebene,
+        CASE WHEN ags = 'offshore' THEN ags ELSE COALESCE(LEFT(ags, 2), land) END AS bundesland,
+        CASE WHEN ags = 'offshore' THEN ags ELSE LEFT(ags, 5) END AS landkreis,
+        ags AS gemeinde,
+        total_units,
+        total_power,
+        added_12m_units,
+        added_12m_power,
+        planned_units,
+        qkm,
+        einwohner
+    FROM joined
+)
+-- 3. Run the ROLLUP per Spannungsebene: Bundesland (first 2 digits of the key) > Landkreis (5) > Gemeinde (8)
+SELECT
+    ebene,
+    bundesland,
+    landkreis,
+    gemeinde,
+    COALESCE(SUM(total_units), 0) AS total_units,
+    CAST(COALESCE(SUM(total_power), 0) / 1000 AS NUMERIC(12,2)) AS total_power,  -- MW
+    CAST(COALESCE(SUM(total_units), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,2)) AS relative_area_units,  -- per km²
+    -- per 1,000 inhabitants
+    CAST(COALESCE(SUM(total_units), 0) * 1000.0 / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,1)) AS relative_population_units,
+    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power,  -- kW per km²
+    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power,  -- kW
+    COALESCE(SUM(added_12m_units), 0) AS added_12m_units,
+    CAST(COALESCE(SUM(added_12m_power), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_power,  -- MW
+    COALESCE(SUM(planned_units), 0) AS planned_units
+FROM regions
+GROUP BY ebene, ROLLUP (
+    bundesland,
+    landkreis,
+    gemeinde
+)
+-- The points of a Land without a Gemeinde are in the Land's row only, not in a Landkreis or Gemeinde row of their own
+HAVING NOT (GROUPING(landkreis) = 0 AND landkreis IS NULL) AND NOT (GROUPING(gemeinde) = 0 AND gemeinde IS NULL);
+
+-- The analyses (Spannungsebenen & Netzbetreiber): the points per Landkreis (or the sea; the Land's 2-digit key for those
+-- without a Gemeinde; NULL: abroad, for Deutschland only), Netzebene (the Spannungsebene's code, 348–354), main
+-- technology of the Lokation (the one with the most power, in operation if any), grid operator and its name
+-- (raw.grid_operators). The API sums them for Deutschland, a Land (its Kreise and itself, by prefix) or a Kreis.
+CREATE MATERIALIZED VIEW mrt.netz_anschluesse AS
+WITH laender (code, land) AS (
+    -- The Länder of the units (Bundesland, MaStR codes) by their key, for the units without a Gemeinde
+    VALUES ('1400', '12'), ('1401', '11'), ('1402', '08'), ('1403', '09'), ('1404', '04'), ('1405', '06'), ('1406', '02'),
+        ('1407', '13'), ('1408', '03'), ('1409', '05'), ('1410', '07'), ('1411', '01'), ('1412', '10'), ('1413', '14'),
+        ('1414', '15'), ('1415', '16')
+),
+units AS (
+    SELECT "LokationMaStRNummer" AS lok, "Gemeindeschluessel" AS ags, "Bundesland" AS bundesland,
+        "EinheitBetriebsstatus" AS status, COALESCE("Nettonennleistung", "Bruttoleistung") AS kw, 'solar' AS technologie
+    FROM raw.solar_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'offshore' ELSE "Gemeindeschluessel" END,
+        "Bundesland", "EinheitBetriebsstatus", COALESCE("Nettonennleistung", "Bruttoleistung"), 'wind'
+    FROM raw.wind_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"), 'wasser'
+    FROM raw.water_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"), 'speicher'
+    FROM raw.storage_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"), 'biomasse'
+    FROM raw.biomass_units
+    UNION ALL
+    -- Erdgas with the other gases and hydrogen (2410, 2411, 3030), Stein- and Braunkohle (2407, 2408); oil, waste, heat
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"),
+        CASE
+            WHEN "Energietraeger" IN ('2410', '2411', '3030') THEN 'erdgas'
+            WHEN "Energietraeger" IN ('2407', '2408') THEN 'kohle'
+            ELSE 'sonstige'
+        END
+    FROM raw.combustion_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"), 'sonstige'
+    FROM raw.nuclear_units
+    UNION ALL
+    SELECT "LokationMaStRNummer", "Gemeindeschluessel", "Bundesland", "EinheitBetriebsstatus",
+        COALESCE("Nettonennleistung", "Bruttoleistung"), 'sonstige'
+    FROM raw.geothermal_units
+),
+per_technologie AS (
+    SELECT u.lok, u.technologie, min(u.ags) AS ags, min(laender.land) AS land, sum(u.kw) FILTER (WHERE u.status = '35') AS kw,
+        bool_or(u.status = '35') AS in_betrieb, sum(u.kw) AS kw_alle
+    FROM units u
+    LEFT JOIN laender ON laender.code = u.bundesland
+    WHERE u.lok IS NOT NULL
+    GROUP BY u.lok, u.technologie
+),
+lokationen AS (
+    SELECT
+        lok,
+        min(ags) AS ags,
+        min(land) AS land,
+        sum(kw) AS kw,
+        COALESCE(bool_or(in_betrieb), false) AS in_betrieb,
+        (array_agg(technologie ORDER BY COALESCE(in_betrieb, false) DESC, kw DESC NULLS LAST, kw_alle DESC NULLS LAST))[1]
+            AS technologie
+    FROM per_technologie
+    GROUP BY lok
+),
+punkte AS (
+    SELECT
+        CASE WHEN l.ags = 'offshore' THEN l.ags ELSE COALESCE(LEFT(l.ags, 5), l.land) END AS landkreis,
+        p."Spannungsebene" AS spannungsebene,
+        l.technologie,
+        p."NetzbetreiberMaStRNummer" AS netzbetreiber,
+        l.in_betrieb,
+        l.kw / count(*) OVER (PARTITION BY p."LokationMaStRNummer") AS kw,
+        p."NochInPlanung" = '1' AS geplant
+    FROM raw.grid_connection_points p
+    JOIN lokationen l ON l.lok = p."LokationMaStRNummer"
+    WHERE p."Lokationtyp" = '1' AND p."Spannungsebene" IS NOT NULL
+)
+SELECT
+    p.landkreis COLLATE "C" AS landkreis,
+    p.spannungsebene,
+    p.technologie,
+    p.netzbetreiber,
+    o."Firmenname" AS netzbetreiber_name,
+    CAST(count(*) FILTER (WHERE p.in_betrieb) AS INTEGER) AS punkte,
+    CAST(COALESCE(sum(p.kw) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung,  -- MW
+    CAST(count(*) FILTER (WHERE NOT p.in_betrieb AND p.geplant) AS INTEGER) AS geplant
+FROM punkte p
+LEFT JOIN raw.grid_operators o ON o."MastrNummer" = p.netzbetreiber
+GROUP BY p.landkreis, p.spannungsebene, p.technologie, p.netzbetreiber, o."Firmenname"
+HAVING count(*) FILTER (WHERE p.in_betrieb OR p.geplant) > 0;
+
+-- One scope per request: Deutschland (all rows), a Land (its Kreise by prefix) or a Kreis
+CREATE INDEX ON mrt.netz_anschluesse (landkreis);

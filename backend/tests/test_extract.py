@@ -27,3 +27,19 @@ def test_export_file_to_csv(tmp_path):
     assert rows[0]["Gemeindeschluessel"] == "01001000"  # stays text, leading zero included
     assert rows[1]["Adresszusatz"] == "Zeile 1\r\nZeile 2"
     assert chunks[-1].columns[-1] == "Adresszusatz"  # a new field extends the columns
+
+
+def _has_gemeinde(unit: dict) -> bool:
+    return "Gemeindeschluessel" in unit
+
+
+def test_only_the_units_kept(tmp_path):
+    """keep: which units go into the table (the Marktakteure: only the grid operators)."""
+    xml_file = tmp_path / "EinheitenWind.xml"
+    xml_file.write_bytes(EXPORT_FILE.encode("utf-16"))
+
+    chunks = to_chunks(xml_file, keep=_has_gemeinde)
+    rows = [dict(zip(chunk.columns, row)) for chunk in chunks for row in csv.reader(io.StringIO(chunk.csv.decode()))]
+
+    assert [row["EinheitMastrNummer"] for row in rows] == ["SEE1"]
+    assert "Adresszusatz" not in chunks[-1].columns  # only the kept units' fields

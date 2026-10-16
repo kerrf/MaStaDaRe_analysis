@@ -33,14 +33,49 @@ EXPORT_FILES = {
     "gas_storage_plants": "AnlagenGasSpeicher",
     "gas_storage_units": "EinheitenGasSpeicher",
     "gas_producer_units": "EinheitenGasErzeuger",
+    # The other units, for now only to place the Netzanschlusspunkte of their Lokationen (not kept current by the nightly
+    # update either): power plants burning fuels, biomass, nuclear, geothermal (with mine gas and pressure relief), and
+    # the large consumers of power and gas
+    "nuclear_units": "EinheitenKernkraft",
+    "geothermal_units": "EinheitenGeothermieGrubengasDruckentspannung",
+    "consumer_units": "EinheitenStromVerbraucher",
+    "gas_consumer_units": "EinheitenGasverbraucher",
+    "biomass_units": "EinheitenBiomasse",
+    "combustion_units": "EinheitenVerbrennung",
     "wind_units": "EinheitenWind",
     "water_units": "EinheitenWasser",
     "storage_units": "EinheitenStromSpeicher",
     "storage_plants": "AnlagenStromSpeicher",  # the Speicheranlagen of the storage units, with their capacity (kWh)
     "solar_units": "EinheitenSolar",
+    # The grid connections (Netzanschlüsse): the grids (Netze) and their operators (of the Marktakteure only the grid
+    # operators, see ROW_FILTERS); the Lokationen, each with its units and Netzanschlusspunkte; the Netzanschlusspunkte:
+    # which grid a Lokation is connected to, by which operator, at which voltage level and with which
+    # Nettoengpassleistung. Not kept current by the nightly update: they stay at the state of the export.
+    "grids": "Netze",
+    "grid_operators": "Marktakteure",
+    "locations": "Lokationen",
+    "grid_connection_points": "Netzanschlusspunkte",
 }
-# Anlagen are identified by their own MaStR number; every other raw table holds units (EinheitMastrNummer)
-PRIMARY_KEYS = {"storage_plants": "MaStRNummer", "gas_storage_plants": "MaStRNummer"}
+# Anlagen, grids, market actors and Lokationen are identified by their own MaStR number, the Netzanschlusspunkte by
+# theirs; every other raw table holds units (EinheitMastrNummer)
+PRIMARY_KEYS = {
+    "storage_plants": "MaStRNummer",
+    "gas_storage_plants": "MaStRNummer",
+    "grids": "MastrNummer",
+    "grid_operators": "MastrNummer",
+    "locations": "MastrNummer",
+    "grid_connection_points": "NetzanschlusspunktMastrNummer",
+}
+
+
+def is_grid_operator(actor: dict) -> bool:
+    """Of the Marktakteure only the grid operators (Marktfunktion 1: Stromnetzbetreiber, 8: Gasnetzbetreiber) – the
+    millions of others are mostly plant operators, private persons without a name in the export."""
+    return actor.get("Marktfunktion") in ("1", "8")
+
+
+# raw table -> which rows of its export files it takes (default: all)
+ROW_FILTERS = {"grid_operators": is_grid_operator}
 
 RAW_SCHEMA = "raw"
 
@@ -71,9 +106,15 @@ NUMERIC_COLUMNS = [
     "MaximaleEinspeicherleistung",  # kWh/h
     "MaximaleAusspeicherleistung",  # kWh/h
     "DurchschnittlicherBrennwert",  # kWh/m³
+    # grid connection points
+    "Nettoengpassleistung",  # kW
+    "MaximaleEinspeiseleistung",  # gas, kWh/h
+    "MaximaleAusspeiseleistung",  # gas, kWh/h
+    "Netzanschlusskapazitaet",  # gas, kWh/h
 ]
 DATE_COLUMNS = ["Registrierungsdatum", "Inbetriebnahmedatum"]
-DATETIME_COLUMNS = ["DatumLetzteAktualisierung"]
+# DatumLetzeAktualisierung (sic): the Marktakteure's; LetzteAenderung: the Netzanschlusspunkte's
+DATETIME_COLUMNS = ["DatumLetzteAktualisierung", "DatumLetzeAktualisierung", "LetzteAenderung"]
 
 
 # TODO: rename, col plz text
@@ -120,7 +161,7 @@ def migrate_all_files(directory_path: Path, file_prefix: str, table_name: str, e
         known_columns = prepare_table(conn, table_name)
         loaded_columns: set[str] = set()
 
-        for i, (xml_file, chunks) in enumerate(parse_files(xml_files), start=1):
+        for i, (xml_file, chunks) in enumerate(parse_files(xml_files, ROW_FILTERS.get(table_name)), start=1):
             file_columns = chunks[-1].columns if chunks else ()  # columns only grow within a file
             add_columns(conn, table_name, [column for column in file_columns if column not in known_columns])
             known_columns.update(file_columns)

@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.db.database import engine
-from app.routers import battery, gas, meta, pumped_storage, regions, solar, water, wind, zubau
+from app.routers import battery, gas, meta, netz, pumped_storage, regions, solar, water, wind, zubau
 
 app = FastAPI(
     title="Get Data from Marktstammdatenregister",
@@ -22,6 +22,7 @@ app.include_router(battery.router)
 app.include_router(pumped_storage.router)
 app.include_router(gas.router)
 app.include_router(zubau.router)
+app.include_router(netz.router)
 app.include_router(regions.router)
 app.include_router(meta.router)
 

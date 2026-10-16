@@ -397,7 +397,12 @@ the deploy (section 10).
 ## 12. Push the local database to the server
 
 For new **data**, not for views (those come with the deploy, section 10):
-after loading a new bulk export locally, or new tables such as the gas ones.
+after loading a new bulk export locally, or new tables such as the gas ones,
+or the Netzanschlüsse (`raw.grid_connection_points`, `raw.locations`,
+`raw.grids`, `raw.grid_operators` and the other unit tables:
+`raw.biomass_units`, `raw.combustion_units`, …). Push **before** deploying a
+version whose views read new tables: the deploy builds its views on the
+server, and a view can't be built from a table that isn't there yet.
 
 ```bash
 ./deploy/push_db.sh

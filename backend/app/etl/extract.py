@@ -12,7 +12,7 @@ import csv
 import io
 import multiprocessing
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from dataclasses import dataclass
 from itertools import islice
@@ -107,10 +107,12 @@ class _ChunkWriter:
             self._start_chunk()
 
 
-def to_chunks(xml_file: Path) -> list[Chunk]:
-    """One export file as CSV chunks, ready for COPY."""
+def to_chunks(xml_file: Path, keep: Callable[[dict], bool] | None = None) -> list[Chunk]:
+    """One export file as CSV chunks, ready for COPY. keep: which units to take (default: all)."""
     writer = _ChunkWriter()
     for unit in read_units(xml_file):
+        if keep and not keep(unit):
+            continue
         for field in TIMESTAMPS:
             if field in unit:
                 unit[field] = unit[field][:MICROSECONDS]
@@ -118,21 +120,24 @@ def to_chunks(xml_file: Path) -> list[Chunk]:
     return writer.finish()
 
 
-def parse_files(xml_files: list[Path]) -> Iterator[tuple[Path, list[Chunk]]]:
+def parse_files(
+    xml_files: list[Path], keep: Callable[[dict], bool] | None = None
+) -> Iterator[tuple[Path, list[Chunk]]]:
     """Parse the files in parallel and yield (file, chunks) as soon as each one is done.
 
     Twice as many files as workers are in flight: every worker finds its next file waiting, and memory stays
     bounded even if the consumer is the slow part.
     The worker processes start fresh ("forkserver") instead of copying the caller, who holds an open database connection.
+    keep: which units to take (default: all), a function at module level, so the workers can import it.
     """
     remaining = iter(xml_files)
     with ProcessPoolExecutor(WORKERS, mp_context=multiprocessing.get_context("forkserver")) as pool:
-        running = {pool.submit(to_chunks, file): file for file in islice(remaining, 2 * WORKERS)}
+        running = {pool.submit(to_chunks, file, keep): file for file in islice(remaining, 2 * WORKERS)}
         while running:
             done, _ = wait(running, return_when=FIRST_COMPLETED)
             for future in done:
                 xml_file = running.pop(future)
                 next_file = next(remaining, None)
                 if next_file:
-                    running[pool.submit(to_chunks, next_file)] = next_file
+                    running[pool.submit(to_chunks, next_file, keep)] = next_file
                 yield xml_file, future.result()

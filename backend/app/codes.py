@@ -6,8 +6,11 @@ the decoded value (e.g. "Gebaeudesolaranlage"). Every catalog below maps ID -> e
 returns, so rows from the bulk export and rows fetched via the API end up identical in the database.
 Comments give the official German label where the value alone isn't clear.
 
-Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|water|storage|gas_producer|gas_storage]
-Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, WATER, STORAGE, GAS_PRODUCER, GAS_STORAGE)
+Verify against the live API (from backend/):  uv run python -m app.etl.verify_codes [solar|wind|water|storage|gas_producer|
+                                               gas_storage|biomass|combustion|nuclear|geothermal|consumer|gas_consumer]
+Decode a DataFrame from the export:            decode(df, SOLAR)  (or WIND, WATER, STORAGE, GAS_PRODUCER, GAS_STORAGE,
+                                               BIOMASS, COMBUSTION, NUCLEAR, GEOTHERMAL, CONSUMER, GAS_CONSUMER,
+                                               GRID_CONNECTION_POINT, LOCATION, GRID, GRID_OPERATOR)
 
 Bruttoleistung = installierte Leistung: Stromertrag bei optimalem Betrieb
 Nettonennleistung:  Minimum aus Bruttoleistung und Wechselrichter-Wirkleistung
@@ -50,6 +53,7 @@ LAND = {
     198: "Niederlande",
     206: "Oesterreich",
     215: "Polen",  # inferred, not verifiable: the only 2 units with this code were corrected to Deutschland
+    230: "Schweden",  # a grid operator's (verified with GetMarktakteur, 2026-10-16)
     231: "Schweiz",
 }
 
@@ -74,10 +78,28 @@ BUNDESLAND = {
 }
 
 ENERGIETRAEGER = {
+    # geothermal, mine gas and pressure relief units (EinheitenGeothermieGrubengasDruckentspannung)
+    2403: "Geothermie",
+    2404: "Solarthermie",
+    2405: "Klaerschlamm",
+    2406: "Grubengas",
+    # combustion units
+    2407: "Steinkohle",
+    2408: "Braunkohle",
+    2409: "Mineraloelprodukte",
+    2410: "Erdgas",
+    2411: "AndereGase",
+    2412: "NichtBiogenerAbfall",
+    2413: "Waerme",
+    2493: "Biomasse",
+    2494: "Kernenergie",
     2495: "SolareStrahlungsenergie",
-    2496: "Speicher",
+    2496: "Speicher",  # also a few combustion units
     2497: "Wind",
     2498: "Wasser",
+    2957: "DruckAusGasleitungen",
+    2958: "DruckAusWasserleitungen",
+    3030: "Wasserstoff",  # combustion units
 }
 
 EINSPEISUNGSART = {
@@ -408,10 +430,28 @@ AC_DC_KOPPELUNG = {
     694: "DCgekoppeltesSystem",
 }
 
-EINSATZORT = {  # only filled for a few dozen units
+EINSATZORT = {  # storage units (only a few dozen) and combustion units (about 1,700, mostly emergency generators)
+    733: "Flughafen",
+    734: "Krankenhaus",
+    735: "Veranstaltungsgebaeude",
+    736: "Rechenzentrum",
     737: "Industrie",
+    738: "Bahn",
+    739: "Bank",
+    741: "Hochhaus",
+    742: "Kaufhaus",
     743: "Kraftwerke",
+    744: "KulturMesse",  # Kultur und Messe
+    746: "MilitaerPolizeiJustiz",  # Militär, Polizei und Justiz
     748: "WasserKlaerwerke",  # Wasser- und Klärwerke
+    750: "Versicherungen",
+    751: "Verlagshaeuser",
+    753: "Telekommunikationsbranche",
+    754: "Sportstaetten",
+    755: "Sendeanstalten",
+    1531: "AltenPflegeheime",  # Alten-/Pflegeheime
+    1532: "Bergbau",
+    1533: "Logistikzentren",  # Logistikzentren (z.B. Kühlhäuser)
     2399: "Haushalt",
     2400: "Sonstige",
 }
@@ -435,6 +475,335 @@ GASSPEICHERART = {
     658: "Kavernenspeicher",
     659: "Porenspeicher",
     660: "Aquiferspeicher",
+}
+
+
+# ============================================================ biomass, combustion, nuclear, geothermal (verified with their units, 2026-10-16)
+
+BIOMASSEART = {
+    719: "FluessigeBiomasse",
+    720: "FesteBiomasse",
+    721: "GasfoermigeBiomasse",
+}
+
+# The fuels: Hauptbrennstoff of biomass and combustion units, WeitererHauptbrennstoff and WeitereBrennstoffe (several
+# per unit) of combustion units. The API has an enum for each, with the same value for the same code.
+BRENNSTOFF = {
+    # feste Biomasse
+    2414: "FesteBiogeneStoffeUndAbfaelleOhneHolz",
+    2415: "AltholzGebrauchtholzHolzmuell",  # Altholz, Gebrauchtholz, Holz(sperr)müll
+    2416: "TierUndBlutmehl",
+    2418: "BrennlaugeSchwarzlaugeSulfitablauge",
+    2419: "FesteBiogeneStoffe",
+    2421: "WaldHolzhackschnitzelWaldScheitholzWaldKronenholz",
+    2422: "Holzreste",  # z.B. aus Schreinereien, auch Spanholz
+    2423: "HolzspaeneSaegemehl",
+    2424: "RindeLandschaftspflegeholz",
+    2425: "PelletsHolz",  # Holz-Pellets, Holz-Briketts
+    2431: "StrohStrohpellets",
+    2433: "Tierfett",
+    3031: "EnergiepflanzenZurVerbrennung",  # z.B. Kurzumtriebs-Holz
+    3034: "WaldStammholzRundholz",
+    # flüssige Biomasse
+    2436: "FluessigeBiogeneStoffeUndAbfaelle",
+    2437: "Biodiesel",
+    2438: "Biomethanol",
+    2440: "Harzoel",
+    2442: "PalmoelPflanzenoel",  # Palmöl u.a. Pflanzenöle
+    2444: "Terpentin",
+    # gasförmige Biomasse
+    2445: "Biogas",
+    2446: "BiomethanBioerdgas",
+    2447: "Deponiegas",
+    2448: "Klaergas",
+    3032: "HolzgasGasBiomasse",
+    # coal
+    2457: "Steinkohlen",
+    2460: "Braunkohlenbriketts",
+    2461: "Braunkohlenkoks",
+    2462: "Hartbraunkohlen",
+    2463: "Rohbraunkohlen",
+    2464: "StaubUndTrockenkohle",
+    2465: "Wirbelschichtkohle",
+    # Mineralölprodukte
+    2466: "Dieselkraftstoff",
+    2467: "HeizoelLeicht",
+    2468: "HeizoelSchwer",
+    2469: "Fluessiggas",
+    2470: "Petrolkoks",
+    2471: "Raffineriegas",
+    2472: "AndereMineraloelprodukte",
+    # gases
+    2473: "ErdgasErdoelgas",
+    2474: "GrubengasVerbrennung",  # Grubengas
+    2475: "HochofengasKonvertergas",
+    2476: "Kokereigas",
+    2477: "AndereGase",
+    2478: "SonstigeHergestellteGase",
+    3035: "Wasserstoff",
+    # nicht biogener Abfall, Wärme
+    2479: "Industrieabfall",
+    2480: "AbfallHausmuellSiedlungsabfaelle",  # Abfall (Hausmüll, Siedlungsabfälle)
+    2481: "Dampf",  # zum Beispiel Prozesswärme
+    2483: "Waerme",
+}
+
+# Technologie of combustion, biomass and geothermal units
+VERBRENNUNG_TECHNOLOGIE = {
+    542: "Verbrennungsmotor",
+    543: "Brennstoffzelle",
+    544: "Stirlingmotor",
+    545: "Dampfmotor",
+    546: "ORCOrganicRankineCycleAnlage",
+    833: "GegendruckmaschinemitEntnahme",
+    834: "GegendruckmaschineohneEntnahme",
+    835: "GasturbinenohneAbhitzekessel",
+    836: "GasturbinenmitAbhitzekessel",
+    837: "GasturbinenmitnachgeschalteterDampfturbine",
+    838: "KondensationsmaschinemitEntnahme",
+    839: "KondensationsmaschineohneEntnahme",
+    840: "Sonstige",
+    1538: "KalinaCycle",
+}
+
+KERNKRAFT_TECHNOLOGIE = {
+    1444: "Druckwasserreaktor",  # the six units in the export, all finally decommissioned
+}
+
+
+# ============================================================ grid connections, grids and their operators (2026-10-16)
+# Verified with the Lokationen of a few Netzanschlusspunkte per code (GetLokationStromErzeuger, -StromVerbraucher,
+# -GasErzeuger, -GasVerbraucher) and with the grid operators (GetMarktakteur), unless a comment says otherwise.
+
+# Lokationstypen.xml; the API's LokationTypEnum (it has a call per type, the answers don't name it)
+LOKATIONTYP = {
+    1: "Stromerzeugungslokation",
+    2: "Stromverbrauchslokation",
+    3: "Gaserzeugungslokation",
+    4: "Gasverbrauchslokation",
+}
+
+# The Netzebenen 1-7: each voltage and the transformation to the one below
+SPANNUNGSEBENE = {
+    348: "Hoechstspannung",
+    349: "UmspannungZurHochspannung",  # Umspannebene Höchstspannung/Hochspannung
+    350: "Hochspannung",
+    351: "UmspannungZurMittelspannung",  # Umspannebene Hochspannung/Mittelspannung
+    352: "Mittelspannung",
+    353: "UmspannungZurNiederspannung",  # Umspannebene Mittelspannung/Niederspannung
+    354: "Niederspannung",  # Hausanschluss, Haushaltsstrom
+}
+
+# The API's RegelzoneEnum, by its labels: the answers of the Lokationen don't name a point's Regelzone
+REGELZONE = {
+    1000001: "FuenfzigHertz",  # 50Hertz
+    1000010: "Amprion",
+    1001564: "Tennet",  # TenneT
+    1001572: "TransnetBW",
+}
+
+GASQUALITAET = {
+    766: "LGas",
+    767: "HGas",
+}
+
+# A grid's Sparte and Marktgebiet: not in the API's answers, the values of its enum (SparteEnum) and the export's names
+SPARTE = {
+    20: "Strom",
+    21: "Gas",
+}
+
+MARKTGEBIET = {
+    1536: "Beide",
+    1001666: "NetConnect Germany",
+    1001667: "Trading Hub Europe",
+}
+
+PERSONENART = {
+    517: "Organisation",  # Unternehmen, Personengesellschaft, juristische Person, Behörde, Verband
+    518: "NatuerlichePersonOderOrganisationMitPersonenbezug",  # z. B. Eheleute, Erbengemeinschaft; by the API's enum
+}
+
+# Marktfunktionen.xml; the grid operators are 1 and 8, the others by the order of the API's MarktfunktionEnum
+MARKTFUNKTION = {
+    1: "Stromnetzbetreiber",
+    2: "Anlagenbetreiber",
+    3: "AkteurImStrommarkt",
+    4: "OrganisierteMarktplaetze",  # Organisierter Marktplatz
+    5: "Behoerden",  # Behörde, Verband, Institution
+    6: "SonstigeMarktakteure",
+    7: "Bundesnetzagentur",
+    8: "Gasnetzbetreiber",
+    9: "AkteurImGasmarkt",
+    10: "Supportpartner",
+}
+
+# The Länder of market actors and grids: other codes than the units' (BUNDESLAND), the same values
+BUNDESLAND_MARKTAKTEUR = {
+    332: "Brandenburg",
+    333: "Berlin",
+    334: "BadenWuerttemberg",
+    335: "Bayern",
+    336: "Bremen",
+    337: "Hessen",
+    338: "Hamburg",
+    339: "MecklenburgVorpommern",
+    340: "Niedersachsen",
+    341: "NordrheinWestfalen",
+    342: "RheinlandPfalz",
+    343: "SchleswigHolstein",
+    344: "Saarland",
+    345: "Sachsen",
+    346: "SachsenAnhalt",
+    347: "Thueringen",
+}
+
+# PR, VR and GsR (Partnerschafts-, Vereins-, Gesellschaftsregister) by the API's enum, not in the data
+REGISTERNUMMER_PRAEFIX = {
+    1003: "HRA",
+    1004: "HRB",
+    1005: "GnR",
+    1006: "PR",
+    1007: "VR",
+    3101: "GsR",
+}
+
+# The API returns the name, not an enum value (like the Hersteller). Only those that appear in the data.
+RECHTSFORM = {
+    408: "AB",
+    409: "AG",
+    411: "Anstalt des öffentlichen Rechts",
+    423: "eG",
+    424: "e.K.",
+    426: "Eigenbetrieb",
+    427: "Einzelunternehmen",
+    429: "GmbH",
+    430: "GmbH & Co. KG",
+    432: "GmbH & Co. oHG",
+    438: "KG",
+    440: "Körperschaft des öffentlichen Rechts",
+    443: "oHG",
+    465: "Sonstige",
+}
+
+# The court of the commercial register; like the Rechtsform the API returns its name. Only those in the data.
+REGISTERGERICHT = {
+    1008: "Freiburg im Breisgau",
+    1009: "Mannheim",
+    1010: "Stuttgart",
+    1011: "Ulm",
+    1012: "Amberg",
+    1013: "Ansbach",
+    1014: "Aschaffenburg",
+    1015: "Augsburg",
+    1016: "Bamberg",
+    1017: "Bayreuth",
+    1018: "Coburg",
+    1019: "Deggendorf",
+    1020: "Fürth",
+    1021: "Hof",
+    1022: "Ingolstadt",
+    1023: "Kempten (Allgäu)",
+    1024: "Landshut",
+    1025: "Memmingen",
+    1026: "München",
+    1027: "Nürnberg",
+    1028: "Passau",
+    1029: "Regensburg",
+    1030: "Schweinfurt",
+    1031: "Straubing",
+    1032: "Traunstein",
+    1033: "Weiden in der Oberpfalz",
+    1034: "Würzburg",
+    1035: "Berlin (Charlottenburg)",
+    1036: "Cottbus",
+    1037: "Frankfurt/Oder",
+    1038: "Neuruppin",
+    1039: "Potsdam",
+    1040: "Bremen",
+    1041: "Hamburg",
+    1042: "Bad Hersfeld",
+    1043: "Bad Homburg vor der Höhe",
+    1044: "Darmstadt",
+    1045: "Eschwege",
+    1046: "Frankfurt am Main",
+    1047: "Friedberg (Hessen)",
+    1048: "Fritzlar",
+    1049: "Fulda",
+    1050: "Gießen",
+    1051: "Hanau",
+    1052: "Kassel",
+    1054: "Korbach",
+    1055: "Limburg",
+    1056: "Marburg",
+    1057: "Offenbach am Main",
+    1058: "Wetzlar",
+    1059: "Wiesbaden",
+    1060: "Neubrandenburg",
+    1061: "Rostock",
+    1062: "Schwerin",
+    1063: "Stralsund",
+    1064: "Aurich",
+    1065: "Braunschweig",
+    1066: "Göttingen",
+    1067: "Hannover",
+    1068: "Hildesheim",
+    1069: "Lüneburg",
+    1070: "Oldenburg",
+    1071: "Osnabrück",
+    1072: "Stadthagen",
+    1073: "Tostedt",
+    1074: "Walsrode",
+    1075: "Aachen",
+    1076: "Arnsberg",
+    1077: "Bad Oeynhausen",
+    1078: "Bielefeld",
+    1079: "Bochum",
+    1080: "Bonn",
+    1081: "Coesfeld",
+    1082: "Dortmund",
+    1083: "Düren",
+    1084: "Düsseldorf",
+    1085: "Duisburg",
+    1086: "Essen",
+    1087: "Gelsenkirchen",
+    1088: "Gütersloh",
+    1089: "Hagen",
+    1090: "Hamm",
+    1091: "Iserlohn",
+    1092: "Kleve",
+    1093: "Köln",
+    1094: "Krefeld",
+    1095: "Lemgo",
+    1097: "Münster",
+    1098: "Neuss",
+    1099: "Paderborn",
+    1100: "Recklinghausen",
+    1101: "Siegburg",
+    1102: "Siegen",
+    1103: "Steinfurt",
+    1104: "Wuppertal",
+    1105: "Bad Kreuznach",
+    1106: "Kaiserslautern",
+    1107: "Koblenz",
+    1108: "Landau",
+    1109: "Ludwigshafen am Rhein",
+    1110: "Mainz",
+    1111: "Montabaur",
+    1112: "Wittlich",
+    1113: "Zweibrücken",
+    1114: "Saarbrücken",
+    1115: "Chemnitz",
+    1116: "Dresden",
+    1117: "Leipzig",
+    1118: "Stendal",
+    1119: "Flensburg",
+    1120: "Kiel",
+    1121: "Lübeck",
+    1122: "Pinneberg",
+    1123: "Jena",
+    1355: "Erfurt",
+    1356: "Gera",
 }
 
 
@@ -651,6 +1020,149 @@ GAS_STORAGE_PLANT = CodeSpec(
 )
 
 
+# The other power units, for now only in the database to place the Netzanschlusspunkte of their Lokationen (no nightly
+# update). Biomass, combustion and geothermal units share the technologies of combustion plants. The export's
+# AnschlussAnHoechstOderHochSpannung is not in the API's answers.
+GENERATION_NOT_IN_API = (*GENERAL_NOT_IN_API, "AnschlussAnHoechstOderHochSpannung")
+
+BIOMASS = CodeSpec(
+    columns={
+        **GENERAL,
+        "Hauptbrennstoff": BRENNSTOFF,
+        "Biomasseart": BIOMASSEART,
+        "Technologie": VERBRENNUNG_TECHNOLOGIE,
+    },
+    booleans=(
+        *GENERAL_BOOLEANS,
+        "AnschlussAnHoechstOderHochSpannung",
+        "NetzreserveZugeordnet",
+        "KapazitaetsreserveZugeordnet",
+    ),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERATION_NOT_IN_API,
+    dates_with_time=GENERAL_DATES_WITH_TIME,
+)
+
+COMBUSTION = CodeSpec(
+    columns={
+        **GENERAL,
+        "Hauptbrennstoff": BRENNSTOFF,
+        "WeitererHauptbrennstoff": BRENNSTOFF,
+        "WeitereBrennstoffe": BRENNSTOFF,
+        "Technologie": VERBRENNUNG_TECHNOLOGIE,
+        "Einsatzort": EINSATZORT,
+    },
+    multi=frozenset({"WeitereBrennstoffe"}),
+    booleans=(
+        *GENERAL_BOOLEANS,
+        "AnschlussAnHoechstOderHochSpannung",
+        "AnlageIstImKombibetrieb",
+        "AusschliesslicheVerwendungImKombibetrieb",
+        "BestandteilGrenzkraftwerk",
+        "Notstromaggregat",
+        "NetzreserveZugeordnet",
+        "KapazitaetsreserveZugeordnet",
+    ),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERATION_NOT_IN_API,
+    dates_with_time=(*GENERAL_DATES_WITH_TIME, "DatumNetzreserve", "DatumKapazitaetsreserve"),
+)
+
+NUCLEAR = CodeSpec(
+    columns={**GENERAL, "Technologie": KERNKRAFT_TECHNOLOGIE},
+    booleans=(*GENERAL_BOOLEANS, "AnschlussAnHoechstOderHochSpannung"),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERATION_NOT_IN_API,
+    dates_with_time=GENERAL_DATES_WITH_TIME,
+)
+
+# Geothermie, Solarthermie, Grubengas, Klärschlamm and Druckentspannung (EinheitenGeothermieGrubengasDruckentspannung)
+GEOTHERMAL = CodeSpec(
+    columns={**GENERAL, "Technologie": VERBRENNUNG_TECHNOLOGIE},
+    booleans=(
+        *GENERAL_BOOLEANS,
+        "AnschlussAnHoechstOderHochSpannung",
+        "NetzreserveZugeordnet",
+        "KapazitaetsreserveZugeordnet",
+    ),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERATION_NOT_IN_API,
+    dates_with_time=GENERAL_DATES_WITH_TIME,
+)
+
+# The large consumers of power and of gas: the general fields, without those about generation
+CONSUMER = CodeSpec(
+    columns=GAS_GENERAL,
+    booleans=GAS_BOOLEANS,
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERAL_NOT_IN_API,
+)
+
+GAS_CONSUMER = CodeSpec(
+    columns=GAS_GENERAL,
+    booleans=(*GAS_BOOLEANS, "EinheitDientDerStromerzeugung"),
+    api_names=GENERAL_API_NAMES,
+    not_in_api=GENERAL_NOT_IN_API,
+)
+
+# The Netzanschlusspunkte (Netzanschlusspunkte.xml): in the API a list in the answer of their Lokation, without its type,
+# grid and Regelzone. Like the following, from the bulk export only (no nightly update).
+GRID_CONNECTION_POINT = CodeSpec(
+    columns={
+        "Lokationtyp": LOKATIONTYP,
+        "Spannungsebene": SPANNUNGSEBENE,
+        "RegelzoneNetzanschlusspunkt": REGELZONE,
+        "Gasqualitaet": GASQUALITAET,
+    },
+    booleans=("NochInPlanung",),
+    api_names={
+        "NochInPlanung": "GeplanterNetzanschlusspunkt",
+        "LetzteAenderung": "letzteAenderung",
+        "NetzbetreiberMaStRNummer": "NetzbetreiberMastrNummer",
+        "BilanzierungsgebietNetzanschlusspunktId": "BilanzierungsgebietNetzanschlusspunkt",
+    },
+    not_in_api=("Lokationtyp", "RegelzoneNetzanschlusspunkt", "NetzMaStRNummer", "LokationMaStRNummer"),
+)
+
+# The Lokationen (Lokationen.xml): their units and Netzanschlusspunkte as numbers, not codes ("SEE…, SEE…")
+LOCATION = CodeSpec(columns={"Lokationtyp": LOKATIONTYP}, not_in_api=("Lokationtyp",))
+
+# The grids (Netze.xml): in the API the "Netz" of their operator (GetMarktakteur), with its Länder as a list
+GRID = CodeSpec(
+    columns={"Sparte": SPARTE, "Bundesland": BUNDESLAND_MARKTAKTEUR, "Marktgebiet": MARKTGEBIET},
+    multi=frozenset({"Bundesland"}),
+    booleans=("KundenAngeschlossen", "GeschlossenesVerteilnetz"),
+    api_names={
+        "Bundesland": "Bundeslaender",
+        "KundenAngeschlossen": "MehrAls100000Kunden",
+        "GeschlossenesVerteilnetz": "GeschlossenesVerteilernetz",
+    },
+    not_in_api=("Sparte", "Marktgebiet"),
+)
+
+# The grid operators (Marktakteure.xml, only Marktfunktion 1 and 8: db_migrate.ROW_FILTERS)
+GRID_OPERATOR = CodeSpec(
+    columns={
+        "Personenart": PERSONENART,
+        "Marktfunktion": MARKTFUNKTION,
+        "Rechtsform": RECHTSFORM,
+        "Land": LAND,
+        "Bundesland": BUNDESLAND_MARKTAKTEUR,
+        "Registergericht": REGISTERGERICHT,
+        "RegisternummerPraefix": REGISTERNUMMER_PRAEFIX,
+        "LandAnZustelladresse": LAND,
+    },
+    api_names={
+        "LandAnZustelladresse": "ZustellLand",
+        "PostleitzahlAnZustelladresse": "ZustellPostleitzahl",
+        "OrtAnZustelladresse": "ZustellOrt",
+        "StrasseAnZustelladresse": "ZustellStrasse",
+        "HausnummerAnZustelladresse": "ZustellHausnummer",
+        "AdresszusatzAnZustelladresse": "ZustellAdresszusatz",
+    },
+)
+
+
 # ============================================================ decoding
 
 
@@ -680,6 +1192,8 @@ def decode(df: pd.DataFrame, spec: CodeSpec = SOLAR) -> pd.DataFrame:
 def _decode_list(raw, catalog: dict[int, str], column: str) -> str | None:
     values = []
     for part in str(raw).split(","):
+        if not part.strip():  # a few lists end with a comma in the export (the Länder of a grid: "332, …, 345, ")
+            continue
         code = int(float(part))
         if code in catalog:
             values.append(catalog[code])
@@ -706,11 +1220,12 @@ def encode(unit: dict, spec: CodeSpec) -> dict[str, str | None]:
         column = spec.export_name(api_field)
         if column in spec.not_in_api:
             continue
-        # Hausnummer = {"Wert": "12a", "NichtVorhanden": False}
+        # Hausnummer = {"Wert": "12a", "NichtVorhanden": False}; the further fuels of combustion units come so too, their
+        # value a catalog's ("ErdgasErdoelgas", "None" for none) or a list of them: it goes on like any other value
         if isinstance(value, dict) and "NichtVorhanden" in value:
-            row[column] = value["Wert"]
             row[spec.not_available_flag(column)] = _to_text(value["NichtVorhanden"])
-        elif isinstance(value, dict):  # catalog entry, e.g. Hersteller = {"Id": 1586, "Wert": "ENERCON GmbH"}
+            value = None if value["Wert"] == "None" else value["Wert"]
+        if isinstance(value, dict):  # catalog entry, e.g. Hersteller = {"Id": 1586, "Wert": "ENERCON GmbH"}
             row[column] = str(value["Id"]) if value["Wert"] is not None else None
         elif column in spec.multi and isinstance(value, list):
             codes = [_to_code(column, v, spec) for v in value]

@@ -77,3 +77,18 @@ class BatteryRegionStats(RegionStats, Base):
     relative_area_capacity = Column(Float)  # kWh per km²
     relative_population_capacity = Column(Float)  # kWh per inhabitant
     added_12m_capacity = Column(Float)  # usable capacity that went into operation in the last 12 months, MWh
+
+
+class NetzRegionStats(RegionStats, Base):
+    """Netzanschlusspunkte der Stromerzeugung per Spannungsebene (hoechstspannung, hochspannung, mittelspannung,
+    niederspannung) and region (etl/queries/aggregate_netzanschluesse.sql): total_units counts the points in operation,
+    total_power is the power of their units (MW); the plants published with their Land only count in its row."""
+
+    __tablename__ = "netz_region_stats"
+    __table_args__ = {"schema": "mrt"}
+
+    ebene = Column(String, primary_key=True)
+    relative_area_units = Column(Float)  # points per km²
+    relative_population_units = Column(Float)  # points per 1,000 inhabitants
+    added_12m_units = Column(Integer)  # points whose first unit went into operation in the last 12 months
+    planned_units = Column(Integer)  # points "noch in Planung" without a unit in operation

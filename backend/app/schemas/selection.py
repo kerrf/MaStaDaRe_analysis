@@ -42,3 +42,20 @@ def wind_lage(
 ) -> tuple[str, ...]:
     """The chosen Lagen of wind: the views have one row per Lage (offshore wind is the region "offshore")."""
     return tuple(lage or get_args(Lage))
+
+
+Spannungsebene = Literal["hoechstspannung", "hochspannung", "mittelspannung", "niederspannung"]
+
+
+def netz_ebenen(
+    spannung: Annotated[
+        list[Spannungsebene] | None,
+        Query(
+            description="hoechstspannung, hochspannung, mittelspannung and/or niederspannung (each with the transformation"
+            " below it); default all"
+        ),
+    ] = None,
+) -> tuple[str, ...]:
+    """The chosen Spannungsebenen of the Netzanschlüsse (?spannung=…, like the page's URL, where ?ebene= is the map's
+    resolution): the views have one row per Spannungsebene, the API sums them."""
+    return tuple(spannung or get_args(Spannungsebene))

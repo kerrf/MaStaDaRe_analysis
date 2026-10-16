@@ -3,7 +3,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.codes import GAS_PRODUCER, GAS_STORAGE, STORAGE, WIND, encode
+import pandas as pd
+from app.codes import COMBUSTION, GAS_PRODUCER, GAS_STORAGE, GRID, GRID_OPERATOR, STORAGE, WIND, decode, encode
 
 
 def wind_unit(**fields) -> dict:
@@ -105,3 +106,47 @@ def test_gas_producers_keep_their_own_number_apart():
     row = encode({"Technologie": "LiquifidNaturalGas", "MastrNummer": "GEE929621070042"}, GAS_PRODUCER)
     assert row["Technologie"] == "829"
     assert "SpeicherMaStRNummer" not in row  # the API's MastrNummer only repeats the unit's number
+
+
+def test_fuels_of_combustion_units_become_codes():
+    """The further fuels come like a Hausnummer ({"Wert": …, "NichtVorhanden": …}), their values from the catalog."""
+    row = encode(
+        {
+            "Hauptbrennstoff": "Steinkohlen",
+            "WeitererHauptbrennstoff": {"Wert": "ErdgasErdoelgas", "NichtVorhanden": False},
+            "WeitereBrennstoffe": {"Wert": ["HeizoelLeicht", "Biogas"], "NichtVorhanden": False},
+            "Technologie": "KalinaCycle",
+            "AnschlussAnHoechstOderHochSpannung": None,
+        },
+        COMBUSTION,
+    )
+    assert row["Hauptbrennstoff"] == "2457"
+    assert row["WeitererHauptbrennstoff"] == "2473"
+    assert row["WeitereBrennstoffe"] == "2467, 2445"
+    assert row["Technologie"] == "1538"
+    assert "AnschlussAnHoechstOderHochSpannung" not in row  # not in the API's answers
+
+
+def test_no_further_fuel_stays_empty():
+    row = encode(
+        {
+            "WeitererHauptbrennstoff": {"Wert": "None", "NichtVorhanden": True},  # the API's empty enum value
+            "WeitereBrennstoffe": {"Wert": [], "NichtVorhanden": True},
+        },
+        COMBUSTION,
+    )
+    assert row["WeitererHauptbrennstoff"] is None
+    assert row["WeitereBrennstoffe"] is None
+
+
+def test_grid_operators_get_codes_and_export_names():
+    row = encode(
+        {"Rechtsform": {"Id": 429, "Wert": "GmbH"}, "Bundesland": "Bayern", "ZustellLand": "Schweden"}, GRID_OPERATOR
+    )
+    assert (row["Rechtsform"], row["Bundesland"], row["LandAnZustelladresse"]) == ("429", "335", "230")
+
+
+def test_lists_of_codes_with_a_trailing_comma():
+    grids = decode(pd.DataFrame({"Bundesland": ["337, 342", "332, 333, 345, "], "Sparte": ["21", "20"]}), GRID)
+    assert grids["Bundesland"].tolist() == ["Hessen, RheinlandPfalz", "Brandenburg, Berlin, Sachsen"]
+    assert grids["Sparte"].tolist() == ["Gas", "Strom"]

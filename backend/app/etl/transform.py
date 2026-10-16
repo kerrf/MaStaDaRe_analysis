@@ -84,6 +84,9 @@ VIEW_FILES = [
     "aggregate_registrierungsverzug_regions.sql",
     # Units in planning by their planned commissioning date, per Bundesland and Landkreis (and Deutschland)
     "aggregate_geplant_zeitverlauf_regions.sql",
+    # Netzanschlüsse: the Netzanschlusspunkte of the bulk export (raw.grid_connection_points, grid_operators) placed by
+    # the units of their Lokation – of every kind (raw.*_units, also biomass, combustion, nuclear, geothermal)
+    "aggregate_netzanschluesse.sql",
 ]
 
 
