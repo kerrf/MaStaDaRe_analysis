@@ -1193,6 +1193,26 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
+/* In the map card, between its title and its toolbar: the card's top bands, edge to edge, in line with the toolbar */
+.selection-bar--in-card {
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
+.selection-bar--in-card .selection-bar__row,
+.selection-bar--in-card .tech-filters {
+  padding-inline: 20px;
+}
+
+.selection-bar--in-card .selection-bar__note {
+  padding-left: calc(10rem + 36px);
+}
+
+.selection-bar--in-card + .map-toolbar {
+  border-top-color: var(--border);
+}
+
 /* Under the filters in their tint, without a seam between them */
 .selection-bar__note {
   max-width: none;

@@ -371,8 +371,6 @@ export default function MapView({ config, state }) {
     <>
       <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
 
-      <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} />
-
       <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
 
       <section ref={mapCardRef} className={`card map-card map-workspace${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
@@ -416,6 +414,9 @@ export default function MapView({ config, state }) {
             </button>
           </div>
         </header>
+
+        {/* What the map shows, right above how it shows it: part of the map, also in fullscreen */}
+        <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} inCard />
 
         <MapToolbar
           technology={technology}

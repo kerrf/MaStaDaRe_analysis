@@ -10,7 +10,7 @@ import { selectionOf } from './useDashboardState';
  * technologies: those the page has something for – also a single one, so every page looks the same; active: the one the
  * page shows (default: the URL's). Its selection comes from the URL, its own parameters. filters: whether the page
  * narrows the technology down by them (Regionen im Detail of the batteries doesn't). label: the row's name (the
- * Netzanschlüsse: "Anschlüsse").
+ * Netzanschlüsse: "Anschlüsse"). inCard: as the top bands of a card (the map's), without a frame of its own.
  */
 export default function SelectionBar({
   technologies,
@@ -18,12 +18,13 @@ export default function SelectionBar({
   active: technology = state.technology,
   filters = true,
   label = 'Technologie',
+  inCard = false,
 }) {
   const { subtypes, leistung } = selectionOf(technology, state.searchParams);
   const filtered = filters && Boolean(technology.subtypes || technology.leistung);
   const note = technology.leistung?.note;
   return (
-    <section className="selection-bar" aria-label="Technologie und Filter">
+    <section className={`selection-bar${inCard ? ' selection-bar--in-card' : ''}`} aria-label="Technologie und Filter">
       <div className="selection-bar__row">
         <span id="selection-technologie" className="selection-bar__label">
           {label}
