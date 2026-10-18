@@ -291,6 +291,12 @@ export default function InfoPage() {
                 Lokation in verschiedenen Gemeinden oder Postleitzahlgebieten (das Register kennt Sammel-Lokationen).
               </li>
               <li>
+                <strong>Balkonkraftwerke:</strong> Nur „Auf einen Blick“ zeigt sie getrennt – die als steckerfertige Solaranlage
+                registrierten Einheiten. Überall sonst zählen sie zu „Gebäude“: Sie machen rund 1 % der Leistung aus, und das Register
+                erfasst sie nur unvollständig (viele sind nicht registriert, manche als Gebäudeanlage) – zu ungenau für eine
+                eigene Kategorie.
+              </li>
+              <li>
                 <strong>Wind und Wasserkraft:</strong> Jede Turbine zählt als eigene Einheit, wie im Register.
               </li>
               <li>

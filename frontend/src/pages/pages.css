@@ -108,6 +108,36 @@
   color: var(--ink-primary);
 }
 
+/* A table of contents in two levels (Datenqualität): the categories bold, their topics indented below */
+.toc__category {
+  font-weight: 650;
+}
+
+.toc .toc__sub {
+  margin: 0 0 6px;
+  border-left: 0;
+}
+
+.toc__sub a {
+  padding: 3px 12px 3px 24px;
+  font-size: 13px;
+}
+
+/* Datenqualität: a technology a section, its findings sub-sections */
+.quality > section + section {
+  margin-top: 40px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.quality h3 {
+  margin-top: 24px;
+}
+
+.quality__empty {
+  color: var(--ink-muted);
+}
+
 .info-article > section:first-child h2 {
   margin-top: 0;
 }
