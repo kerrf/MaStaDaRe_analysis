@@ -433,9 +433,10 @@ Kreis – the Land's row is more than its Kreise.
   Spannungsebene like the solar Anlagenarten). Kennzahl Anzahl (points) or Leistung, absolut, je km², je 1.000
   Einwohner; KPIs: points, power, new in 12 months, in planning.
 - **Spannungsebenen & Netzbetreiber** (`/netz/ebenen`, `/netz/netzbetreiber`, `mrt.netz_anschluesse`): a table of
-  the Netzebenen 1–7 with points, power, power per point, in planning, and a bar of the main technologies of their
-  Lokationen (`NETZ_TECHNOLOGIEN`, by power or by number); the 15 largest grid operators by power or number, the rest
-  in one row, all in the CSV. Deutschland includes the pump and hydro power plants in Luxemburg and Österreich on the
+  the Netzebenen 1–7 with points, power, power per point, in planning, and a bar of the power of all units at their
+  points by technology (`NETZ_TECHNOLOGIEN`; a Lokation with solar and a battery counts for both); the 15 largest grid
+  operators of the Verteilnetz or the Übertragungsnetz (market role Übertragungsnetzbetreiber) by power or number, the
+  rest in one row, both grids in the CSV. Deutschland includes the pump and hydro power plants in Luxemburg and Österreich on the
   German grid, which the map can't show.
 
 ## Start page (`pages/HomePage.jsx`, `features/home/`)

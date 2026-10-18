@@ -173,9 +173,12 @@ GROUP BY ebene, ROLLUP (
 HAVING NOT (GROUPING(landkreis) = 0 AND landkreis IS NULL) AND NOT (GROUPING(gemeinde) = 0 AND gemeinde IS NULL);
 
 -- The analyses (Spannungsebenen & Netzbetreiber): the points per Landkreis (or the sea; the Land's 2-digit key for those
--- without a Gemeinde; NULL: abroad, for Deutschland only), Netzebene (the Spannungsebene's code, 348–354), main
--- technology of the Lokation (the one with the most power, in operation if any), grid operator and its name
--- (raw.grid_operators). The API sums them for Deutschland, a Land (its Kreise and itself, by prefix) or a Kreis.
+-- without a Gemeinde; NULL: abroad, for Deutschland only), Netzebene (the Spannungsebene's code, 348–354) and grid
+-- operator, with its name and its grid (raw.grid_operators): the Übertragungsnetz of the operators with the market role
+-- Übertragungsnetzbetreiber (UN: the four German ones, Baltic Cable), else the Verteilnetz – the regional ones, the
+-- Stadtwerke, the closed grids of industrial parks and airports. The power of a point is that of all units of its
+-- Lokation, in total and per technology (a point with solar and a battery counts for both). The API sums them for
+-- Deutschland, a Land (its Kreise and itself, by prefix) or a Kreis.
 CREATE MATERIALIZED VIEW mrt.netz_anschluesse AS
 WITH laender (code, land) AS (
     -- The Länder of the units (Bundesland, MaStR codes) by their key, for the units without a Gemeinde
@@ -224,33 +227,41 @@ units AS (
 ),
 per_technologie AS (
     SELECT u.lok, u.technologie, min(u.ags) AS ags, min(laender.land) AS land, sum(u.kw) FILTER (WHERE u.status = '35') AS kw,
-        bool_or(u.status = '35') AS in_betrieb, sum(u.kw) AS kw_alle
+        bool_or(u.status = '35') AS in_betrieb
     FROM units u
     LEFT JOIN laender ON laender.code = u.bundesland
     WHERE u.lok IS NOT NULL
     GROUP BY u.lok, u.technologie
 ),
 lokationen AS (
+    -- The power of a Lokation's units in operation, in total and per technology
     SELECT
         lok,
         min(ags) AS ags,
         min(land) AS land,
-        sum(kw) AS kw,
         COALESCE(bool_or(in_betrieb), false) AS in_betrieb,
-        (array_agg(technologie ORDER BY COALESCE(in_betrieb, false) DESC, kw DESC NULLS LAST, kw_alle DESC NULLS LAST))[1]
-            AS technologie
+        COALESCE(sum(kw), 0) AS kw,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'solar'), 0) AS kw_solar,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'wind'), 0) AS kw_wind,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'wasser'), 0) AS kw_wasser,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'speicher'), 0) AS kw_speicher,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'biomasse'), 0) AS kw_biomasse,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'erdgas'), 0) AS kw_erdgas,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'kohle'), 0) AS kw_kohle,
+        COALESCE(sum(kw) FILTER (WHERE technologie = 'sonstige'), 0) AS kw_sonstige
     FROM per_technologie
     GROUP BY lok
 ),
 punkte AS (
+    -- A Lokation with several points splits its power evenly among them
     SELECT
         CASE WHEN l.ags = 'offshore' THEN l.ags ELSE COALESCE(LEFT(l.ags, 5), l.land) END AS landkreis,
         p."Spannungsebene" AS spannungsebene,
-        l.technologie,
         p."NetzbetreiberMaStRNummer" AS netzbetreiber,
         l.in_betrieb,
-        l.kw / count(*) OVER (PARTITION BY p."LokationMaStRNummer") AS kw,
-        p."NochInPlanung" = '1' AS geplant
+        p."NochInPlanung" = '1' AS geplant,
+        count(*) OVER (PARTITION BY p."LokationMaStRNummer") AS n,
+        l.kw, l.kw_solar, l.kw_wind, l.kw_wasser, l.kw_speicher, l.kw_biomasse, l.kw_erdgas, l.kw_kohle, l.kw_sonstige
     FROM raw.grid_connection_points p
     JOIN lokationen l ON l.lok = p."LokationMaStRNummer"
     WHERE p."Lokationtyp" = '1' AND p."Spannungsebene" IS NOT NULL
@@ -258,15 +269,24 @@ punkte AS (
 SELECT
     p.landkreis COLLATE "C" AS landkreis,
     p.spannungsebene,
-    p.technologie,
     p.netzbetreiber,
     o."Firmenname" AS netzbetreiber_name,
+    CASE WHEN o."Marktrollen" ~ '[0-9]UN(,|$)' THEN 'uebertragungsnetz' ELSE 'verteilnetz' END AS netz,
     CAST(count(*) FILTER (WHERE p.in_betrieb) AS INTEGER) AS punkte,
-    CAST(COALESCE(sum(p.kw) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung,  -- MW
+    -- MW of the units in operation, in total and per technology
+    CAST(COALESCE(sum(p.kw / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung,
+    CAST(COALESCE(sum(p.kw_solar / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_solar,
+    CAST(COALESCE(sum(p.kw_wind / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_wind,
+    CAST(COALESCE(sum(p.kw_wasser / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_wasser,
+    CAST(COALESCE(sum(p.kw_speicher / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_speicher,
+    CAST(COALESCE(sum(p.kw_biomasse / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_biomasse,
+    CAST(COALESCE(sum(p.kw_erdgas / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_erdgas,
+    CAST(COALESCE(sum(p.kw_kohle / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_kohle,
+    CAST(COALESCE(sum(p.kw_sonstige / p.n) FILTER (WHERE p.in_betrieb), 0) / 1000 AS NUMERIC(12,3)) AS leistung_sonstige,
     CAST(count(*) FILTER (WHERE NOT p.in_betrieb AND p.geplant) AS INTEGER) AS geplant
 FROM punkte p
 LEFT JOIN raw.grid_operators o ON o."MastrNummer" = p.netzbetreiber
-GROUP BY p.landkreis, p.spannungsebene, p.technologie, p.netzbetreiber, o."Firmenname"
+GROUP BY p.landkreis, p.spannungsebene, p.netzbetreiber, o."Firmenname", o."Marktrollen"
 HAVING count(*) FILTER (WHERE p.in_betrieb OR p.geplant) > 0;
 
 -- One scope per request: Deutschland (all rows), a Land (its Kreise by prefix) or a Kreis

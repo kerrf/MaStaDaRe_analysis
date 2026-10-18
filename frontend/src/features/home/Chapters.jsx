@@ -67,8 +67,8 @@ function ZubauChart({ timeline, label, filename }) {
 // The Spannungsebenen of the Netzanschlüsse (each with the transformation below it), as the map's filter names them
 const SPANNUNGSEBENEN = NETZ.technologies[0].subtypes.options;
 
-// The power connected at each Spannungsebene, stacked by the main technology of the Lokationen, like the table of the
-// dashboard's page Spannungsebenen & Netzbetreiber
+// The power connected at each Spannungsebene, stacked by the technology of all units at the points, like the table of
+// the dashboard's page Spannungsebenen & Netzbetreiber
 function NetzebenenChart() {
   const ebenen = useJson(URLS.netzebenen);
   const periods = useMemo(() => {
@@ -80,7 +80,7 @@ function NetzebenenChart() {
         key: id,
         label,
         tick: label,
-        values: Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [t.id, sum(rows.filter((row) => row.technologie === t.id), 'leistung')])),
+        values: Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [t.id, rows.reduce((acc, row) => acc + (row.technologien?.[t.id] ?? 0), 0)])),
         punkte: sum(rows, 'punkte'),
       };
     });

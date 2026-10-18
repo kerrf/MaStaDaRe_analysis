@@ -11,10 +11,16 @@ import { formatAmount, formatNumber, formatShare } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 import ScopeBar from './ScopeBar';
 
-// What the shares and the ranking go by: the power of the connected units, or the number of points
+// What the ranking of the grid operators goes by: the power of the connected units, or the number of points
 const MEASURES = [
   { id: 'leistung', label: 'Leistung', title: 'Leistung der angeschlossenen Einheiten' },
   { id: 'punkte', label: 'Anzahl', title: 'Netzanschlusspunkte in Betrieb' },
+];
+// The grid of an operator (the API's netz): the Verteilnetze by default, the four Übertragungsnetzbetreiber apart – a
+// few points each with the power of whole power plants and wind farms at sea
+const NETZE = [
+  { id: 'verteilnetz', label: 'Verteilnetz', title: 'Verteilnetzbetreiber', plural: 'Verteilnetzbetreibern' },
+  { id: 'uebertragungsnetz', label: 'Übertragungsnetz', title: 'Übertragungsnetzbetreiber', plural: 'Übertragungsnetzbetreibern' },
 ];
 const TOP = 15;
 
@@ -22,7 +28,7 @@ const power = (mw) => formatAmount(mw, 'MW');
 const sumOf = (rows, field) => rows.reduce((acc, row) => acc + (row[field] ?? 0), 0);
 
 // Loading, failed, or nothing in the scope
-function State({ status, empty }) {
+function State({ status, empty, message = 'Keine Netzanschlusspunkte in diesem Gebiet.' }) {
   if (status === 'error') {
     return (
       <div className="timeline__state" role="alert">
@@ -39,10 +45,10 @@ function State({ status, empty }) {
       </div>
     );
   }
-  return empty ? <div className="timeline__state">Keine Netzanschlusspunkte in diesem Gebiet.</div> : null;
+  return empty ? <div className="timeline__state">{message}</div> : null;
 }
 
-// The shares of a whole as one bar: a segment per part in its colour, its share as tooltip
+// The shares of a whole as one bar: a segment per part in its colour, its power and share as tooltip
 function MixBar({ parts, label }) {
   const total = parts.reduce((acc, p) => acc + p.value, 0);
   return (
@@ -55,7 +61,7 @@ function MixBar({ parts, label }) {
               key={p.id}
               className="mix-bar__part"
               style={{ flexGrow: p.value, background: p.color }}
-              title={`${p.label}: ${formatShare(p.value / total)}`}
+              title={`${p.label}: ${power(p.value)} · ${formatShare(p.value / total)}`}
             />
           ))}
     </div>
@@ -63,21 +69,19 @@ function MixBar({ parts, label }) {
 }
 
 // Netzanschlüsse je Netzebene: a row per Netzebene 1–7 – its points, the power of their units, the power per point,
-// those in planning – and the mix of the main technologies of their Lokationen, by power or by number
+// those in planning – and the power of all units at its points by technology (a point with solar and a battery counts
+// for both)
 function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
   const data = useJson(`${API_BASE_URL}${analysis.path}?region=${region}`);
-  const [measureId, setMeasureId] = useState(MEASURES[0].id);
-  const measure = MEASURES.find((m) => m.id === measureId);
   const rows = useMemo(() => {
     if (!data.data) return [];
     return NETZEBENEN.map((ebene) => {
-      const own = data.data.filter((row) => row.spannungsebene === ebene.code);
-      const byTech = Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [t.id, own.find((row) => row.technologie === t.id) ?? {}]));
-      return { ...ebene, punkte: sumOf(own, 'punkte'), leistung: sumOf(own, 'leistung'), geplant: sumOf(own, 'geplant'), byTech };
+      const own = data.data.find((row) => row.spannungsebene === ebene.code);
+      return { ...ebene, punkte: own?.punkte ?? 0, leistung: own?.leistung ?? 0, geplant: own?.geplant ?? 0, byTech: own?.technologien ?? {} };
     });
   }, [data.data]);
   const total = { punkte: sumOf(rows, 'punkte'), leistung: sumOf(rows, 'leistung'), geplant: sumOf(rows, 'geplant') };
-  const partsOf = (row) => NETZ_TECHNOLOGIEN.map((t) => ({ ...t, value: row.byTech[t.id][measure.id] ?? 0 }));
+  const partsOf = (row) => NETZ_TECHNOLOGIEN.map((t) => ({ ...t, value: row.byTech[t.id] ?? 0 }));
 
   const csv = {
     name: 'netzebenen',
@@ -89,12 +93,7 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
         Netzanschlusspunkte: row.punkte,
         'Leistung (MW)': round(row.leistung),
         'In Planung': row.geplant,
-        ...Object.fromEntries(
-          NETZ_TECHNOLOGIEN.flatMap((t) => [
-            [`${t.label}: Punkte`, row.byTech[t.id].punkte ?? 0],
-            [`${t.label}: Leistung (MW)`, round(row.byTech[t.id].leistung ?? 0)],
-          ]),
-        ),
+        ...Object.fromEntries(NETZ_TECHNOLOGIEN.map((t) => [`${t.label}: Leistung (MW)`, round(row.byTech[t.id] ?? 0)])),
       })),
   };
 
@@ -104,18 +103,6 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
       icon={analysis.icon}
       title={analysis.title}
       lead={`${scopeName} · Netzanschlusspunkte der Stromerzeugung und die Leistung ihrer Einheiten je Netzebene`}
-      settings={
-        <SettingsRow>
-          <Setting label="Anteile nach">
-            <SegmentedControl
-              label="Anteile nach"
-              options={MEASURES.map((m) => ({ id: m.id, label: m.label, title: `Technologien nach ${m.title}` }))}
-              value={measureId}
-              onChange={setMeasureId}
-            />
-          </Setting>
-        </SettingsRow>
-      }
     >
       {data.status === 'ready' && total.punkte + total.geplant > 0 ? (
         <div className="netz-table__scroll">
@@ -133,7 +120,7 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
                   je Punkt
                 </th>
                 <th scope="col" className="netz-table__mix">
-                  Technologien nach {measure.label}
+                  Leistung nach Technologie
                 </th>
                 <th scope="col" className="is-num">
                   In Planung
@@ -150,7 +137,7 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
                   <td className="is-num">{power(row.leistung)}</td>
                   <td className="is-num">{row.punkte ? formatAmount((row.leistung * 1000) / row.punkte, 'kW') : '–'}</td>
                   <td className="netz-table__mix">
-                    <MixBar parts={partsOf(row)} label={`${row.label}: Technologien nach ${measure.label}`} />
+                    <MixBar parts={partsOf(row)} label={`${row.label}: Leistung nach Technologie`} />
                   </td>
                   <td className="is-num">{formatNumber(row.geplant)}</td>
                 </tr>
@@ -183,8 +170,9 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
 
       <ChartFoot csv={rows.length ? csv : null}>
         <p className="timeline__note">
-          Netzebene 2, 4 und 6: Umspannung zwischen den Spannungen. Technologie: die mit der meisten Leistung an der Lokation
-          des Netzanschlusspunkts.{' '}
+          Netzebene 2, 4 und 6: Umspannung zwischen den Spannungen. Technologien: alle Einheiten in Betrieb an der Lokation
+          des Netzanschlusspunkts – eine Lokation mit Solaranlage und Batteriespeicher zählt mit beiden; hat sie mehrere
+          Punkte, teilen sie sich ihre Leistung zu gleichen Teilen.{' '}
           {region === 'DE' &&
             'Deutschland mit den Pump- und Wasserkraftwerken in Luxemburg und Österreich, die am deutschen Netz angeschlossen sind (auf der Karte nicht enthalten). '}
           {analysis.note}
@@ -194,14 +182,17 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
   );
 }
 
-// Netzbetreiber: the largest in the scope by power or by number of points, each with its share, the rest in one row
+// Netzbetreiber: the largest of a grid (Verteil- or Übertragungsnetz) in the scope by power or by number of points, each
+// with its share of that grid, the rest in one row
 function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
   const data = useJson(`${API_BASE_URL}${analysis.path}?region=${region}`);
+  const [netzId, setNetzId] = useState(NETZE[0].id);
   const [measureId, setMeasureId] = useState(MEASURES[0].id);
+  const netz = NETZE.find((n) => n.id === netzId);
   const measure = MEASURES.find((m) => m.id === measureId);
   const all = useMemo(
-    () => [...(data.data ?? [])].sort((a, b) => (b[measureId] ?? 0) - (a[measureId] ?? 0)),
-    [data.data, measureId],
+    () => (data.data ?? []).filter((row) => row.netz === netzId).sort((a, b) => (b[measureId] ?? 0) - (a[measureId] ?? 0)),
+    [data.data, netzId, measureId],
   );
   const top = all.slice(0, TOP);
   const rest = all.slice(TOP);
@@ -212,10 +203,12 @@ function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
   const csv = {
     name: 'netzbetreiber',
     filename: fileName(fileBase, 'netzbetreiber', region),
+    // Both grids, the largest by power first, as the API sends them
     rows: () =>
-      all.map((row) => ({
+      (data.data ?? []).map((row) => ({
         Netzbetreiber: nameOf(row),
         'MaStR-Nummer': row.netzbetreiber,
+        Netz: NETZE.find((n) => n.id === row.netz)?.label,
         Netzanschlusspunkte: row.punkte,
         'Leistung (MW)': round(row.leistung),
         'In Planung': row.geplant,
@@ -227,9 +220,21 @@ function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
       id={`analyse-${analysis.id}`}
       icon={analysis.icon}
       title={analysis.title}
-      lead={`${scopeName} · die ${TOP} größten nach ${measure.title}, von ${formatNumber(all.length)} Netzbetreibern`}
+      lead={
+        all.length > TOP
+          ? `${scopeName} · die ${TOP} größten nach ${measure.title}, von ${formatNumber(all.length)} ${netz.plural}`
+          : `${scopeName} · ${netz.title} nach ${measure.title}`
+      }
       settings={
         <SettingsRow>
+          <Setting label="Netz">
+            <SegmentedControl
+              label="Netz"
+              options={NETZE.map((n) => ({ id: n.id, label: n.label, title: n.title }))}
+              value={netzId}
+              onChange={setNetzId}
+            />
+          </Setting>
           <Setting label="Rangfolge nach">
             <SegmentedControl
               label="Rangfolge nach"
@@ -285,7 +290,9 @@ function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
               <tfoot>
                 <tr>
                   <td />
-                  <th scope="row">Weitere {formatNumber(rest.length)} Netzbetreiber</th>
+                  <th scope="row">
+                    Weitere {formatNumber(rest.length)} {netz.title}
+                  </th>
                   <td className="is-num">{formatNumber(sumOf(rest, 'punkte'))}</td>
                   <td className="is-num">{power(sumOf(rest, 'leistung'))}</td>
                   <td className="netz-table__mix">
@@ -297,13 +304,15 @@ function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
           </table>
         </div>
       ) : (
-        <State status={data.status} empty={data.status === 'ready'} />
+        <State status={data.status} empty={data.status === 'ready'} message={`Keine Anschlüsse von ${netz.plural} in diesem Gebiet.`} />
       )}
 
-      <ChartFoot csv={all.length ? csv : null}>
+      <ChartFoot csv={data.data?.length ? csv : null}>
         <p className="timeline__note">
-          Der Netzbetreiber jedes Netzanschlusspunkts, wie im MaStR angegeben; Übertragungsnetzbetreiber mit den
-          Anschlüssen der Höchstspannung. Die CSV enthält alle. {analysis.note}
+          Der Netzbetreiber jedes Netzanschlusspunkts, wie im MaStR angegeben. Übertragungsnetz: die Betreiber mit der
+          Marktrolle Übertragungsnetzbetreiber (50Hertz, Amprion, TenneT, TransnetBW), vor allem Kraftwerke und Windparks
+          auf See an der Höchstspannung. Verteilnetz: alle übrigen – regionale Netzbetreiber, Stadtwerke und geschlossene
+          Verteilernetze etwa von Industrieparks und Flughäfen. Die CSV enthält alle. {analysis.note}
         </p>
       </ChartFoot>
     </AnalysisPanel>

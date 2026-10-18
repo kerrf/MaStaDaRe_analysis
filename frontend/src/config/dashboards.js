@@ -774,7 +774,7 @@ export const NETZEBENEN = [
   { code: '354', ebene: 'niederspannung', label: 'Niederspannung', ne: 7 },
 ];
 
-// The main technology of a Lokation with its Netzanschlusspunkte (the one with the most power), in the API's names
+// The technologies of the units at the Netzanschlusspunkte, in the API's names (/netz/ebenen: technologien)
 export const NETZ_TECHNOLOGIEN = [
   { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
   { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
@@ -787,7 +787,7 @@ export const NETZ_TECHNOLOGIEN = [
 ];
 
 const NETZ_NOTE =
-  'Netzanschlusspunkte aus dem Gesamtdatenexport des MaStR (Stand 26.09.2026), verortet über die Einheiten ihrer Lokation. ' +
+  'Netzanschlusspunkte aus dem MaStR, jede Nacht aktualisiert, verortet über die Einheiten ihrer Lokation. ' +
   'Große Kraftwerke sind nur mit ihrem Bundesland veröffentlicht: sie zählen für das Land, nicht für einen Kreis.';
 
 export const NETZ = {

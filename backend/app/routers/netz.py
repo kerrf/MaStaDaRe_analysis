@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.netz import NetzAnschluss
+from app.models.netz import TECHNOLOGIEN, NetzAnschluss
 from app.models.regions import NetzRegionStats, RegionLevel
 from app.schemas.selection import netz_ebenen
 
@@ -32,18 +32,22 @@ MEASURES = (
 
 
 class NetzEbene(BaseModel):
-    """Points in operation, the power of their units (MW) and points in planning of one Netzebene and technology."""
+    """Points in operation, the power of all units of their Lokationen (MW), in total and per technology, and points in
+    planning of one Netzebene."""
 
     spannungsebene: str  # the code, 348 (Höchstspannung, Netzebene 1) to 354 (Niederspannung, 7)
-    technologie: str  # the Lokation's main technology: solar, wind, wasser, speicher, biomasse, erdgas, kohle, sonstige
     punkte: int
     leistung: float
+    technologien: dict[
+        str, float
+    ]  # MW per technology: solar, wind, wasser, speicher, biomasse, erdgas, kohle, sonstige
     geplant: int
 
 
 class Netzbetreiber(BaseModel):
     netzbetreiber: str | None  # its MaStR number (SNB…)
     name: str | None
+    netz: str  # its grid: uebertragungsnetz (Übertragungsnetzbetreiber) or verteilnetz
     punkte: int
     leistung: float
     geplant: int
@@ -67,15 +71,18 @@ def get_dashboard_stats(level: RegionLevel, ebenen: Ebenen, db: Session = Depend
 
 @router.get("/ebenen", response_model=list[NetzEbene])
 def get_ebenen(db: Annotated[Session, Depends(get_db)], region: NetzScope = "DE"):
-    """The Netzanschlusspunkte der Stromerzeugung per Netzebene and main technology of their Lokation, in Deutschland, a
-    Land or a Kreis."""
-    return NetzAnschluss.summed(db, region, NetzAnschluss.spannungsebene, NetzAnschluss.technologie)
+    """The Netzanschlusspunkte der Stromerzeugung per Netzebene, in Deutschland, a Land or a Kreis, with the power of all
+    units of their Lokationen per technology."""
+    rows = NetzAnschluss.summed(db, region, NetzAnschluss.spannungsebene, technologien=True)
+    return [{**row, "technologien": {t: row.pop(f"leistung_{t}") or 0 for t in TECHNOLOGIEN}} for row in rows]
 
 
 @router.get("/netzbetreiber", response_model=list[Netzbetreiber])
 def get_netzbetreiber(db: Annotated[Session, Depends(get_db)], region: NetzScope = "DE"):
-    """The Netzanschlusspunkte der Stromerzeugung per grid operator in Deutschland, a Land or a Kreis, the largest by power
-    first."""
-    rows = NetzAnschluss.summed(db, region, NetzAnschluss.netzbetreiber, NetzAnschluss.netzbetreiber_name)
+    """The Netzanschlusspunkte der Stromerzeugung per grid operator in Deutschland, a Land or a Kreis, with its grid
+    (Übertragungs- or Verteilnetz), the largest by power first."""
+    rows = NetzAnschluss.summed(
+        db, region, NetzAnschluss.netzbetreiber, NetzAnschluss.netzbetreiber_name, NetzAnschluss.netz
+    )
     rows = [{**row, "name": row.pop("netzbetreiber_name")} for row in rows]
     return sorted(rows, key=lambda row: row["leistung"] or 0, reverse=True)
