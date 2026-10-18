@@ -407,7 +407,6 @@ export default function OverviewView({ config, state }) {
                     <FootnoteRef id="ziele" />
                   </>
                 }
-                lead="Bruttoleistung, wie das Gesetz sie zählt"
                 csv={{
                   name: 'ueberblick-ziele',
                   filename: fileName(fileBase, 'ausbauziele'),

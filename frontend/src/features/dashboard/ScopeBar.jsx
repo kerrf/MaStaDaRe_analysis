@@ -60,7 +60,7 @@ export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope, g
   const aside =
     current === 'de' ? (
       <span className="scope-bar__shown">
-        <ScopeOutline size={26} />
+        <ScopeOutline size={32} />
         <span>
           Alle Seiten zeigen <strong>ganz Deutschland</strong>
         </span>
@@ -69,7 +69,7 @@ export default function ScopeBar({ region, kreis, kreisOptions, onSelectScope, g
       <>
         {name && (
           <span className="scope-bar__shown">
-            <ScopeOutline region={region} kreis={kreis} size={26} />
+            <ScopeOutline region={region} kreis={kreis} size={32} />
             <span>
               Alle Seiten zeigen nur <strong>{name}</strong>
             </span>

@@ -239,7 +239,8 @@
 .scope-bar__shown {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-size: 15px;
 }
 
 .scope-outline {
