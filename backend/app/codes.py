@@ -1020,9 +1020,9 @@ GAS_STORAGE_PLANT = CodeSpec(
 )
 
 
-# The other power units, for now only in the database to place the Netzanschlusspunkte of their Lokationen (no nightly
-# update). Biomass, combustion and geothermal units share the technologies of combustion plants. The export's
-# AnschlussAnHoechstOderHochSpannung is not in the API's answers.
+# The other power units, which place the Netzanschlusspunkte of their Lokationen. Biomass, combustion and geothermal
+# units share the technologies of combustion plants. The export's AnschlussAnHoechstOderHochSpannung is not in the API's
+# answers.
 GENERATION_NOT_IN_API = (*GENERAL_NOT_IN_API, "AnschlussAnHoechstOderHochSpannung")
 
 BIOMASS = CodeSpec(
@@ -1106,7 +1106,7 @@ GAS_CONSUMER = CodeSpec(
 )
 
 # The Netzanschlusspunkte (Netzanschlusspunkte.xml): in the API a list in the answer of their Lokation, without its type,
-# grid and Regelzone. Like the following, from the bulk export only (no nightly update).
+# grid and Regelzone
 GRID_CONNECTION_POINT = CodeSpec(
     columns={
         "Lokationtyp": LOKATIONTYP,
@@ -1122,6 +1122,20 @@ GRID_CONNECTION_POINT = CodeSpec(
         "BilanzierungsgebietNetzanschlusspunktId": "BilanzierungsgebietNetzanschlusspunkt",
     },
     not_in_api=("Lokationtyp", "RegelzoneNetzanschlusspunkt", "NetzMaStRNummer", "LokationMaStRNummer"),
+)
+
+# The same as GetListeAlleNetzanschlusspunkte lists them (the nightly update): with their Lokation and its type, without
+# the grid. Their Bilanzierungsgebiet comes as an object with its Id and Regelzone, which mastr_api.changed_points takes
+# apart into the export's two columns.
+GRID_CONNECTION_POINT_LIST = CodeSpec(
+    columns=GRID_CONNECTION_POINT.columns,
+    booleans=GRID_CONNECTION_POINT.booleans,
+    api_names={
+        "NochInPlanung": "GeplanterNetzanschlusspunkt",
+        "NetzbetreiberMaStRNummer": "NetzbetreiberMastrNummer",
+        "LokationMaStRNummer": "LokationMastrNummer",
+    },
+    not_in_api=("NetzMaStRNummer",),
 )
 
 # The Lokationen (Lokationen.xml): their units and Netzanschlusspunkte as numbers, not codes ("SEE…, SEE…")
@@ -1140,7 +1154,8 @@ GRID = CodeSpec(
     not_in_api=("Sparte", "Marktgebiet"),
 )
 
-# The grid operators (Marktakteure.xml, only Marktfunktion 1 and 8: db_migrate.ROW_FILTERS)
+# The grid operators (Marktakteure.xml, only Marktfunktion 1 and 8: db_migrate.ROW_FILTERS). The API gives their market
+# roles and grid as objects, mastr_api.grid_operator turns them into the export's numbers.
 GRID_OPERATOR = CodeSpec(
     columns={
         "Personenart": PERSONENART,
@@ -1160,6 +1175,8 @@ GRID_OPERATOR = CodeSpec(
         "HausnummerAnZustelladresse": "ZustellHausnummer",
         "AdresszusatzAnZustelladresse": "ZustellAdresszusatz",
     },
+    # The export's is a timestamp, the API's only a date, and another one (Amprion: 22.05.2017 11:30 / 04.05.2017)
+    not_in_api=("RegistrierungsdatumMarktakteur",),
 )
 
 
@@ -1237,7 +1254,7 @@ def encode(unit: dict, spec: CodeSpec) -> dict[str, str | None]:
         else:
             row[column] = _to_text(value)
 
-    if row.get("Laengengrad") is None:
+    if "Laengengrad" in unit and row.get("Laengengrad") is None:  # units, not grid operators or points
         row.update(dict.fromkeys(ADDRESS_FLAGS))
     return row
 

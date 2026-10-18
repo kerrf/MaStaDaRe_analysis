@@ -18,7 +18,14 @@ likewise. The plant of a brand-new unit is sometimes not published yet ("Objekt 
 
 Gas producers and gas storage units come from one list call, told apart by their Einheittyp. Like the export, the gas
 producer table also lists the gas storage units (their general fields): the job copies them over from the storage units.
-Until the gas tables are loaded from the bulk export, the job skips them (with a warning).
+The units of many Energieträger (biomass, combustion, nuclear, geothermal) are listed by their type instead.
+
+Then the Netzanschlüsse: the Netzanschlusspunkte changed since the table is complete come from one list call with all
+their fields (2,000 per call, no detail calls); the grid operators changed since, and those a point names that the
+table doesn't have yet, one call each (GetMarktakteur). Both are upserted like the units.
+
+A table that isn't in the database yet (loaded from the bulk export: db_migrate, deploy/push_raw_tables.sh) is skipped
+with a warning.
 
 Every run also re-fetches a few units the table has (SANITY_SAMPLE per type). They have to come back identical, which
 tests the whole chain (API -> format -> database): the sanity check in the log.
@@ -48,9 +55,15 @@ from sqlalchemy import Connection, text
 from sqlalchemy.engine import Engine
 
 from app.codes import (
+    BIOMASS,
+    COMBUSTION,
     GAS_PRODUCER,
     GAS_STORAGE,
     GAS_STORAGE_PLANT,
+    GEOTHERMAL,
+    GRID_CONNECTION_POINT_LIST,
+    GRID_OPERATOR,
+    NUCLEAR,
     SOLAR,
     STORAGE,
     STORAGE_PLANT,
@@ -76,16 +89,19 @@ SANITY_SAMPLE = 25  # units the table has, re-fetched per type: they must come b
 @dataclass(frozen=True)
 class UnitType:
     table: str  # in the raw schema
-    energietraeger: str | None  # what the power units' list call filters by; None: a gas unit type
+    energietraeger: str | None  # what the power units' list call filters by; None: a gas unit type or by_type
     einheittyp: str
     detail_call: str
     spec: CodeSpec  # how the API's format differs from the export's
     # Which rows of the table are the type's own (SQL), where the table also holds others
     own_rows: str = "TRUE"
+    by_type: bool = False  # listed by its Einheittyp: the types of many Energieträger
 
     @property
     def list_call(self) -> str:
         """The list call that finds the changed units. The gas list names producers and storage units alike."""
+        if self.by_type:
+            return "GetListeLetzteAktualisierung"
         return "GetGefilterteListeStromErzeuger" if self.energietraeger else "GetGefilterteListeGasErzeuger"
 
 
@@ -117,6 +133,19 @@ UNIT_TYPES = (  # in this order; solar first, it has by far the most changes
     STORAGE_UNITS,
     GAS_PRODUCERS,
     GAS_STORAGE_UNITS,
+    # The other power units, which place the Netzanschlusspunkte of their Lokationen
+    UnitType("biomass_units", None, "Biomasse", "GetEinheitBiomasse", BIOMASS, by_type=True),
+    UnitType("combustion_units", None, "Verbrennung", "GetEinheitVerbrennung", COMBUSTION, by_type=True),
+    UnitType("nuclear_units", None, "Kernenergie", "GetEinheitKernkraft", NUCLEAR, by_type=True),
+    # Geothermie, Solarthermie, Grubengas, Klärschlamm and Druckentspannung: one type in the API
+    UnitType(
+        "geothermal_units",
+        None,
+        "Geothermie",
+        "GetEinheitGeothermieGrubengasDruckentspannung",
+        GEOTHERMAL,
+        by_type=True,
+    ),
 )
 # unit table -> the plants of its units
 PLANT_TYPES = {
@@ -126,6 +155,23 @@ PLANT_TYPES = {
     ),
 }
 UNIT_KEY, PLANT_KEY = "EinheitMastrNummer", "MaStRNummer"
+
+
+@dataclass(frozen=True)
+class Table:
+    """A table the update keeps current that holds no units: its key and the date of a row's last change."""
+
+    name: str  # in the raw schema
+    key: str
+    changed: str
+    spec: CodeSpec
+
+
+POINTS = Table("grid_connection_points", "NetzanschlusspunktMastrNummer", "LetzteAenderung", GRID_CONNECTION_POINT_LIST)
+# sic, the Marktakteure's date drops the "t"
+OPERATORS = Table("grid_operators", "MastrNummer", "DatumLetzeAktualisierung", GRID_OPERATOR)
+# The Marktfunktionen of the grid operators the table holds (db_migrate.ROW_FILTERS), as the API names them
+GRID_OPERATOR_FUNCTIONS = ("Stromnetzbetreiber", "Gasnetzbetreiber")
 # What the export leaves out of the gas storage units it lists among the gas producers
 GAS_STORAGE_ADDRESS = (
     "Strasse",
@@ -140,6 +186,7 @@ GAS_STORAGE_ADDRESS = (
     "Breitengrad",
 )
 DASHBOARD_SCHEMA = "mrt"  # the materialized views the API serves
+LOAD_HINT = "(load it from the bulk export: db_migrate, or deploy/push_raw_tables.sh on the server)"
 
 # A row is unchanged if these dates are (those the table has): the grid operator's check doesn't move
 # DatumLetzteAktualisierung
@@ -245,6 +292,78 @@ def update_plants(
             load(conn, table, chunk, plants.spec, PLANT_KEY, sanity=bool(sample))
 
 
+def update_points(api: MastrApi, engine: Engine) -> datetime:
+    """Upsert the Netzanschlusspunkte changed since the day up to which the table is complete: one list call has all
+    their fields (2,000 per call), no detail calls. Points the register deleted stay: the list only names those there
+    are. Returns up to when the table is complete now."""
+    with engine.connect() as conn:
+        complete = read_table_synced_until(conn, POINTS)
+        columns = table_columns(conn, POINTS.name)
+    since = complete.replace(hour=0, minute=0, second=0, microsecond=0)
+    until = api.server_time()  # what changes from now on is the next run's job
+    rows = [encode(point, POINTS.spec) for point in api.changed_points(since)]
+    logger.info(f"{POINTS.name}: {len(rows):,} points changed since {since:%Y-%m-%d}")
+    for start in range(0, len(rows), 10 * SLICE):
+        chunk = to_chunk(rows[start : start + 10 * SLICE], columns)
+        if chunk:
+            with engine.begin() as conn:
+                load(conn, POINTS.name, chunk, POINTS.spec, POINTS.key, sanity=False, dates=(POINTS.changed,))
+    save_synced_until(engine, POINTS.name, until)
+    return until
+
+
+def update_operators(api: MastrApi, engine: Engine) -> datetime:
+    """Upsert the grid operators changed since the day up to which the table is complete, and those a
+    Netzanschlusspunkt names that the table doesn't have yet (1 API call each, a few a day). Returns up to when the
+    table is complete now."""
+    with engine.connect() as conn:
+        complete = read_table_synced_until(conn, OPERATORS)
+        columns = table_columns(conn, OPERATORS.name)
+        missing = []
+        if exists(engine, POINTS.name):
+            missing = (
+                conn.execute(
+                    text(f"""
+                SELECT DISTINCT point."NetzbetreiberMaStRNummer"
+                FROM {raw_table(POINTS.name)} AS point
+                WHERE point."NetzbetreiberMaStRNummer" IS NOT NULL AND NOT EXISTS (
+                    SELECT FROM {raw_table(OPERATORS.name)} AS operator
+                    WHERE operator."{OPERATORS.key}" = point."NetzbetreiberMaStRNummer"
+                )
+            """)
+                )
+                .scalars()
+                .all()
+            )
+    since = complete.replace(hour=0, minute=0, second=0, microsecond=0)
+    until = api.server_time()
+    changed = api.changed_grid_operators(since, GRID_OPERATOR_FUNCTIONS)
+    ids = sorted(set(changed) | set(missing))
+    logger.info(
+        f"{OPERATORS.name}: {len(changed):,} grid operators changed since {since:%Y-%m-%d}, "
+        f"{len(missing):,} named by a Netzanschlusspunkt but not in the table"
+    )
+    if len(ids) > calls_left(api):
+        raise RuntimeError(
+            f"{OPERATORS.name}: only {calls_left(api):,} API calls left today for {len(ids):,} operators"
+        )
+
+    rows = []
+    for mastr_nummer in ids:
+        actor = api.grid_operator(mastr_nummer)
+        if actor is None:
+            continue
+        row = encode(actor, OPERATORS.spec)
+        if row.get("Marktfunktion") in ("1", "8"):  # the grid operators, like db_migrate.ROW_FILTERS
+            rows.append(row)
+    chunk = to_chunk(rows, columns)
+    if chunk:
+        with engine.begin() as conn:
+            load(conn, OPERATORS.name, chunk, OPERATORS.spec, OPERATORS.key, sanity=False, dates=(OPERATORS.changed,))
+    save_synced_until(engine, OPERATORS.name, until)
+    return until
+
+
 def copy_gas_storage_units(engine: Engine) -> None:
     """The export lists the gas storage units among the gas producers too, with their general fields, their name as
     NameGaserzeugungseinheit and their SpeicherMaStRNummer, but without address and coordinates: keep those rows the
@@ -271,10 +390,10 @@ def exists(engine: Engine, table_name: str) -> bool:
         return conn.execute(text("SELECT to_regclass(:table)"), {"table": raw_table(table_name)}).scalar() is not None
 
 
-def newest_change(conn: Connection, table_name: str, own_rows: str = "TRUE") -> datetime:
-    newest = conn.execute(
-        text(f'SELECT max("DatumLetzteAktualisierung") FROM {raw_table(table_name)} WHERE {own_rows}')
-    ).scalar()
+def newest_change(
+    conn: Connection, table_name: str, own_rows: str = "TRUE", column: str = "DatumLetzteAktualisierung"
+) -> datetime:
+    newest = conn.execute(text(f'SELECT max("{column}") FROM {raw_table(table_name)} WHERE {own_rows}')).scalar()
     if newest is None:
         raise RuntimeError(f"{raw_table(table_name)} is empty, build it from the bulk export first (db_migrate)")
     return newest
@@ -283,13 +402,20 @@ def newest_change(conn: Connection, table_name: str, own_rows: str = "TRUE") -> 
 def read_synced_until(conn: Connection, unit_type: UnitType) -> datetime:
     """Every change of the register before this time is in the table (register time, like its dates). Until a run has
     noted it: the newest change in the table, as far as the bulk export or the runs before this bookkeeping got."""
-    if conn.execute(text("SELECT to_regclass('meta.sync_state')")).scalar() is not None:
-        noted = conn.execute(
-            text("SELECT synced_until FROM meta.sync_state WHERE table_name = :table"), {"table": unit_type.table}
-        ).scalar()
-        if noted is not None:
-            return noted
-    return newest_change(conn, unit_type.table, unit_type.own_rows)
+    return noted_synced_until(conn, unit_type.table) or newest_change(conn, unit_type.table, unit_type.own_rows)
+
+
+def read_table_synced_until(conn: Connection, table: Table) -> datetime:
+    """The same for a table without units, by its own date column."""
+    return noted_synced_until(conn, table.name) or newest_change(conn, table.name, column=table.changed)
+
+
+def noted_synced_until(conn: Connection, table_name: str) -> datetime | None:
+    if conn.execute(text("SELECT to_regclass('meta.sync_state')")).scalar() is None:
+        return None
+    return conn.execute(
+        text("SELECT synced_until FROM meta.sync_state WHERE table_name = :table"), {"table": table_name}
+    ).scalar()
 
 
 def save_synced_until(engine: Engine, table_name: str, synced_until: datetime) -> None:
@@ -380,17 +506,33 @@ def to_chunk(rows: Iterable[dict[str, str | None]], columns_in_table: set[str]) 
     return Chunk(columns, buffer.getvalue().encode(), count) if count else None
 
 
-def load(conn: Connection, table_name: str, chunk: Chunk, spec: CodeSpec, key: str, *, sanity: bool) -> None:
+def load(
+    conn: Connection,
+    table_name: str,
+    chunk: Chunk,
+    spec: CodeSpec,
+    key: str,
+    *,
+    sanity: bool,
+    dates: tuple[str, ...] = CHANGE_DATES,
+) -> None:
     """Upsert the rows through a staging table, which also lets the database compare them with what it has.
-    key: the table's primary key (EinheitMastrNummer, for plants MaStRNummer). sanity: rows for the sanity check are in."""
+    key: the table's primary key (EinheitMastrNummer, for plants MaStRNummer). sanity: rows for the sanity check are in.
+    dates: the columns that say a row changed (units: their own date and the grid operator's check)."""
     conn.execute(text(f"CREATE TEMP TABLE staging (LIKE {raw_table(table_name)}) ON COMMIT DROP"))  # same column types
     copy_chunk(conn, "staging", chunk)
-    check(conn, table_name, chunk.columns, spec.multi, key, sanity)
+    check(conn, table_name, chunk.columns, spec.multi, key, sanity, dates)
     upsert(conn, table_name, chunk.columns, key)
 
 
 def check(
-    conn: Connection, table_name: str, columns: tuple[str, ...], multi: frozenset[str], key: str, sanity: bool
+    conn: Connection,
+    table_name: str,
+    columns: tuple[str, ...],
+    multi: frozenset[str],
+    key: str,
+    sanity: bool,
+    dates: tuple[str, ...] = CHANGE_DATES,
 ) -> None:
     """Sort the fetched units into new / changed / unchanged and check that the unchanged ones are identical.
 
@@ -398,7 +540,7 @@ def check(
     A difference points at the translation into the export's format, or at the register itself.
     sanity: the rows include units re-fetched for this check, so some should be unchanged.
     """
-    dates = [date for date in CHANGE_DATES if date in columns]
+    dates = [date for date in dates if date in columns]
     unchanged = " AND ".join(f'staged."{date}" IS NOT DISTINCT FROM stored."{date}"' for date in dates)
     per_column = []
     for column in columns:
@@ -508,13 +650,15 @@ if __name__ == "__main__":
     # 1. What changed, per unit type
     failed, todos = [], []  # (unit type, what it needs)
     for unit_type in UNIT_TYPES:
-        # The gas tables came later: until they are loaded from the bulk export (DEPLOY.md), the update leaves them out
-        if unit_type in (GAS_PRODUCERS, GAS_STORAGE_UNITS) and not all(
-            exists(engine, table)
-            for table in (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table].table)
-        ):
+        # Tables that came later: until they are loaded from the bulk export (DEPLOY.md), the update leaves them out.
+        # The gas producers and storage units go together, with the storages.
+        needed = (unit_type.table,)
+        if unit_type in (GAS_PRODUCERS, GAS_STORAGE_UNITS):
+            needed = (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table].table)
+        missing = [table for table in needed if not exists(engine, table)]
+        if missing:
             logger.warning(
-                f"{unit_type.table}: the gas tables are not in the database yet, skipped (load them with db_migrate)"
+                f"{unit_type.table}: raw.{', raw.'.join(missing)} not in the database yet, skipped {LOAD_HINT}"
             )
             continue
         try:
@@ -526,7 +670,8 @@ if __name__ == "__main__":
     if args.dry_run:
         needed = sum(len(todo.new) + len(todo.changed) for _, todo in todos)
         logger.info(
-            f"Dry run: {needed:,} units to fetch (plus plants), {calls_left(api):,} API calls left today. Nothing written."
+            f"Dry run: {needed:,} units to fetch (plus plants and the Netzanschlüsse, which it doesn't list), "
+            f"{calls_left(api):,} API calls left today. Nothing written."
         )
         sys.exit(1 if failed else 0)
 
@@ -565,6 +710,18 @@ if __name__ == "__main__":
             logger.exception(f"{GAS_PRODUCERS.table}: copying the gas storage units failed")
             failed.append(GAS_PRODUCERS.table)
 
+    # 3. The Netzanschlusspunkte and their grid operators
+    synced = [todo.synced_until() for _, todo in todos]
+    for table, update_table in ((POINTS, update_points), (OPERATORS, update_operators)):
+        if not exists(engine, table.name):
+            logger.warning(f"{table.name}: raw.{table.name} not in the database yet, skipped {LOAD_HINT}")
+            continue
+        try:
+            synced.append(update_table(api, engine))
+        except Exception:
+            logger.exception(f"{table.name}: update failed")
+            failed.append(table.name)
+
     # Also after a failure: what did update should reach the website
     failed += refresh_views(engine)
 
@@ -574,5 +731,5 @@ if __name__ == "__main__":
         logger.error(f"Update FAILED for {', '.join(failed)} {summary}")
         sys.exit(1)
     # Usually the start of this run; earlier if the API quota cut it short
-    record_datenstand(engine, min(todo.synced_until() for _, todo in todos).date())
+    record_datenstand(engine, min(synced).date())
     logger.info(f"Update done {summary}")

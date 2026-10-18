@@ -87,9 +87,8 @@ export default function HomePage() {
             <div>
               <dt>Aktualität</dt>
               <dd>
-                Jede Nacht holt ein Abgleich alle geänderten Einheiten über die Webdienste des Registers. Aktueller Datenstand:{' '}
-                {formatDate(datenstand)}. Die Netzanschlusspunkte stammen aus dem Gesamtdatenexport des Registers (Stand
-                26.09.2026).
+                Jede Nacht holt ein Abgleich alle geänderten Einheiten und Netzanschlusspunkte über die Webdienste des Registers.
+                Aktueller Datenstand: {formatDate(datenstand)}.
               </dd>
             </div>
             <div>

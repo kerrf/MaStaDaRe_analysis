@@ -4,7 +4,18 @@ from datetime import date, datetime
 from decimal import Decimal
 
 import pandas as pd
-from app.codes import COMBUSTION, GAS_PRODUCER, GAS_STORAGE, GRID, GRID_OPERATOR, STORAGE, WIND, decode, encode
+from app.codes import (
+    COMBUSTION,
+    GAS_PRODUCER,
+    GAS_STORAGE,
+    GRID,
+    GRID_CONNECTION_POINT_LIST,
+    GRID_OPERATOR,
+    STORAGE,
+    WIND,
+    decode,
+    encode,
+)
 
 
 def wind_unit(**fields) -> dict:
@@ -150,3 +161,35 @@ def test_lists_of_codes_with_a_trailing_comma():
     grids = decode(pd.DataFrame({"Bundesland": ["337, 342", "332, 333, 345, "], "Sparte": ["21", "20"]}), GRID)
     assert grids["Bundesland"].tolist() == ["Hessen, RheinlandPfalz", "Brandenburg, Berlin, Sachsen"]
     assert grids["Sparte"].tolist() == ["Gas", "Strom"]
+
+
+def test_listed_netzanschlusspunkte_become_export_rows():
+    """GetListeAlleNetzanschlusspunkte, after mastr_api.changed_points took the Bilanzierungsgebiet apart"""
+    row = encode(
+        {
+            "NetzanschlusspunktMastrNummer": "SAN998216990188",
+            "LetzteAenderung": datetime.fromisoformat("2026-09-26T00:01:56.103680"),
+            "LokationMastrNummer": "SEL967838825079",
+            "Lokationtyp": "Stromerzeugungslokation",
+            "Spannungsebene": "Niederspannung",
+            "Nettoengpassleistung": Decimal("8.550"),
+            "GeplanterNetzanschlusspunkt": False,
+            "NetzbetreiberMastrNummer": "SNB926394308747",
+            "BilanzierungsgebietNetzanschlusspunktId": 8,
+            "RegelzoneNetzanschlusspunkt": "Amprion",
+        },
+        GRID_CONNECTION_POINT_LIST,
+    )
+    assert row["LokationMaStRNummer"] == "SEL967838825079"
+    assert row["NetzbetreiberMaStRNummer"] == "SNB926394308747"
+    assert (row["Lokationtyp"], row["Spannungsebene"], row["RegelzoneNetzanschlusspunkt"]) == ("1", "354", "1000010")
+    assert (row["NochInPlanung"], row["BilanzierungsgebietNetzanschlusspunktId"]) == ("0", "8")
+    assert row["LetzteAenderung"] == "2026-09-26T00:01:56.103680"
+
+
+def test_address_flags_stay_for_what_has_no_coordinates_at_all():
+    """Units without public coordinates have no address flags in the export; grid operators have no coordinates"""
+    unit = encode(wind_unit(Laengengrad=None, Hausnummer={"Wert": "7", "NichtVorhanden": False}), WIND)
+    actor = encode({"Hausnummer": {"Wert": "7", "NichtVorhanden": False}}, GRID_OPERATOR)
+    assert unit["Hausnummer_nv"] is None
+    assert actor["Hausnummer_nv"] == "0"

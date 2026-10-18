@@ -346,8 +346,13 @@ run from the MaStR API and upserts it into `raw.solar_units`,
 plants of changed or plant-less storage units into `raw.storage_plants` (the
 capacity lives there). Likewise the gas producers and gas storages
 (`raw.gas_producer_units`, `raw.gas_storage_units`, `raw.gas_storage_plants`),
-as soon as those tables exist (they come with `deploy/push_db.sh`, section 12;
-until then it skips them). A systemd
+and the Netzanschlüsse: the units of the other technologies
+(`raw.biomass_units`, `raw.combustion_units`, `raw.nuclear_units`,
+`raw.geothermal_units`), the Netzanschlusspunkte (`raw.grid_connection_points`,
+from one list call with all their fields, 2,000 per call) and the grid
+operators (`raw.grid_operators`: those changed, and those a point names that the
+table doesn't have yet). Each table only as soon as it exists (it comes from the
+bulk export, section 12; until then the update skips it with a warning). A systemd
 timer runs it every night at 1:00 German time, in a one-off container of the
 backend image.
 
@@ -442,6 +447,40 @@ It swaps `mastr` and `mastr_prev` (run it again to swap back). Disk needed on
 the server: about 1.3 × the database plus the dump, next to the live database.
 Afterwards the nightly update fetches every change since the state of the
 pushed database, the Datenstand follows with its next complete run.
+
+### Only the tables of the Netzanschlüsse
+
+The Netzanschlusspunkte, the grid operators and the units of the other
+technologies (biomass, combustion, nuclear, geothermal), which place the
+Netzanschlusspunkte, have to come from the bulk export once: the API can't list
+millions of points. From then on the nightly update keeps them current.
+`backend/app/etl/export_tables.py` (its `TABLES`) reloads them locally from the
+newest daily export; `deploy/push_raw_tables.sh` puts just these tables on the
+server, without touching the rest of its database:
+
+```bash
+cd backend && uv run python -m app.etl.export_tables   # local: download (~3.2 GB) and load, ~30 min
+./deploy/push_raw_tables.sh                            # to the server
+```
+
+1. **Load (local):** downloads the newest export into `backend/data/raw`
+   (skipped if that zip is there already), unpacks only these tables' files,
+   replaces each table in one transaction (the views built on it stay), notes
+   the export in the table's comment, recomputes the views that read them and
+   deletes the unpacked files.
+2. **Push:** the same checks as `push_db.sh`; dumps these tables with their row
+   counts, uploads (`rsync --partial`, sha256 check), and on the server
+   (`deploy/raw_tables_on_server.sh`) restores them into schema `raw_next`
+   next to the live tables, checks the row counts and replaces the live ones in
+   one transaction (`deploy/raw_tables_swap.sql`: a table that's there is
+   emptied and refilled, so the views on it stay; a new one moves over). Then
+   it builds the views that were missing for want of these tables
+   (`transform.py` with the running image) and checks `/netz/ebenen`. Views that
+   existed already get the new data with the next nightly update.
+
+The website keeps running all the while. Both forget what the nightly update
+noted for these tables (`meta.sync_state`): its next run fetches every change
+since the export.
 
 ## 13. Who visits the site: analytics and access logs
 

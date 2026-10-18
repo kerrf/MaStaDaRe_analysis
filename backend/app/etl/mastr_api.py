@@ -47,6 +47,8 @@ class MastrApi:
         self.client = Client(WSDL, transport=Transport(session=_retrying_session(), operation_timeout=TIMEOUT))
         self.anlage = self.client.bind("Marktstammdatenregister", "Anlage")
         self.allgemein = self.client.bind("Marktstammdatenregister", "Allgemein")
+        self.akteur = self.client.bind("Marktstammdatenregister", "Akteur")
+        self.netzanschlusspunkt = self.client.bind("Marktstammdatenregister", "Netzanschlusspunkt")
         self.auth = {
             "apiKey": os.environ["webservice_key"],  # noqa: SIM112 (name as in the .env files)
             "marktakteurMastrNummer": os.getenv("mastr_nummer", "SOM922653610750"),  # noqa: SIM112
@@ -76,8 +78,14 @@ class MastrApi:
         names units that were deactivated or deleted since: the register refuses their details, they are skipped.
         Power units are listed by their Energieträger (list_call GetGefilterteListeStromErzeuger). Gas units have one list
         for producers and storage units (GetGefilterteListeGasErzeuger), which keeps the units of the type asked for.
+        The types of many Energieträger (biomass, combustion, nuclear, geothermal) are listed by their type
+        (GetListeLetzteAktualisierung, by their own date: no linked object).
         """
-        filters = {"energietraeger": energietraeger} if energietraeger else {}
+        by_type = list_call == "GetListeLetzteAktualisierung"
+        if by_type:
+            filters = {"Einheittyp": einheittyp, "VerknuepftesObjektArt": "None"}
+        else:
+            filters = {"energietraeger": energietraeger} if energietraeger else {}
         listed = self._list(getattr(self.anlage, list_call), **filters, datumAb=since)
         checked = self._list(
             self.anlage.GetListeLetzteAktualisierung,
@@ -92,7 +100,10 @@ class MastrApi:
             if unit.EinheitSystemstatus != ACTIVE:
                 inactive.add(unit.EinheitMastrNummer)
                 continue
-            units[unit.EinheitMastrNummer] = unit.DatumLetzeAktualisierung  # sic, this list drops the "t"
+            # sic, the lists by Energieträger drop the "t"
+            units[unit.EinheitMastrNummer] = (
+                unit.EinheitDatumLetzteAktualisierung if by_type else unit.DatumLetzeAktualisierung
+            )
         for unit in checked:
             if unit.EinheitSystemstatus != ACTIVE:
                 inactive.add(unit.EinheitMastrNummer)
@@ -107,11 +118,62 @@ class MastrApi:
             log.info(f"{einheittyp}: {len(inactive):,} units were deactivated or deleted in the register, skipped")
         return units
 
-    def _list(self, call: Callable, **filters) -> Iterator:
-        """All entries of a list call, page by page."""
+    def changed_points(self, since: datetime) -> Iterator[dict]:
+        """Every Netzanschlusspunkt changed since `since`, of every Lokationtyp, as the export's fields would come from the
+        API (encode with codes.GRID_CONNECTION_POINT_LIST): the list has all of them, no detail calls. Its
+        Bilanzierungsgebiet is an object, the export keeps its Id and its Regelzone."""
+        for point in self._list(
+            self.netzanschlusspunkt.GetListeAlleNetzanschlusspunkte, "ListeNetzanschlusspunkte", datumAb=since
+        ):
+            point = serialize_object(point, dict)
+            point.pop("EinheitMitOrtUndPlz", None)  # the units of its Lokation, which the export doesn't list here
+            area = point.pop("Bilanzierungsgebiet", None) or {}
+            point["BilanzierungsgebietNetzanschlusspunktId"] = area.get("Id")
+            point["RegelzoneNetzanschlusspunkt"] = area.get("Regelzone")
+            yield point
+
+    def grid_operator(self, mastr_nummer: str) -> dict | None:
+        """A grid operator (Marktakteur) as the export's fields would come from the API (encode with
+        codes.GRID_OPERATOR), or None if the register doesn't know it. Its market roles and grid come as objects, the
+        export keeps their numbers: "SNB…AN, SNB…BV" and "SNE…"."""
+        try:
+            answer = self.akteur.GetMarktakteur(**self.auth, mastrNummer=mastr_nummer)
+        except Fault as error:
+            if not any(reason in error.message for reason in GONE):
+                raise
+            log.info(f"GetMarktakteur {mastr_nummer}: {error.message}")
+            return None
+        actor = serialize_object(answer, dict)
+        for field in HEADER:
+            del actor[field]
+        roles = actor.pop("Marktrollen") or []
+        actor["Marktrollen"] = ", ".join(role["MarktrolleMastrNummerId"] for role in roles) or None
+        grid = actor.pop("Netz") or {}
+        actor["Netz"] = grid.get("MastrNummer")
+        actor["Nuts2"] = (actor.pop("Nuts2") or {}).get("nuts2Id")
+        for field, value in list(actor.items()):
+            if isinstance(value, list) or (isinstance(value, dict) and "Wert" not in value):
+                del actor[field]  # details the export doesn't have (Marktakteursvertreter, …)
+            elif isinstance(value, str) and value.startswith("<![CData[") and value.endswith("]]>"):
+                actor[field] = value[len("<![CData[") : -len("]]>")]  # how the API wraps some links
+        return actor
+
+    def changed_grid_operators(self, since: datetime, functions: Iterable[str]) -> dict[str, datetime]:
+        """MaStR number -> date of the latest change, for every market actor of these Marktfunktionen (e.g.
+        "Stromnetzbetreiber") changed since `since`."""
+        actors = {}
+        for function in functions:
+            for actor in self._list(
+                self.akteur.GetGefilterteListeMarktakteure, "Marktakteure", marktfunktion=function, datumAb=since
+            ):
+                actors[actor.MarktakteurMastrNummer] = actor.DatumLetzeAktualisierung  # sic
+        return actors
+
+    def _list(self, call: Callable, field: str = "Einheiten", **filters) -> Iterator:
+        """All entries of a list call, page by page. field: the answer's list (most calls: Einheiten)."""
         for start in count(1, PAGE_SIZE):  # startAb counts from 1
             answer = call(**self.auth, **filters, startAb=start, limit=PAGE_SIZE)
-            yield from answer.Einheiten or []
+            yield from getattr(answer, field) or []
             if answer.Ergebniscode != "OkWeitereDatenVorhanden":
                 return
 
