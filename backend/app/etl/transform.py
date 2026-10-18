@@ -63,6 +63,8 @@ VIEW_FILES = [
     "aggregate_solar_orientation_tilt.sql",
     # Solar Zubau and Bestand per year in every region (the Landkreis/Gemeinde page)
     "aggregate_solar_zubau_regions.sql",
+    # The same per Art with the Balkonkraftwerke apart, in Deutschland, the Länder and Kreise (Auf einen Blick)
+    "aggregate_solar_arten_regions.sql",
     # The same for batteries, their size classes by capacity (the Landkreis/Gemeinde page of the Speicher), and their
     # battery technology and AC/DC coupling (the Anlagen page)
     "aggregate_battery_zubau_regions.sql",
@@ -141,8 +143,20 @@ def swap(engine: Engine, views: list[str], stamp: str) -> None:
             time.sleep(30)
 
 
+def missing_raw_tables(engine: Engine, sql: str) -> list[str]:
+    """The tables of the schema raw a file reads that aren't in the database (a server without the bulk export's grid
+    tables, say)."""
+    tables = sorted(set(re.findall(r"\braw\.(\w+)", sql)))
+    with engine.connect() as conn:
+        return [
+            t for t in tables if conn.execute(text("SELECT to_regclass(:name)"), {"name": f"raw.{t}"}).scalar() is None
+        ]
+
+
 def build_views(engine: Engine) -> list[str]:
-    """Builds the views whose file changed or that don't exist yet. Returns the files built."""
+    """Builds the views whose file changed or that don't exist yet, except those whose raw tables aren't there yet:
+    they are left out with a warning (their pages have no data until the tables are loaded with db_migrate), so the
+    other views – and a deploy – go ahead. Returns the files built."""
     stamps = built_stamps(engine)
     todo = []
     for file_name in VIEW_FILES:
@@ -160,6 +174,12 @@ def build_views(engine: Engine) -> list[str]:
             if any(stamps[view] is None for view in views)
             else "file changed"
         )
+        missing = missing_raw_tables(engine, sql)
+        if missing:
+            logger.warning(
+                f"{file_name}: skipped, raw.{', raw.'.join(missing)} not in the database (load with db_migrate)"
+            )
+            continue
         todo.append((file_name, sql, views, stamp, reason))
 
     if not todo:

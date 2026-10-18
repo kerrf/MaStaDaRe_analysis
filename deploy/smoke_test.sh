@@ -49,6 +49,7 @@ ROUTES=(
   # Landkreis/Gemeinde (Landkreis Zwickau, Gemeinde Zwickau)
   "/regions/areas?level=gemeinde&within=14524"
   "/solar/zubau?region=14524"
+  "/solar/arten?region=14524"
   "/solar/orientation?region=14524330"
   "/solar/orientation-tilt?region=14524330"
   "/solar/size-distribution?region=14524330"

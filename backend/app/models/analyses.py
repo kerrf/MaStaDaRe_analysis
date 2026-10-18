@@ -224,6 +224,33 @@ class SolarZubauRegion(Base):
         )
 
 
+class SolarArtenRegion(Base):
+    """Solar Zubau and Bestand per year, Art – Gebäude, Balkonkraftwerk, Freifläche – and region since 2000, for the
+    page Auf einen Blick (aggregate_solar_arten_regions.sql); Deutschland, Länder and Kreise."""
+
+    __tablename__ = "solar_arten_regions"
+    __table_args__ = {"schema": "mrt"}
+
+    level = Column(String)  # deutschland, bundesland, landkreis
+    region = Column(String, primary_key=True)
+    year = Column(Integer, primary_key=True)
+    art = Column(String, primary_key=True)  # gebaeude, balkon, freiflaeche
+
+    added_units = Column(Integer)  # went into operation in the year
+    added = Column(Float)  # MW, Brutto
+    added_net = Column(Float)  # MW, Netto
+    installed_units = Column(Integer)  # in operation at the end of the year
+    installed = Column(Float)
+    installed_net = Column(Float)
+
+    @classmethod
+    def of(cls, db: Session, region: str) -> list:
+        """The years of one region, per Art, Brutto and Netto."""
+        return (
+            db.query(cls).filter(cls.level == level_of(region), cls.region == region).order_by(cls.year, cls.art).all()
+        )
+
+
 class BatteryZubauRegion(Base):
     """Battery Zubau and Bestand per year, size class and region since 2013 (aggregate_battery_zubau_regions.sql)."""
 

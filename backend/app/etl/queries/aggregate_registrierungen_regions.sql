@@ -16,7 +16,13 @@ WITH units AS (
         (CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END)
     ) AS s(technology)
     UNION ALL
-    SELECT 'wind', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.wind_units
+    -- Wind as a whole and per Lage: auf See (889), else an Land
+    SELECT w.technology, u."Gemeindeschluessel", u."Registrierungsdatum"
+    FROM raw.wind_units u
+    CROSS JOIN LATERAL (VALUES
+        ('wind'),
+        (CASE WHEN u."WindAnLandOderAufSee" = '889' THEN 'wind_auf_see' ELSE 'wind_an_land' END)
+    ) AS w(technology)
     UNION ALL
     SELECT 'wasserkraft', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.water_units
     UNION ALL
