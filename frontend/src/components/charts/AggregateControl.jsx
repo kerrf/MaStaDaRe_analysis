@@ -1,3 +1,5 @@
+import SegmentedControl from '../ui/SegmentedControl';
+import Setting from '../ui/Setting';
 import Switch from '../ui/Switch';
 
 const STYLES = [
@@ -5,32 +7,25 @@ const STYLES = [
   { id: 'kurve', label: 'Kurve' },
 ];
 
-// The "aggregiert" switch (the Bestand instead of the Zubau) and, once on, below it in the same box: the aggregated
-// values as bars or as a curve – always bars first, each time it is switched on
+// "Aggregiert" (the Bestand instead of the Zubau) in a box like every setting, and beside the switch the aggregated
+// values as bars or as a curve – out of use while it is off, so nothing moves; always bars first, each time it is
+// switched on
 export default function AggregateControl({ aggregiert, onAggregiert, style, onStyle }) {
   const toggle = (on) => {
     onAggregiert(on);
     if (on) onStyle('balken');
   };
   return (
-    <div className={`aggregate${aggregiert ? ' is-on' : ''}`}>
-      <Switch label="aggregiert" checked={aggregiert} onChange={toggle} hint="Aufsummiert: der Bestand statt des Zubaus" />
-      {aggregiert && (
-        <div className="aggregate__style" role="radiogroup" aria-label="Darstellung">
-          {STYLES.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={id === style}
-              className={`aggregate__option${id === style ? ' is-active' : ''}`}
-              onClick={() => onStyle(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Setting label="Aggregiert" className="aggregate">
+      <Switch label="aggregiert" hideLabel checked={aggregiert} onChange={toggle} hint="Aufsummiert: der Bestand statt des Zubaus" />
+      <SegmentedControl
+        label="Darstellung"
+        options={STYLES}
+        value={aggregiert ? style : null}
+        onChange={onStyle}
+        disabled={!aggregiert}
+        hint="Mit »aggregiert«: der Bestand als Balken oder als Kurve"
+      />
+    </Setting>
   );
 }

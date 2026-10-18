@@ -44,7 +44,8 @@ export default function MapRail({ analyses, tab, onTab, ranking, rankingTitle, r
           })}
         </div>
       )}
-      <div className="map-rail__body" id="map-rail-panel" role={tabs.length > 1 ? 'tabpanel' : undefined} aria-labelledby={tabs.length > 1 ? `map-rail-tab-${current.id}` : undefined}>
+      {/* data-export: a chart in the rail exports the rail's panel, not the whole map */}
+      <div className="map-rail__body" id="map-rail-panel" data-export="" role={tabs.length > 1 ? 'tabpanel' : undefined} aria-labelledby={tabs.length > 1 ? `map-rail-tab-${current.id}` : undefined}>
         <header className="map-rail__head">
           <h3 className="map-rail__title">{analysis ? `${analysis.label} · ${name}` : rankingTitle}</h3>
           <p className="map-rail__subtitle">{analysis ? analysis.what : rankingSubtitle}</p>

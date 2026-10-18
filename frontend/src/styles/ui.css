@@ -3,30 +3,35 @@
   --accent: var(--topic-erzeuger);
   --accent-strong: var(--topic-erzeuger-strong);
   --accent-soft: var(--topic-erzeuger-soft);
+  --accent-edge: rgba(226, 131, 22, 0.3); /* lines on the soft tone; no color-mix(): the image export can't read it */
 }
 
 [data-topic='speicher'] {
   --accent: var(--topic-speicher);
   --accent-strong: var(--topic-speicher-strong);
   --accent-soft: var(--topic-speicher-soft);
+  --accent-edge: rgba(42, 120, 214, 0.3);
 }
 
 [data-topic='qualitaet'] {
   --accent: var(--topic-qualitaet);
   --accent-strong: var(--topic-qualitaet-strong);
   --accent-soft: var(--topic-qualitaet-soft);
+  --accent-edge: rgba(74, 58, 167, 0.3);
 }
 
 [data-topic='gas'] {
   --accent: var(--topic-gas);
   --accent-strong: var(--topic-gas-strong);
   --accent-soft: var(--topic-gas-soft);
+  --accent-edge: rgba(14, 138, 126, 0.3);
 }
 
 [data-topic='netz'] {
   --accent: var(--topic-netz);
   --accent-strong: var(--topic-netz-strong);
   --accent-soft: var(--topic-netz-soft);
+  --accent-edge: rgba(192, 54, 91, 0.3);
 }
 
 /* ---------------------------------------------------------------- Buttons */
@@ -423,6 +428,209 @@
   padding: 8px 12px;
   font-size: 13px;
   color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- Setting */
+/* Every setting of the site in one kind of box (Setting.jsx): its name in the first field, then its options, 36 px
+   high (the area 40 px). The controls inside lose their own frame: the box is theirs. Chosen options in green – how a
+   card shows its data, and the area – or, with --topic, in the topic's colour: what a page shows (technology,
+   filters). The name's field takes the same colour, light, the name bold in its dark tone: it stands out from the
+   options and says to which layer the setting belongs. */
+.setting {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.setting__label {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 0 12px;
+  border-right: 1px solid var(--brand-100);
+  border-radius: calc(var(--radius-md) - 1px) 0 0 calc(var(--radius-md) - 1px);
+  background: var(--brand-50);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--brand-700);
+}
+
+.setting--topic .setting__label {
+  border-right-color: var(--accent-edge, var(--brand-100));
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.setting__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px;
+}
+
+.setting .segmented {
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.setting .segmented__option {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 12px;
+}
+
+.setting .segmented__option:hover:not(:disabled):not(.is-active) {
+  background: var(--surface-sunken);
+}
+
+.setting--topic .segmented__option.is-active {
+  background: var(--accent-strong);
+}
+
+.setting .list-select {
+  height: 30px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background-color: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.setting .list-select:hover:not(:disabled) {
+  background-color: var(--surface-sunken);
+}
+
+.setting .switch {
+  height: 30px;
+  border: 0;
+  background: transparent;
+}
+
+.setting__range {
+  width: 120px;
+  margin: 0 10px;
+  accent-color: var(--brand-600);
+}
+
+.setting--large {
+  min-height: 40px;
+}
+
+.setting--large .setting__label {
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+/* A band of settings: their boxes in rows on the sunken tone, so they stand out from what they set – on top of a page,
+   between a card's title and its chart, in the header (the area) */
+.settings-band {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-sunken);
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* On the row's right: what the settings amount to, a way back to the start */
+.settings-row__aside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 12px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.settings-row__aside strong {
+  color: var(--ink-primary);
+}
+
+/* The way back: a quiet button in the row, as high as the boxes */
+.settings-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-primary);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.settings-reset:hover {
+  border-color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+.settings-reset:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+
+/* On a phone every box is a line of its own, the name above its options */
+@media (max-width: 640px) {
+  .setting {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .setting__label {
+    padding: 6px 10px 5px;
+    border-right: 0;
+    border-bottom: 1px solid var(--brand-100);
+    border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+  }
+
+  .setting--topic .setting__label {
+    border-bottom-color: var(--accent-edge, var(--brand-100));
+  }
+
+  .setting .segmented {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* Each option as wide as its name: the row wraps rather than cutting it off */
+  .setting .segmented__option {
+    flex: 1 1 auto;
+    min-width: max-content;
+  }
+
+  .settings-row__aside {
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 /* ----------------------------------------------------------------- Switch */
@@ -965,32 +1173,40 @@
   }
 }
 
-/* -------------------------------------------------------------- CSV link */
-/* The data of a chart as a file (CsvLink.jsx): small, at the right of the chart's foot, after its note */
+/* ---------------------------------------------------------- Chart export */
+/* Every chart's exports (ChartExport.jsx, ExportMenu.jsx): a download menu at the right of the chart's foot */
 .chart-foot {
   display: flex;
   align-items: baseline;
   gap: 4px 24px;
 }
 
-/* The note or legend takes the room the link leaves (a centred legend stays centred in it) */
-.chart-foot > :not(.csv-link) {
+/* The note or legend takes the room the exports leave (a centred legend stays centred in it) */
+.chart-foot > :not(.chart-export) {
   flex: 1;
   min-width: 0;
 }
 
-.chart-foot > .csv-link {
+.chart-foot > .chart-export {
   margin-left: auto;
 }
 
-.csv-link {
+.export-menu {
+  position: relative;
   display: inline-flex;
   flex: none;
+}
+
+/* The button: the download pictogram and "Download", small and green like a link in a chart's foot, framed like the
+   other tools in a card's head */
+.export-menu__button {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 0;
   border: 0;
   background: none;
+  font: inherit;
   font-size: 12px;
   font-weight: 650;
   line-height: 1.5;
@@ -999,8 +1215,105 @@
   cursor: pointer;
 }
 
-.csv-link:hover {
+.export-menu__button:hover,
+.export-menu__button[aria-expanded='true'] {
   color: var(--brand-700);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.export-menu--md .export-menu__button {
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.export-menu--md .export-menu__button:hover,
+.export-menu--md .export-menu__button[aria-expanded='true'] {
+  border-color: var(--brand-600);
+  color: var(--ink-primary);
+  text-decoration: none;
+}
+
+/* The menu at the button's right edge, above it in a chart's foot (the card around clips what hangs out below), below
+   it in a card's head: two groups, Rohdaten and Bilder, each format with its pictogram */
+.export-menu__list {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  min-width: 15.5rem;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  text-align: left;
+}
+
+.export-menu--md .export-menu__list {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.export-menu__group + .export-menu__group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.export-menu__label {
+  padding: 6px 8px 4px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.export-menu__item {
+  display: grid;
+  grid-template-columns: 16px 2.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.export-menu__item svg {
+  color: var(--brand-600);
+}
+
+.export-menu__item:hover:not(:disabled),
+.export-menu__item:focus-visible {
+  background: var(--brand-50);
+  outline: none;
+}
+
+.export-menu__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.export-menu__name {
+  font-weight: 700;
+}
+
+.export-menu__hint {
+  font-size: 12px;
+  color: var(--ink-muted);
 }

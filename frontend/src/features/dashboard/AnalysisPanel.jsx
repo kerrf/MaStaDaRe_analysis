@@ -1,6 +1,7 @@
-// One analysis in the Analysen section: a card that starts with a clear head (icon, title, what it shows, its tools on the
-// right), so the analyses read as separate pieces one below the other. id: the anchor the section's navigation jumps to.
-export default function AnalysisPanel({ id, icon: Icon, title, lead, tools, className = '', bodyId, bodyRole, children }) {
+// One analysis in the Analysen section: a card that starts with a clear head (icon, title, what it shows, its actions on
+// the right: tools), so the analyses read as separate pieces one below the other; below the head, its settings in a band
+// (settings: SettingsRow, like the map's). id: the anchor the section's navigation jumps to.
+export default function AnalysisPanel({ id, icon: Icon, title, lead, tools, settings, className = '', bodyId, bodyRole, children }) {
   return (
     <article id={id} className={`card analysis ${className}`} aria-labelledby={`${id}-title`}>
       <header className="analysis__head">
@@ -15,6 +16,7 @@ export default function AnalysisPanel({ id, icon: Icon, title, lead, tools, clas
         </div>
         {tools && <div className="analysis__tools">{tools}</div>}
       </header>
+      {settings && <div className="settings-band analysis__settings">{settings}</div>}
       <div className="analysis__body" id={bodyId} role={bodyRole}>
         {children}
       </div>

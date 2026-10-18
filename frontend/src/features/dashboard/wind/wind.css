@@ -1,73 +1,5 @@
 /* The analyses of every wind turbine on its own (page Anlagen, technology wind) */
 
-/* Which turbines and what their colour says: a band like the toolbar of a card */
-.wind-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 28px;
-  padding: 10px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface-sunken);
-}
-
-.wind-controls__group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-}
-
-.wind-controls__label {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.wind-controls__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.wind-controls__count {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--ink-secondary);
-}
-
-.wind-chip {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-secondary);
-  cursor: pointer;
-}
-
-.wind-chip:hover {
-  border-color: var(--brand-500);
-  color: var(--ink-primary);
-}
-
-.wind-chip.is-on {
-  border-color: var(--brand-600);
-  background: var(--brand-600);
-  color: #fff;
-}
-
-.wind-chip:focus-visible {
-  outline: 2px solid var(--brand-600);
-  outline-offset: 2px;
-}
-
 .wind-note {
   font-size: 12.5px;
   line-height: 1.5;
@@ -182,118 +114,56 @@
   color: var(--ink-muted);
 }
 
-/* ------------------------------------------------------------- Pairplot */
-/* Names above and at the left, three columns of square cells */
-.pairs {
+/* ---------------------------------------------------------- Correlation */
+/* Three plots side by side, each a pair of sizes with its correlation in the corner */
+.correlations {
   display: grid;
-  grid-template-columns: 7.5rem repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  max-width: 980px;
-  margin: 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
 }
 
-.pairs__row {
-  display: contents;
+.correlations__plot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
 }
 
-.pairs__head,
-.pairs__side {
-  align-self: end;
-  font-size: 12.5px;
+.correlations__plot figcaption {
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink-primary);
 }
 
-.pairs__head {
-  text-align: center;
-}
-
-.pairs__side {
-  align-self: center;
-  text-align: right;
-}
-
-.pairs__head span,
-.pairs__side span {
-  font-weight: 500;
-  color: var(--ink-muted);
-}
-
-.pairs__cell {
-  position: relative;
-  min-width: 0;
-  aspect-ratio: 1;
+/* In the plot's corner, above the dots: r large, how many turbines it counts below */
+.scatter__note {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 10px 6px;
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  background: rgba(251, 248, 241, 0.9); /* --surface-card, a little see-through */
+  pointer-events: none;
 }
 
-.pairs__cell .scatter {
-  height: 100%;
-}
-
-.pairs__cell--hist {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 8px 4px;
-}
-
-.pairs__cell--hist svg {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-}
-
-.pairs__range {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-
-/* The correlation: the stronger, the deeper the green behind it */
-.pairs__corr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: color-mix(in srgb, var(--brand-600) calc(var(--strength) * 26%), var(--surface-card));
-}
-
-.pairs__r {
-  font-size: clamp(22px, 3.4vw, 38px);
+.scatter__r {
+  font-size: 22px;
   font-weight: 750;
+  line-height: 1.15;
   color: var(--ink-primary);
 }
 
-.pairs__n {
+.scatter__n {
   font-size: 11.5px;
-  color: var(--ink-secondary);
+  color: var(--ink-muted);
 }
 
-@media (max-width: 640px) {
-  .pairs {
-    grid-template-columns: 4.5rem repeat(3, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .pairs__head,
-  .pairs__side {
-    font-size: 11px;
-  }
-
-  .pairs__head span,
-  .pairs__side span {
-    display: none;
-  }
-
-  .pairs__r {
-    font-size: 18px;
-  }
-
-  .pairs__n {
-    display: none;
+@media (max-width: 1000px) {
+  .correlations {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -363,17 +233,6 @@
 }
 
 /* ------------------------------------------------------------- Map */
-.wind-map__controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-
-.wind-map__controls .segmented__option {
-  flex: 0 0 auto;
-  padding: 0 12px;
-}
-
 .wind-map {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(240px, 2fr);
@@ -520,3 +379,206 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Under the ranking: the scale of its tracks, in line with them (the columns of .orientation-ranking li) */
+.orientation-ranking__axis {
+  display: grid;
+  grid-template-columns: 10.5rem minmax(0, 1fr) 5.4rem;
+  gap: 10px;
+  height: 18px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.orientation-ranking__ticks {
+  position: relative;
+  grid-column: 2;
+}
+
+.orientation-ranking__ticks span {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.orientation-ranking__ticks span:first-child {
+  transform: none;
+}
+
+.orientation-ranking__ticks span:last-child {
+  transform: translateX(-100%);
+}
+
+/* ------------------------------------------- Anlagengröße je nach Standort */
+/* One figure (TurbineMap): the map on the left, the bands of latitude as dashed lines across it and the space beside
+   it, each band's median and middle half on the right, level with the band. --geo-split: the map's share of the width */
+.wind-geo,
+.wind-geo__head {
+  --geo-split: 60%;
+  display: grid;
+  grid-template-columns: var(--geo-split) minmax(0, 1fr);
+}
+
+.wind-geo__head {
+  align-items: center;
+  gap: 8px 0;
+  margin-bottom: 4px;
+}
+
+.wind-geo__key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.wind-geo__key strong {
+  color: var(--ink-primary);
+}
+
+.wind-geo__key-dot,
+.wind-geo__key-band {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+.wind-geo__key-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--brand-600);
+}
+
+.wind-geo__key-band {
+  width: 24px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+}
+
+.wind-geo {
+  position: relative;
+}
+
+.wind-geo__map {
+  min-width: 0;
+}
+
+/* The edges of the bands, from the map's left edge to the profile's right; their latitude on the left */
+.wind-geo__lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wind-geo__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(113, 122, 112, 0.6); /* --ink-muted, lighter */
+}
+
+.wind-geo__line span {
+  position: absolute;
+  left: 0;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-card);
+  font-size: 10.5px;
+  line-height: 14px;
+  color: var(--ink-muted);
+  transform: translateY(-50%);
+}
+
+.wind-geo__profile {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A band: its track (middle half, median), the median, how many turbines */
+.wind-geo__profile li {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.4rem 4.2rem;
+  align-items: center;
+  gap: 10px;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.wind-geo__track {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-sunken);
+}
+
+.wind-geo__value {
+  text-align: right;
+  font-weight: 650;
+  color: var(--ink-primary);
+}
+
+.wind-geo__count {
+  font-size: 11px;
+  text-align: right;
+  color: var(--ink-muted);
+}
+
+/* The scale of the tracks, under the last band */
+.wind-geo__axis {
+  height: 20px;
+  margin: 6px calc(8.6rem + 20px) 0 calc(60% + 16px);
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.wind-geo__axis-track {
+  position: relative;
+  display: block;
+  height: 100%;
+}
+
+.wind-geo__axis-track span {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 640px) {
+  .wind-geo,
+  .wind-geo__head {
+    --geo-split: 55%;
+  }
+
+  .wind-geo__profile li {
+    grid-template-columns: minmax(0, 1fr) 3.6rem;
+    gap: 6px;
+    padding-left: 8px;
+  }
+
+  .wind-geo__count {
+    display: none;
+  }
+
+  .wind-geo__axis {
+    margin-right: calc(3.6rem + 6px);
+    margin-left: calc(55% + 8px);
+  }
+
+  /* Only both ends of the scale: the track is too short for more */
+  .wind-geo__axis-track span:not(:first-child, :last-child) {
+    display: none;
+  }
+}
+

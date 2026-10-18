@@ -1,5 +1,5 @@
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { API_BASE_URL } from '../../config/site';
 import { RAMPS, makeColorScale } from '../../lib/colorScale';
 import { useStats } from '../../lib/data';

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Download, RefreshCw, Search, Table2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, RefreshCw, Search, Table2 } from 'lucide-react';
+import ChartExport from '../../components/ui/ChartExport';
 import ListSelect from '../../components/ui/ListSelect';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { GRANULARITIES, regionTablesOf } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
-import { trackEvent } from '../../lib/usage';
 import { inkOn, makeColorScale } from '../../lib/colorScale';
 import { useJson, useTopology } from '../../lib/data';
-import { exportCsv } from '../../lib/files';
 import { formatNumber, formatShare } from '../../lib/format';
 import AnalysisPanel from './AnalysisPanel';
 
@@ -31,13 +31,10 @@ const DISPLAYS = [
 ];
 
 // A labelled switch of the toolbar ("Werte", "Darstellung"); an option's unit small beside its name
-function ValueSwitch({ id, label, options, value, onChange }) {
+function ValueSwitch({ label, options, value, onChange }) {
   return (
-    <div className="region-table__field">
-      <span className="region-table__field-label" id={id}>
-        {label}
-      </span>
-      <div className="region-table__values" role="radiogroup" aria-labelledby={id}>
+    <Setting label={label}>
+      <div className="region-table__values" role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.id}
@@ -53,7 +50,7 @@ function ValueSwitch({ id, label, options, value, onChange }) {
           </button>
         ))}
       </div>
-    </div>
+    </Setting>
   );
 }
 const PAGE = 50; // rows at a time; the CSV has all of them
@@ -88,7 +85,7 @@ function SortHeader({ column, sort, onSort, className, children }) {
  * category is its darkest. Sortable, searchable and downloadable.
  *
  * The controls look like what they choose: the analysis as tabs, the areas (rows) as a labelled dropdown, the values
- * (cells) as a labelled unit switch, search and download as tools on the right.
+ * (cells) as a labelled unit switch, search and the exports (CSV, JSON, PNG, PDF) on the right.
  */
 export default function RegionTable({ technology, scopeKey, scopeName, selectionQuery, ramp, fileBase, anchor }) {
   const datasets = regionTablesOf(technology);
@@ -175,27 +172,24 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
       prev.column === column ? { column, descending: !prev.descending } : { column, descending: column !== 'name' },
     );
 
-  const download = () => {
-    trackEvent('Tabellenexport', { analyse: `${technology.id}/${dataset.id}`, ebene: level.id });
-    exportCsv(
-      ordered.map((row) => ({
-        AGS: row.ags,
-        [level.one]: row.name,
-        ...Object.fromEntries(
-          columns.map((column, i) => {
-            const value = valueOf(row, i);
-            return [
-              `${column.label} (${cellUnit})`,
-              display === 'anteil' ? round(value * 100, 2) : isCount ? value : round(value, 3),
-            ];
-          }),
-        ),
-        ...Object.fromEntries(measures.map((m) => [`Gesamt ${m.label} (${m.unit})`, round(row.totals[m.field], 3)])),
-        'Gesamt Anzahl': row.totals.units,
-      })),
-      [fileBase, dataset.id, level.id, scopeKey.toLowerCase(), isCount ? 'anzahl' : quantity.id, display].join('_'),
-    );
-  };
+  // The table as rows of a file (CSV, JSON): every area of the level, as sorted and filtered
+  const tableRows = () =>
+    ordered.map((row) => ({
+      AGS: row.ags,
+      [level.one]: row.name,
+      ...Object.fromEntries(
+        columns.map((column, i) => {
+          const value = valueOf(row, i);
+          return [
+            `${column.label} (${cellUnit})`,
+            display === 'anteil' ? round(value * 100, 2) : isCount ? value : round(value, 3),
+          ];
+        }),
+      ),
+      ...Object.fromEntries(measures.map((m) => [`Gesamt ${m.label} (${m.unit})`, round(row.totals[m.field], 3)])),
+      'Gesamt Anzahl': row.totals.units,
+    }));
+  const tableFile = [fileBase, dataset.id, level.id, scopeKey.toLowerCase(), isCount ? 'anzahl' : quantity.id, display].join('_');
 
   // Data and names (the boundaries of the level) both have to be there
   const statuses = [table.status, shapes.status];
@@ -231,50 +225,39 @@ export default function RegionTable({ technology, scopeKey, scopeName, selection
         ))}
       </div>
       <div className="region-table__panel" id={panelId} role="tabpanel">
-        <div className="region-table__toolbar">
-          {/* The rows */}
-          <div className="region-table__field">
-            <span className="region-table__field-label" aria-hidden="true">
-              Gebiete
-            </span>
-            <ListSelect
-              label="Gebiete"
-              className="timeline__select"
-              value={level.id}
-              onChange={(id) => reset(setLevelId)(id)}
-              options={levels.map((l) => ({ value: l.id, label: l.many }))}
-            />
-          </div>
-          {/* The cells, in two steps: what, then as value or share */}
-          <ValueSwitch id={`${panelId}-values`} label="Werte" options={quantities} value={quantity.id} onChange={setQuantity} />
-          <ValueSwitch
-            id={`${panelId}-display`}
-            label="Darstellung"
-            options={DISPLAYS}
-            value={display}
-            onChange={setDisplay}
-          />
-          {/* Tools */}
-          <div className="region-table__tools">
-            <label className="region-table__search">
-              <Search size={14} aria-hidden="true" />
-              <span className="visually-hidden">{level.one} suchen</span>
-              <input
-                type="search"
-                placeholder={`${level.one} suchen`}
-                value={query}
-                onChange={(e) => reset(setQuery)(e.target.value)}
+        <div className="settings-band region-table__toolbar">
+          <SettingsRow
+            aside={
+              <>
+                <label className="region-table__search">
+                  <Search size={14} aria-hidden="true" />
+                  <span className="visually-hidden">{level.one} suchen</span>
+                  <input
+                    type="search"
+                    placeholder={`${level.one} suchen`}
+                    value={query}
+                    onChange={(e) => reset(setQuery)(e.target.value)}
+                  />
+                </label>
+                {status === 'ready' && ordered.length > 0 && (
+                  <ChartExport rows={tableRows} filename={tableFile} name={`tabelle/${technology.id}/${dataset.id}`} />
+                )}
+              </>
+            }
+          >
+            {/* The rows */}
+            <Setting label="Gebiete">
+              <ListSelect
+                label="Gebiete"
+                value={level.id}
+                onChange={(id) => reset(setLevelId)(id)}
+                options={levels.map((l) => ({ value: l.id, label: l.many }))}
               />
-            </label>
-            <button
-              type="button"
-              className="btn btn--secondary btn--sm region-table__download"
-              onClick={download}
-              disabled={status !== 'ready' || !ordered.length}
-            >
-              <Download size={14} aria-hidden="true" /> CSV
-            </button>
-          </div>
+            </Setting>
+            {/* The cells, in two steps: what, then as value or share */}
+            <ValueSwitch label="Werte" options={quantities} value={quantity.id} onChange={setQuantity} />
+            <ValueSwitch label="Darstellung" options={DISPLAYS} value={display} onChange={setDisplay} />
+          </SettingsRow>
         </div>
 
         {status === 'error' ? (

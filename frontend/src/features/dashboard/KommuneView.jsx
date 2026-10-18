@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Download, Search } from 'lucide-react';
+import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Search } from 'lucide-react';
 import AggregateControl from '../../components/charts/AggregateControl';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import CsvLink, { ChartFoot } from '../../components/ui/CsvLink';
+import ChartExport, { ChartFoot } from '../../components/ui/ChartExport';
 import ListSelect from '../../components/ui/ListSelect';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { BASEMAPS, DEFAULT_BASEMAP } from '../../config/basemaps';
 import { GRANULARITIES } from '../../config/dashboards';
 import { KOMMUNE } from '../../config/kommune';
@@ -14,7 +15,7 @@ import { API_BASE_URL } from '../../config/site';
 import { viewPath } from '../../config/views';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { statsUrl, useJson, useStats, useTopology } from '../../lib/data';
-import { exportCsv, fileName, round, selectionSlug } from '../../lib/files';
+import { fileName, round, selectionSlug } from '../../lib/files';
 import { escapeHtml, formatFixed, formatNumber, formatPercent } from '../../lib/format';
 import { bboxOf, labelPoint } from '../../lib/geometry';
 import AnalysisPanel from './AnalysisPanel';
@@ -385,13 +386,17 @@ function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectio
       title={`Zubau und Bestand · ${scopeName}`}
       lead={bestand ? `Installierte ${what} am Jahresende` : `Neu in Betrieb genommene ${what} je Jahr`}
       className="timeline-card"
+      settings={
+        <SettingsRow>
+          <AggregateControl aggregiert={aggregiert} onAggregiert={setAggregiert} style={style} onStyle={setStyle} />
+          {timeline.measures.length > 1 && (
+            <Setting label="Messgröße">
+              <SegmentedControl label="Messgröße" options={timeline.measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
+            </Setting>
+          )}
+        </SettingsRow>
+      }
     >
-      <div className="timeline__controls">
-        <AggregateControl aggregiert={aggregiert} onAggregiert={setAggregiert} style={style} onStyle={setStyle} />
-        {timeline.measures.length > 1 && (
-          <SegmentedControl label="Messgröße" options={timeline.measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
-        )}
-      </div>
       {data.status === 'error' ? (
         <ChartPlaceholder variant="bars" title="Keine Daten" note="Der Zeitverlauf konnte nicht geladen werden." />
       ) : !data.data ? (
@@ -446,9 +451,7 @@ function GemeindenTable({ profile, rows, kreisName, selected, onSelect, fileBase
       title={`Gemeinden in ${kreisName}`}
       lead={`${rows.length} Gemeinden · Klick auf eine Zeile zeigt sie auf der Karte und im Steckbrief`}
       tools={
-        <button type="button" className="btn btn--secondary btn--sm" onClick={() => exportCsv(sorted.map(profile.csv), fileBase)}>
-          <Download size={14} aria-hidden="true" /> CSV
-        </button>
+        <ChartExport rows={() => sorted.map(profile.csv)} filename={fileBase} name="tabelle/gemeinden" />
       }
     >
       <div className="kommune-table__scroll">
@@ -765,23 +768,31 @@ export default function KommuneView({ config, state }) {
                 {technology.label} · Gemeinden in {kreisName}
               </div>
             </div>
-            <div className="kommune-map-card__tools">
-              <div className="kommune-map-card__field">
-                <span aria-hidden="true">Kennzahl</span>
+          </header>
+          <div className="settings-band kommune-map-card__settings">
+            <SettingsRow label="Darstellung der Karte">
+              <Setting label="Kennzahl">
                 <ListSelect
                   label="Kennzahl"
-                  className="timeline__select"
                   value={metric.id}
                   onChange={setMetricId}
                   options={profile.metrics.map((m) => ({ value: m.id, label: m.label }))}
                 />
-              </div>
-              <label className="kommune-map-card__field">
-                <span>Deckkraft</span>
-                <input type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />
-              </label>
-            </div>
-          </header>
+              </Setting>
+              <Setting label="Deckkraft">
+                <input
+                  type="range"
+                  className="setting__range"
+                  aria-label="Deckkraft"
+                  min="0.2"
+                  max="1"
+                  step="0.05"
+                  value={opacity}
+                  onChange={(e) => setOpacity(Number(e.target.value))}
+                />
+              </Setting>
+            </SettingsRow>
+          </div>
           <div className="map-frame kommune-map-frame">
             <KommuneMap
               gemeinden={gemeinden}
@@ -818,7 +829,8 @@ export default function KommuneView({ config, state }) {
           <footer className="map-card__footer">
             <span>Quelle: Marktstammdatenregister (BNetzA) · Strg/⌘ + Mausrad zum Zoomen · Klick auf eine Gemeinde: ihr Steckbrief</span>
             {mapStatus === 'ready' && (
-              <CsvLink
+              <ChartExport
+                target=".kommune-map-frame"
                 name="gemeinden-karte"
                 filename={fileName(`mastr_${technology.id}_gemeinden`, kreisAgs, selectionSlug(query))}
                 rows={() => [...gemeindeRows].sort((a, b) => a.name.localeCompare(b.name, 'de')).map(profile.csv)}

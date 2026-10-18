@@ -1,31 +1,16 @@
 import ListSelect from '../../components/ui/ListSelect';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { BASES, GRANULARITIES, QUANTITIES, isAvailable } from '../../config/dashboards';
 import { SMOOTHINGS } from '../../lib/heatmap';
-
-// One setting of the toolbar: its name above it
-function Group({ label, htmlFor, children }) {
-  return (
-    <div className="map-toolbar__group">
-      {htmlFor ? (
-        <label className="map-toolbar__label" htmlFor={htmlFor}>
-          {label}
-        </label>
-      ) : (
-        <span className="map-toolbar__label">{label}</span>
-      )}
-      {children}
-    </div>
-  );
-}
 
 // What an option of the Kennzahl means, as its tooltip: the metric's name and unit (on the continuous map: its density)
 const titleOf = (metric) => (metric.basis === 'dichte' ? `${metric.heat.legend} (${metric.heat.unit})` : `${metric.legend} (${metric.unit})`);
 
 /**
- * How the map shows the technology chosen above it (SelectionBar): in a band between its title and the map, like the
- * toolbar of a map app – the Kennzahl in two steps (Leistung or Kapazität, then absolut, je km² or je Einwohner), the
- * resolution (for the continuous map its smoothing) in a row. Chosen options in green, like every setting of a card.
+ * How the map shows the technology chosen above it: the second row of the card's band (SelectionBar) – the Kennzahl in
+ * two steps (Leistung or Kapazität, then absolut, je km² or je Einwohner), the resolution (for the continuous map its
+ * smoothing), each in its box. Chosen options in green, like every setting of a card.
  */
 export default function MapToolbar({
   technology,
@@ -44,53 +29,51 @@ export default function MapToolbar({
   const metricOf = (quantity, basis) =>
     metrics.find((m) => m.quantity === quantity && m.basis === basis) ?? metrics.find((m) => m.quantity === quantity);
   return (
-    <div className="map-toolbar" role="group" aria-label="Darstellung der Karte">
-      <div className="map-toolbar__row">
-        <Group label="Kennzahl">
-          <SegmentedControl
-            label="Kennzahl"
-            value={metric.quantity}
-            onChange={(quantity) => onMetric(metricOf(quantity, metric.basis).id)}
-            options={quantities.map((q) => ({ id: q.id, label: q.label, title: titleOf(metricOf(q.id, metric.basis)) }))}
+    <SettingsRow label="Darstellung der Karte">
+      <Setting label="Kennzahl">
+        <SegmentedControl
+          label="Kennzahl"
+          value={metric.quantity}
+          onChange={(quantity) => onMetric(metricOf(quantity, metric.basis).id)}
+          options={quantities.map((q) => ({ id: q.id, label: q.label, title: titleOf(metricOf(q.id, metric.basis)) }))}
+        />
+      </Setting>
+
+      <Setting label="Bezug">
+        <SegmentedControl
+          label="Bezug"
+          value={metric.basis}
+          onChange={(basis) => onMetric(metricOf(metric.quantity, basis).id)}
+          options={bases.map((b) => ({ id: b.id, label: b.label, title: titleOf(metricOf(metric.quantity, b.id)) }))}
+        />
+      </Setting>
+
+      {!technology.plantsPath && (
+        <Setting label="Räumliche Auflösung">
+          <ListSelect
+            label="Räumliche Auflösung"
+            className="map-toolbar__select"
+            value={granularity.id}
+            onChange={onGranularity}
+            options={GRANULARITIES.map((g) => ({
+              value: g.id,
+              label: isAvailable(g, technology) ? g.label : `${g.label} – nicht verfügbar`,
+              disabled: !isAvailable(g, technology),
+            }))}
           />
-        </Group>
+        </Setting>
+      )}
 
-        <Group label="Bezug">
+      {granularity.kind === 'heatmap' && onSmoothing && (
+        <Setting label="Glättung">
           <SegmentedControl
-            label="Bezug"
-            value={metric.basis}
-            onChange={(basis) => onMetric(metricOf(metric.quantity, basis).id)}
-            options={bases.map((b) => ({ id: b.id, label: b.label, title: titleOf(metricOf(metric.quantity, b.id)) }))}
+            label="Glättung"
+            value={smoothing}
+            onChange={onSmoothing}
+            options={Object.entries(SMOOTHINGS).map(([id, s]) => ({ id, label: s.label, title: `Zusätzlich geglättet über ${s.px} Bildpunkte` }))}
           />
-        </Group>
-
-        {!technology.plantsPath && (
-          <Group label="Räumliche Auflösung">
-            <ListSelect
-              label="Räumliche Auflösung"
-              className="timeline__select map-toolbar__select"
-              value={granularity.id}
-              onChange={onGranularity}
-              options={GRANULARITIES.map((g) => ({
-                value: g.id,
-                label: isAvailable(g, technology) ? g.label : `${g.label} – nicht verfügbar`,
-                disabled: !isAvailable(g, technology),
-              }))}
-            />
-          </Group>
-        )}
-
-        {granularity.kind === 'heatmap' && onSmoothing && (
-          <Group label="Glättung">
-            <SegmentedControl
-              label="Glättung"
-              value={smoothing}
-              onChange={onSmoothing}
-              options={Object.entries(SMOOTHINGS).map(([id, s]) => ({ id, label: s.label, title: `Zusätzlich geglättet über ${s.px} Bildpunkte` }))}
-            />
-          </Group>
-        )}
-      </div>
-    </div>
+        </Setting>
+      )}
+    </SettingsRow>
   );
 }

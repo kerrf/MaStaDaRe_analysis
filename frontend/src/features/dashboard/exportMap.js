@@ -1,20 +1,18 @@
-import { SITE } from '../../config/site';
-import { saveFile } from '../../lib/files';
-import { formatDate } from '../../lib/format';
+import { prepareCopy, savePdf, savePng, sourceLine } from '../../lib/exportChart';
 
-// The site first, then the data it builds on
-const sourceLine = (datenstand) =>
-  `Quelle: ${SITE.url.replace('https://', '')} · Daten: Marktstammdatenregister (Bundesnetzagentur), dl-de/by-2-0 · ` +
-  `Datenstand ${formatDate(datenstand)} · Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth`;
+const CREDITS = 'Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth';
 
 const SCALE = 2;
-// The layers Leaflet draws: a canvas or SVG per renderer, an image per overlay (heatmap), each right inside its pane
-const LAYERS = '.leaflet-pane > canvas, .leaflet-pane > svg, .leaflet-pane > img.leaflet-image-layer';
+// The layers Leaflet draws: a canvas or SVG per renderer, an image per overlay (heatmap), each right inside its pane,
+// and the tiles of a background map (Regionen im Detail; loaded with crossOrigin, so the image may use them)
+const LAYERS = '.leaflet-pane > canvas, .leaflet-pane > svg, .leaflet-pane > img.leaflet-image-layer, img.leaflet-tile';
+// The map's buttons and exports: not in the image
+const CONTROLS = '.leaflet-control-zoom, .basemap-switch, .chart-export';
 // In the copy html2canvas renders: no animations (the place names would be caught fading in), no layers (drawn before),
 // no background (the sea is drawn before as well)
 const OVERLAY_ONLY = `
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .map-frame, .map-canvas.leaflet-container { background: transparent !important; }
+  .map-frame, .leaflet-container { background: transparent !important; }
 `;
 
 // An SVG layer as an image. Without its style: Leaflet places it with a CSS transform, which inside the image would move
@@ -32,7 +30,7 @@ function imageOf(svg) {
 // translate3d), so the layers are copied first, each where it is on screen, in the order of their panes; html2canvas
 // only adds what lies on top: the place names, the legend, the chips. html2canvas and jsPDF are ~500 kB together, so
 // they load only when someone exports.
-async function capture(node) {
+export async function captureMap(node) {
   const { default: html2canvas } = await import('html2canvas');
   const frame = node.getBoundingClientRect();
   const image = document.createElement('canvas');
@@ -43,13 +41,19 @@ async function capture(node) {
   ctx.fillStyle = getComputedStyle(node.querySelector('.leaflet-container') ?? node).backgroundColor;
   ctx.fillRect(0, 0, frame.width, frame.height);
 
-  const paneOrder = (layer) => Number(getComputedStyle(layer.parentElement).zIndex) || 0;
+  const paneOrder = (layer) => Number(getComputedStyle(layer.closest('.leaflet-pane')).zIndex) || 0;
+  // A layer's opacity with that of everything around it inside the map (the background map's own, its pane's)
+  const opacityOf = (layer) => {
+    let opacity = 1;
+    for (let el = layer; el && !el.classList.contains('leaflet-container'); el = el.parentElement) opacity *= Number(getComputedStyle(el).opacity);
+    return opacity;
+  };
   const layers = [...node.querySelectorAll(LAYERS)].sort((a, b) => paneOrder(a) - paneOrder(b)); // stable: DOM order
   for (const layer of layers) {
     const box = layer.getBoundingClientRect();
     if (!box.width || !box.height) continue;
     const source = layer.tagName.toLowerCase() === 'svg' ? await imageOf(layer) : layer;
-    ctx.globalAlpha = Number(getComputedStyle(layer).opacity) * Number(getComputedStyle(layer.parentElement).opacity);
+    ctx.globalAlpha = opacityOf(layer);
     ctx.drawImage(source, box.left - frame.left, box.top - frame.top, box.width, box.height);
   }
   ctx.globalAlpha = 1;
@@ -59,8 +63,10 @@ async function capture(node) {
     backgroundColor: null,
     scale: SCALE,
     logging: false,
-    ignoreElements: (element) => element.matches?.(LAYERS),
+    // Drawn before (the layers), or controls with nothing to say in an image
+    ignoreElements: (element) => Boolean(element.matches?.(`${LAYERS}, ${CONTROLS}`)),
     onclone: (copy) => {
+      prepareCopy(copy);
       const style = copy.createElement('style');
       style.textContent = OVERLAY_ONLY;
       copy.head.appendChild(style);
@@ -72,29 +78,9 @@ async function capture(node) {
 }
 
 export async function exportPng(node, filename) {
-  const canvas = await capture(node);
-  saveFile(canvas.toDataURL('image/png'), `${filename}.png`);
+  savePng(await captureMap(node), filename);
 }
 
 export async function exportPdf(node, filename, title, datenstand) {
-  const [canvas, { jsPDF }] = await Promise.all([capture(node), import('jspdf')]);
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const margin = 12;
-
-  pdf.setFontSize(14);
-  pdf.text(title, margin, margin + 4);
-
-  const maxW = pageW - 2 * margin;
-  const maxH = pageH - 2 * margin - 16;
-  const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-  const w = canvas.width * ratio;
-  const h = canvas.height * ratio;
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pageW - w) / 2, margin + 9, w, h);
-
-  pdf.setFontSize(8);
-  pdf.setTextColor(102, 112, 133);
-  pdf.text(sourceLine(datenstand), margin, pageH - margin + 4);
-  pdf.save(`${filename}.pdf`);
+  await savePdf(await captureMap(node), filename, title, sourceLine(datenstand, CREDITS));
 }

@@ -107,11 +107,13 @@
 }
 
 /* ------------------------------------------------------------- Scope bar */
-/* The area of every page (ScopeBar), in the header above the tabs: a path Deutschland › Bundesland › Landkreis, each
-   step a list of its level. The area shown is filled in the green of chosen buttons, the steps on the way to it are
-   light green, the steps still open dashed. */
+/* The area of every page (ScopeBar), in the header above the tabs: a band like every band of settings, with one box,
+   the path Deutschland › Bundesland › Landkreis – each step a list of its level, the area shown filled in green, the
+   steps on the way to it in green letters, those with none chosen ("Alle Landkreise") in grey – and on its right what
+   every page shows. Narrowed to an area, the band takes a green line on its left: the whole site shows less than
+   Germany. */
 .dashboard-header__scope-slot {
-  padding-bottom: 18px;
+  padding-bottom: 16px;
 }
 
 .dashboard-header__scope-slot:empty {
@@ -119,25 +121,20 @@
 }
 
 .scope-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
-.scope-bar__label {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
+.scope-bar.is-scoped {
+  border-left-color: var(--brand-600);
+  box-shadow: inset 3px 0 0 var(--brand-600);
 }
 
 .scope-bar__path {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 4px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -146,71 +143,45 @@
 .scope-bar__step {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .scope-bar__sep {
   flex: none;
+  margin: 0 1px;
   color: var(--ink-muted);
 }
 
-.scope-bar__field {
-  position: relative;
-  display: flex;
-  min-width: 0;
-}
-
 .scope-bar__root,
-.scope-bar__select {
-  height: 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
+.setting .scope-bar__select {
+  height: 34px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
   font: inherit;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 650;
   color: var(--ink-primary);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
 .scope-bar__root {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 0 14px 0 11px;
+  padding: 0 12px 0 10px;
 }
 
-/* As wide as the choice shown, where the browser can (else as its longest option) */
-.scope-bar__select {
-  min-width: 9rem;
-  max-width: 100%;
-  padding: 0 34px 0 12px;
-  text-overflow: ellipsis;
-  appearance: none;
-  field-sizing: content;
-}
-
-/* The browser's list takes the colours of its select: dark on light, whatever the step's colour */
-.scope-bar__select option {
-  background: var(--surface-card);
-  color: var(--ink-primary);
-}
-
-.scope-bar__chevron {
-  position: absolute;
-  top: 50%;
-  right: 11px;
-  translate: 0 -50%;
-  color: var(--ink-secondary);
-  pointer-events: none;
+.setting .scope-bar__select {
+  max-width: 22rem;
+  padding: 0 10px 0 12px;
 }
 
 /* The area shown */
 .scope-bar__step.is-current .scope-bar__root,
 .scope-bar__step.is-current .scope-bar__select {
-  border-color: var(--brand-600);
   background: var(--brand-600);
   color: #fff;
 }
@@ -223,40 +194,33 @@
   color: #fff;
 }
 
-.scope-bar__step.is-current .scope-bar__select:hover {
-  border-color: var(--brand-700);
+.scope-bar__step.is-current .scope-bar__select:hover:not(:disabled) {
   background: var(--brand-700);
 }
 
 /* On the way to it: back to Deutschland, another Land */
 .scope-bar__step.is-parent .scope-bar__root,
 .scope-bar__step.is-parent .scope-bar__select {
-  border-color: var(--brand-100);
-  background: var(--brand-50);
   color: var(--brand-700);
 }
 
 .scope-bar__step.is-parent .scope-bar__root:hover,
-.scope-bar__step.is-parent .scope-bar__select:hover {
-  border-color: var(--brand-500);
+.scope-bar__step.is-parent .scope-bar__select:hover:not(:disabled) {
+  background: var(--brand-50);
 }
 
 .scope-bar__step.is-parent .list-select__chevron {
   color: var(--brand-600);
 }
 
-/* Not chosen: a dashed field asking for it */
+/* None chosen: all of the level, a choice like the others but not the area's name */
 .scope-bar__step.is-open .scope-bar__select {
-  border-style: dashed;
-  border-color: var(--border-strong);
-  background: transparent;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink-secondary);
 }
 
 .scope-bar__step.is-open .scope-bar__select:hover:not(:disabled) {
-  border-style: solid;
-  background: var(--surface-page);
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
@@ -268,26 +232,133 @@
 .scope-bar__select:focus-visible,
 .scope-bar__root:focus-visible {
   outline: 2px solid var(--brand-600);
-  outline-offset: 2px;
+  outline-offset: 1px;
+}
+
+/* The area's outline beside "Alle Seiten zeigen …" (ScopeOutline) */
+.scope-bar__shown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scope-outline {
+  flex: none;
+}
+
+.scope-outline path {
+  fill: var(--brand-600);
+  stroke: var(--brand-600);
+  stroke-width: 0.6;
+}
+
+/* Called from the indicator below ("ändern"): lights up for a moment */
+.scope-bar.is-called {
+  animation: scope-called 1.6s var(--ease);
+}
+
+@keyframes scope-called {
+  0%,
+  60% {
+    box-shadow: inset 3px 0 0 var(--brand-600), 0 0 0 3px var(--brand-100);
+  }
+}
+
+/* The area while the header is out of view (ScopeIndicator): a small card at the bottom left */
+.scope-indicator {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand-600);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.scope-indicator.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.scope-indicator__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.scope-indicator__label {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-700);
+}
+
+.scope-indicator__text strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-primary);
+}
+
+.scope-indicator__text > span:last-child {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.scope-indicator__change {
+  flex: none;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-primary);
+  cursor: pointer;
+}
+
+.scope-indicator__change:hover {
+  border-color: var(--brand-600);
+  background: var(--brand-50);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope-indicator,
+  .scope-bar.is-called {
+    transition: none;
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .scope-bar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .scope-bar__path {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
   }
 
-  .scope-bar__select,
-  .scope-bar__field,
+  .setting .scope-bar__select,
   .scope-bar__root {
     flex: 1;
     width: 100%;
+    max-width: none;
   }
 
   /* Deutschland in line with the steps below it, which start after their arrow */
@@ -311,48 +382,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.export-group {
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding-left: 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
-  color: var(--ink-muted);
-}
-
-.export-group__btn {
-  height: 100%;
-  padding: 0 9px;
-  border: 0;
-  border-left: 1px solid var(--border-subtle);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  color: var(--ink-secondary);
-  cursor: pointer;
-}
-
-.export-group__icon {
-  margin-right: 7px;
-}
-
-.export-group__btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--ink-primary);
-}
-
-.export-group__btn:last-child {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.export-group__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .map-frame {
@@ -428,50 +457,9 @@
   height: var(--map-height);
 }
 
-/* How the map shows the technology: a band between the title and the map, the map's own toolbar */
-.map-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-sunken);
-}
-
-.map-toolbar__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px 28px;
-}
-
-.map-toolbar__group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.map-toolbar__label {
-  font-size: 11.5px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.map-toolbar .segmented {
-  background: var(--surface-card);
-}
-
-.map-toolbar .segmented__option {
-  flex: 0 0 auto;
-}
-
+/* The resolution's list (MapToolbar): wide enough for its longest option */
 .map-toolbar__select {
-  min-width: 200px;
-  height: 36px;
+  min-width: 11rem;
 }
 
 /* Beside the map: the Rangliste and the analyses of the area, in tabs */
@@ -1046,57 +1034,37 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 /* ------------------------------------------------- Technology and filters */
-/* What a page shows (SelectionBar): the technologies in a row, the chosen one filled in the topic's colour; below it the
-   chosen one's filters in a row of their own, tinted in the topic's colour and hanging off it by the colour line on the
-   left. Apart from the green of how a card shows it. Every control 32–36 px high, names in one column on the left. */
+/* What a page shows (SelectionBar): a band of settings, framed on its own on top of a page, the top band of the map
+   card. Its first row: the technologies in one box, the chosen one filled in the topic's colour, then the chosen one's
+   filters, each in its box; further rows below a line (the map's toolbar, the wind turbines). */
 .selection-bar {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface-sunken);
 }
 
-.selection-bar__row,
-.tech-filters {
-  display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr);
-  align-items: center;
-  gap: 8px 16px;
-  padding: 10px 16px;
+.settings-band > .settings-row + .settings-row {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
-.selection-bar__label {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.selection-bar__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
+/* A technology: as an option of the box, with its icon */
 .tech-chip {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 36px;
-  padding: 0 14px 0 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  font-size: 13.5px;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink-secondary);
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
 .tech-chip svg {
@@ -1104,13 +1072,12 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-muted);
 }
 
-.tech-chip:hover {
-  border-color: var(--accent);
+.tech-chip:hover:not(.is-active) {
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
 .tech-chip.is-active {
-  border-color: var(--accent-strong);
   background: var(--accent-strong);
   color: #fff;
 }
@@ -1121,14 +1088,13 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 
 .tech-chip:focus-visible {
   outline: 2px solid var(--accent-strong);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .tech-chip__label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tech-chip__soon {
@@ -1144,76 +1110,13 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* The chosen technology's filters (Solar: Anlagenart, Leistung), and their footnote */
-.tech-filters,
-.selection-bar__note {
-  background: var(--accent-soft);
-  box-shadow: inset 4px 0 0 var(--accent);
-}
-
-.tech-filters {
-  border-top: 1px solid var(--border);
-  animation: tech-filters-in var(--dur) var(--ease);
-}
-
-@keyframes tech-filters-in {
-  from {
-    opacity: 0;
-  }
-}
-
-.tech-filters__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent-strong);
-}
-
-.tech-filters__items {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 28px;
-}
-
-.tech-filters__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-}
-
-.tech-filters__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-secondary);
-}
-
-/* In the map card, between its title and its toolbar: the card's top bands, edge to edge, in line with the toolbar */
+/* In the map card, between its title and the map: the card's top band, edge to edge */
 .selection-bar--in-card {
+  padding-inline: 20px;
   border: 0;
   border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border);
   border-radius: 0;
-}
-
-.selection-bar--in-card .selection-bar__row,
-.selection-bar--in-card .tech-filters {
-  padding-inline: 20px;
-}
-
-.selection-bar--in-card + .map-toolbar {
-  border-top-color: var(--border);
-}
-
-
-/* Under the filters in their tint, without a seam between them */
-.selection-bar__note {
-  max-width: none;
-  margin: -1px 0 0;
-  padding: 1px 16px 10px calc(10rem + 32px);
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ink-muted);
 }
 
 /* Footnote marks: at the Leistung switch and in the map title, the note below the choice of technology */
@@ -1289,11 +1192,11 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
-/* Multiple choice (Anlagenart): an option per box, ticked in the topic's colour (or the colour of its sites) */
+/* Multiple choice (Anlagenart): options of the box, each ticked in the topic's colour (or the colour of its sites) */
 .tech-subtypes__options {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 2px;
 }
 
 .tech-subtypes__option {
@@ -1301,26 +1204,24 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 30px;
   padding: 0 12px 0 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
+  border-radius: var(--radius-xs);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--ink-secondary);
   cursor: pointer;
   user-select: none;
-  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
 .tech-subtypes__option:hover:not(.is-locked) {
-  border-color: var(--accent);
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
 .tech-subtypes__option.is-checked {
-  border-color: var(--accent);
   color: var(--ink-primary);
 }
 
@@ -1352,31 +1253,28 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   outline-offset: 2px;
 }
 
-/* Either/or (Leistung: Netto (AC) or Brutto (DC)): as high as the boxes beside it, the chosen one filled */
+/* Either/or (Leistung: Netto (AC) or Brutto (DC)): options of the box, the chosen one filled */
 .tech-switch__options {
-  display: inline-flex;
+  display: flex;
   gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
 }
 
 .tech-switch__option {
-  height: 26px;
-  padding: 0 11px;
+  height: 30px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: transparent;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--ink-secondary);
   cursor: pointer;
 }
 
 .tech-switch__option:hover:not(.is-active) {
-  background: var(--accent-soft);
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
@@ -1390,29 +1288,22 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   outline-offset: 1px;
 }
 
-@media (max-width: 720px) {
-  .selection-bar__row,
-  .tech-filters {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 640px) {
+  .selection-bar--in-card {
+    padding-inline: 12px;
   }
 
-  .selection-bar__note {
-    padding-left: 16px;
+  .tech-switch__options {
+    width: 100%;
+  }
+
+  .tech-switch__option {
+    flex: 1 1 auto;
   }
 }
 
 /* -------------------------------------------------------------- Analyses */
-/* Below the Steckbrief (Regionen), set off by a rule: the choice of technology and the table per region, each analysis
-   a card of its own that starts with a clear head (AnalysisPanel) */
-.dashboard-analyses {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-top: 24px;
-  padding-top: 32px;
-  border-top: 1px solid var(--border);
-}
-
+/* Each analysis a card of its own that starts with a clear head (AnalysisPanel) */
 .analysis {
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -1508,243 +1399,35 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 
 /* Next to the Top 10 of the map: the other pages of the dashboard */
 
-/* Steckbrief of the scope (Regionen): a card per technology, values with their comparison and rank */
-.profile {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* Ausbau im Zeitverlauf and the other series over time: their settings in the band below the head (TimeControls) */
 
-.profile__lead {
-  margin-top: 4px;
-  font-size: 13.5px;
-  color: var(--ink-muted);
-}
-
-.profile__cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
-  gap: 16px;
-}
-
-.profile-card__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.profile-card__icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.profile-card__title {
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.profile-card__what {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-
-.profile-card__state {
-  padding: 18px 16px;
-  font-size: 13.5px;
-  color: var(--ink-muted);
-}
-
-.profile-card__list {
-  margin: 0;
-  padding: 4px 16px 8px;
-}
-
-/* A value per line: its name and the value, below it the comparison and the rank */
-.profile-card__item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 2px 12px;
-  padding: 10px 0;
-}
-
-.profile-card__item + .profile-card__item {
-  border-top: 1px solid var(--border-subtle);
-}
-
-.profile-card__item dt {
-  font-size: 13.5px;
-  font-weight: 550;
-  color: var(--ink-secondary);
-}
-
-.profile-card__value {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.profile-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 2px 12px;
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
-}
-
-.profile-card__rank {
-  color: var(--ink-secondary);
-}
-
-/* Ausbau im Zeitverlauf: a full-width chart card above the others */
-.timeline__leistung {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.timeline__leistung-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-
-.timeline__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.timeline__controls .segmented {
-  flex: none;
-}
-
-.timeline__controls .segmented__option {
-  flex: none;
-  padding: 0 14px;
-}
-
-/* "aggregiert" and, once on, Balken or Kurve below it: one box at the start of the controls */
-.aggregate {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-}
-
+/* "Aggregiert": the switch, then Balken or Kurve – faded while it is off */
 .aggregate .switch {
-  height: 34px;
-  border: 0;
-  background: transparent;
+  padding: 0 8px;
 }
 
-.aggregate__style {
-  display: flex;
-  gap: 2px;
-  margin: 0 6px 6px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
-}
-
-.aggregate__option {
-  flex: 1 1 0;
-  height: 24px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
-
-.aggregate__option:hover:not(.is-active) {
-  color: var(--ink-primary);
-  background: var(--surface-hover);
-}
-
-.aggregate__option.is-active {
-  background: var(--brand-50);
-  color: var(--brand-700);
-}
-
-.aggregate__option:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.timeline__select {
-  height: 36px;
-  padding: 0 32px 0 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card)
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>')
-    no-repeat right 10px center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-primary);
-  appearance: none;
-  cursor: pointer;
-}
-
-/* The years of the Jährlich view (TimeControls): from – to, and the shortcut to every year, in one box like the others */
-.year-span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  padding: 2px 2px 2px 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-}
-
-.year-span__field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+/* The years from – to (TimeControls): "von" and "bis" in the box, before their lists */
+.year-span__word {
+  padding: 0 0 0 8px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-muted);
 }
 
-.year-span__select {
-  height: 30px;
-  padding-right: 28px;
+.setting .year-span__select {
+  padding-left: 8px;
   font-variant-numeric: tabular-nums;
 }
 
 .year-span__all {
   height: 30px;
+  margin-left: 4px;
   padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border: 0;
+  border-left: 1px solid var(--border-subtle);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: transparent;
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-secondary);
@@ -1752,20 +1435,28 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .year-span__all:hover:not(.is-active) {
-  background: var(--surface-hover);
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
 /* Every year shown: the shortcut lights up green, like the chosen option of a switch */
 .year-span__all.is-active {
+  border-left-color: transparent;
+  border-radius: var(--radius-xs);
   background: var(--brand-600);
   color: #fff;
   cursor: default;
 }
 
 .year-span__all:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--brand-600);
   outline-offset: 1px;
+}
+
+/* The settings of an analysis: a band between its head and its chart, like the map's */
+.analysis__settings {
+  padding-inline: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .timeline__state {
@@ -1934,11 +1625,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   justify-content: flex-end;
 }
 
-.kind-shares__controls .segmented__option {
-  flex: none;
-  padding: 0 14px;
-}
-
 .kind-shares__pies {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2065,83 +1751,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   font-weight: 650;
 }
 
-/* Ausrichtung: compass rose, values inside its sectors, Ost-West and tracked in the centre */
-.rose svg {
-  display: block;
-  width: 100%;
-  max-width: 380px;
-  margin: 0 auto;
-  font-family: var(--font-sans);
-}
-
-.rose__part path {
-  stroke: var(--surface-card);
-  stroke-width: 2;
-  transition: filter var(--dur-fast) var(--ease);
-}
-
-.rose__part:hover path {
-  filter: brightness(0.93);
-}
-
-.rose__power {
-  font-size: 14px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.rose__share {
-  font-size: 11.5px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-.rose__direction {
-  font-size: 13px;
-  font-weight: 700;
-  fill: var(--ink-secondary);
-}
-
-.rose__centre-label {
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-}
-
-.rose__foot {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 16px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 13px;
-  color: var(--ink-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.rose__foot strong {
-  color: var(--ink-primary);
-}
-
-.rose__swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 4px;
-  border-radius: 2px;
-  background: repeating-linear-gradient(135deg, var(--border-strong) 0 2px, var(--surface-sunken) 2px 4px);
-  vertical-align: -1px;
-}
-
-.rose__note {
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ink-muted);
-}
-
 /* Solaranlagen mit Batteriespeicher: KPIs, two charts, the findings */
 .pv-speicher .analysis__body {
   gap: 16px;
@@ -2260,86 +1869,34 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .region-table__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
   margin-bottom: 12px;
-}
-
-/* A control with its label in front: "Gebiete" (the rows), "Werte" (the cells) */
-.region-table__field {
-  display: inline-flex;
-  align-items: stretch;
-  height: 36px;
-  overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  background: var(--surface-card);
 }
 
-.region-table__field-label {
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  border-right: 1px solid var(--border-subtle);
-  background: var(--surface-sunken);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-/* The dropdown inside the field's frame */
-.region-table__field .list-select {
-  height: auto;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.region-table__field select {
-  padding: 0 32px 0 10px;
-  border: 0;
-  background: transparent
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>')
-    no-repeat right 9px center;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-primary);
-  appearance: none;
-  cursor: pointer;
-}
-
-.region-table__field:focus-within {
-  border-color: var(--brand-600);
-}
-
-/* The values: a light unit switch, the chosen one in green like every setting of a card */
+/* The values (Werte, Darstellung): options of their box, the chosen one in green like every setting of a card */
 .region-table__values {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 0 3px;
 }
 
 .region-table__value {
-  height: 28px;
-  padding: 0 10px;
+  height: 30px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: transparent;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--ink-secondary);
   cursor: pointer;
 }
 
 .region-table__value:hover:not(.is-active) {
-  background: var(--surface-hover);
+  background: var(--surface-sunken);
   color: var(--ink-primary);
 }
 
@@ -2360,27 +1917,16 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   opacity: 0.75;
 }
 
-.region-table__tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
 .region-table__search {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: 34px;
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-card);
   color: var(--ink-muted);
-}
-
-.region-table__download {
-  height: 36px;
 }
 
 .region-table__search:focus-within {
@@ -3110,25 +2656,10 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.kommune-map-card__tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
-.kommune-map-card__field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-secondary);
-}
-
-.kommune-map-card__field input[type='range'] {
-  width: 110px;
-  accent-color: var(--accent);
+/* Its settings: a band between the head and the map, like the map's on the page Karte */
+.kommune-map-card__settings {
+  padding-inline: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .kommune-map-frame {
@@ -3403,27 +2934,6 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   aspect-ratio: 1;
   font-size: 13px;
   color: var(--ink-muted);
-}
-
-.rose__svg--compact {
-  display: block;
-  width: 100%;
-  max-width: 240px;
-  font-family: var(--font-sans);
-}
-
-.rose__svg--compact .rose__pct {
-  font-size: 22px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.rose__svg--compact .rose__direction {
-  font-size: 19px;
-}
-
-.rose__svg--compact .rose__centre-label {
-  font-size: 15px;
 }
 
 @media (max-width: 1100px) {

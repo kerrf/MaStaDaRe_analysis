@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Compass } from 'lucide-react';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { GRANULARITIES } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
 import { RAMPS } from '../../lib/colorScale';
@@ -99,6 +100,21 @@ export default function OrientationMap({ query, scopeKey, scopeName, fileBase, a
   }, [values, measure]);
 
   const fmt = (v) => (v == null ? '–' : measure.share ? formatPercent(v) : direction(v));
+  // The ranking's tracks: a share from 0 to 100 %, so the dots compare with the whole and not only with each other; the
+  // direction from the furthest east to the furthest west of the areas, Süd in the middle
+  const track =
+    !color || measure.share
+      ? { lo: 0, hi: 1, ticks: [0, 0.5, 1].map((t) => [t, formatPercent(t)]) }
+      : {
+          lo: color.lo,
+          hi: color.hi,
+          ticks: [
+            [color.lo, `${formatNumber(-color.lo, 0)}° Ost`],
+            [0, 'Süd'],
+            [color.hi, `${formatNumber(color.hi, 0)}° West`],
+          ],
+        };
+  const at = (v) => `${((v - track.lo) / (track.hi - track.lo || 1)) * 100}%`;
   // The areas' names, from their boundaries (cached with the map)
   const areas = useTopology(TOPOLOGY[level]);
   const names = useMemo(() => new Map((areas.data?.features ?? []).map((f) => [f.properties.ags, f.properties.name])), [areas.data]);
@@ -126,21 +142,27 @@ export default function OrientationMap({ query, scopeKey, scopeName, fileBase, a
       icon={Compass}
       title="Ausrichtung nach Region"
       lead={`${scopeName} · wohin die Module zeigen, je ${level === 'bundesland' ? 'Bundesland' : 'Landkreis'}, nach Leistung`}
+      settings={
+        <SettingsRow>
+          <Setting label="Kennzahl">
+            <SegmentedControl label="Kennzahl" options={MEASURES.map(({ id, label }) => ({ id, label }))} value={measureId} onChange={setMeasureId} />
+          </Setting>
+          {levels.length > 1 && (
+            <Setting label="Gebiete">
+              <SegmentedControl
+                label="Gebiete"
+                options={[
+                  { id: 'bundesland', label: 'Bundesländer' },
+                  { id: 'landkreis', label: 'Landkreise' },
+                ]}
+                value={level}
+                onChange={setLevel}
+              />
+            </Setting>
+          )}
+        </SettingsRow>
+      }
     >
-      <div className="wind-map__controls">
-        <SegmentedControl label="Kennzahl" options={MEASURES.map(({ id, label }) => ({ id, label }))} value={measureId} onChange={setMeasureId} />
-        {levels.length > 1 && (
-          <SegmentedControl
-            label="Gebiete"
-            options={[
-              { id: 'bundesland', label: 'Bundesländer' },
-              { id: 'landkreis', label: 'Landkreise' },
-            ]}
-            value={level}
-            onChange={setLevel}
-          />
-        )}
-      </div>
       {!values || !color ? (
         <ChartPlaceholder variant="bars" title={table.status === 'error' ? 'Keine Daten' : 'Wird geladen …'} />
       ) : (
@@ -180,15 +202,22 @@ export default function OrientationMap({ query, scopeKey, scopeName, fileBase, a
                   <li key={key}>
                     <span className="wind-profile__lat">{names.get(key) ?? key}</span>
                     <span className="wind-profile__track">
-                      <span
-                        className="wind-profile__median"
-                        style={{ left: `${((v.value - color.lo) / (color.hi - color.lo || 1)) * 100}%`, background: color.of(v.value) }}
-                      />
+                      <span className="wind-profile__median" style={{ left: at(v.value), background: color.of(v.value) }} />
                     </span>
                     <span className="wind-profile__value tabular">{fmt(v.value)}</span>
                   </li>
                 ))}
               </ol>
+              {/* The scale of the tracks */}
+              <div className="orientation-ranking__axis" aria-hidden="true">
+                <span className="orientation-ranking__ticks">
+                  {track.ticks.map(([value, text]) => (
+                    <span key={value} className="tabular" style={{ left: at(value) }}>
+                      {text}
+                    </span>
+                  ))}
+                </span>
+              </div>
             </figure>
           </div>
           <ChartFoot csv={csv}>

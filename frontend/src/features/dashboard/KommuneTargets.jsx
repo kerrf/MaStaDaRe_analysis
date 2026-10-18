@@ -1,7 +1,7 @@
 import { Flag, Gauge, Sun, Target } from 'lucide-react';
 import { FigureBlock, FigureRow } from '../../components/ui/FigureBlock';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { API_BASE_URL } from '../../config/site';
 import { TARGETS, neededPerYear, yearsLeft } from '../../config/targets';
 import { useDatenstand, useJson } from '../../lib/data';

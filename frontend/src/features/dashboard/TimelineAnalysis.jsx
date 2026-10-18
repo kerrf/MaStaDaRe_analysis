@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
 import { fileName, round } from '../../lib/files';
@@ -145,33 +146,33 @@ export default function TimelineAnalysis({
       title={title}
       lead={subtitle}
       className="timeline-card"
-      tools={
-        measures && (
-          <SegmentedControl
-            label="Messgröße"
-            options={measures.map((m) => ({ id: m.id, label: m.label, title: `${m.quantity} in ${m.unit}` }))}
-            value={chosen.id}
-            onChange={setMeasureId}
-          />
-        )
+      settings={
+        // Every control always in its place: only the span (years or months) changes with the Zeitraster
+        <SettingsRow>
+          {measures && (
+            <Setting label="Messgröße">
+              <SegmentedControl
+                label="Messgröße"
+                options={measures.map((m) => ({ id: m.id, label: m.label, title: `${m.quantity} in ${m.unit}` }))}
+                value={chosen.id}
+                onChange={setMeasureId}
+              />
+            </Setting>
+          )}
+          <TimeControls time={time} since={since} latestYear={latestYear} now={now} />
+          {hasNetto && leistungOption && onLeistung && (
+            <Setting label="Solarleistung">
+              <SegmentedControl
+                label="Leistung der Solaranlagen"
+                options={leistungOption.options}
+                value={netto ? 'netto' : 'brutto'}
+                onChange={onLeistung}
+              />
+            </Setting>
+          )}
+        </SettingsRow>
       }
     >
-      {/* Every control always in its place: only the span (years or months) changes with the Zeitraster */}
-      <div className="timeline__controls">
-        <TimeControls time={time} since={since} latestYear={latestYear} now={now} />
-        {hasNetto && leistungOption && onLeistung && (
-          <div className="timeline__leistung">
-            <span className="timeline__leistung-label">Solar</span>
-            <SegmentedControl
-              label="Leistung der Solaranlagen"
-              options={leistungOption.options}
-              value={netto ? 'netto' : 'brutto'}
-              onChange={onLeistung}
-            />
-          </div>
-        )}
-      </div>
-
       {stats.status === 'error' ? (
         <div className="timeline__state" role="alert">
           <TriangleAlert size={18} aria-hidden="true" />

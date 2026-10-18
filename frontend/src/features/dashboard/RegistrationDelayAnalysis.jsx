@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
 import { fileName, round } from '../../lib/files';
@@ -76,13 +77,17 @@ export default function RegistrationDelayAnalysis({ analysis, region = 'DE', sco
       title={analysis.title}
       lead={`${scopeName} · Zeit von der Inbetriebnahme bis zur Registrierung im MaStR, Anteile der Einheiten je Inbetriebnahmejahr`}
       className="registrations"
-      tools={
-        <SegmentedControl
-          label="Technologie"
-          value={selected.id}
-          onChange={setSelectedId}
-          options={series.map((s) => ({ id: s.id, label: s.label }))}
-        />
+      settings={
+        <SettingsRow>
+          <Setting label="Technologie">
+            <SegmentedControl
+              label="Technologie"
+              value={selected.id}
+              onChange={setSelectedId}
+              options={series.map((s) => ({ id: s.id, label: s.label }))}
+            />
+          </Setting>
+        </SettingsRow>
       }
     >
       {data.status === 'error' ? (

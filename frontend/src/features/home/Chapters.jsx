@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { NETZ, NETZEBENEN, NETZ_TECHNOLOGIEN, STATES_TOPOLOGY } from '../../config/dashboards';
 import { withoutOffshore } from '../../config/regions';
 import { useJson, useOutline, useStats, useTopology } from '../../lib/data';

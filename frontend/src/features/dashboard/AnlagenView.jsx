@@ -5,7 +5,7 @@ import PvSpeicherAnalysis from './PvSpeicherAnalysis';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
 import { selectionOf } from './useDashboardState';
-import { WindPanels, WindSizeCard } from './wind/WindAnalyses';
+import { WindPanels } from './wind/WindAnalyses';
 import useWindAnalyses from './wind/useWindAnalyses';
 
 const ofPage = (analyses) => (analyses ?? []).filter((a) => a.view === 'anlagen');
@@ -32,11 +32,9 @@ export default function AnlagenView({ config, state }) {
   // The batteries at solar units follow solar's choice (Anlagenart, Leistung) where the dashboard has solar
   const solar = config.technologies.find((t) => t.id === 'solar');
   const pv = solar ? selectionOf(solar, state.searchParams) : { subtypes: null, leistung: null };
-  // Wind: every turbine on its own – the card beside the size classes, the panels below (wind/WindAnalyses)
+  // Wind: every turbine on its own – the panels below the size classes (wind/WindAnalyses)
   const isWind = technology.id === 'wind';
   const wind = useWindAnalyses({ state, lagen: isWind ? selectionOf(technology, state.searchParams).subtypes : null, enabled: isWind });
-  const windCard = isWind && <WindSizeCard turbines={wind.turbines} scopeName={state.scopeName} fileBase="mastr_wind" />;
-  const cardCount = cards.length + (windCard ? 1 : 0);
 
   return (
     <>
@@ -51,14 +49,16 @@ export default function AnlagenView({ config, state }) {
           onSelectGemeinde={selectGemeinde}
         />
       )}
-      {technologies.length > 0 && <SelectionBar technologies={technologies} state={state} active={technology} />}
-      {isWind && wind.controls}
-      {cardCount > 0 && (
-        <div id="analyse-anlagen" className={`analyses-grid${cardCount > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>
+      {technologies.length > 0 && (
+        <SelectionBar technologies={technologies} state={state} active={technology}>
+          {isWind && wind.controls}
+        </SelectionBar>
+      )}
+      {cards.length > 0 && (
+        <div id="analyse-anlagen" className={`analyses-grid${cards.length > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>
           {cards.map((a) => (
             <AnalysisCard key={a.id} analysis={a} technology={technology} region={state.scopeKey} scopeName={state.scopeName} query={query} />
           ))}
-          {windCard}
         </div>
       )}
       {panels.map((a) =>

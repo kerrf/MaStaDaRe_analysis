@@ -21,13 +21,14 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | the choice of technology, KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
+| Auf einen Blick | `/erzeuger/ueberblick/:land?/:kreis?` | every technology of the scope on a card: Bestand, its parts, Zubau per year, in Germany the national targets and their pace, else its share and densities among its peers, what is planned (see below) | `overview/OverviewView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
-| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units | `AnlagenView.jsx` |
-| Regionen im Vergleich | `/erzeuger/regionen/:land?/:kreis?` | Steckbrief of the scope (every technology, rank, share, density against the average) and its parts side by side | `RegionenView.jsx` |
+| Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units; wind every turbine on its own: size classes, the correlation of Nabenhöhe, Rotordurchmesser and Leistung (three plots, r in each), their growth per year, Anlagengröße je nach geographischem Standort (a map with the bands of latitude, beside it each band's median) | `AnlagenView.jsx`, `wind/` |
+| Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
+| Regionen im Vergleich | `/erzeuger/regionen/:land?/:kreis?` | the parts of the scope side by side: a table per Land, Kreis or Gemeinde for Ausrichtung and Anlagengröße | `RegionenView.jsx` |
 | Spannungsebenen & Netzbetreiber | `/netz/spannungsebenen/:land?/:kreis?` | the Netzanschlüsse per Netzebene 1–7 with the mix of their technologies, and the largest grid operators – in Deutschland, a Land or a Kreis | `NetzView.jsx` |
 
-Erzeuger and Speicher have the first five, Gas the map, Zubau and Anlagen, the Netzanschlüsse the map and Spannungsebenen &
+Erzeuger and Speicher have the first six, Gas the map, Zubau and Anlagen, the Netzanschlüsse the map and Spannungsebenen &
 Netzbetreiber (`DASHBOARD_MENUS`, which also holds the texts of the menus in the nav bar). `Dashboard.jsx` is the shell:
 the header – the settings of every page, a light band apart from what the pages show – with the dashboard's one title
 (no eyebrow above it: one title per section, like in the navigation), the page's text of its menu entry as the lead,
@@ -40,16 +41,29 @@ shows – the technology and its filters (`SelectionBar.jsx`, at the top of the 
 (Kennzahl, Bezug, Auflösung, Zeitraster: in the card). The area and the settings of a card are chosen in green, the
 technology and its filters in the topic's colour, so the layers read apart.
 
-The choice of the area (`ScopeBar.jsx`) is a path in the header above the tabs: Deutschland › Bundesland › Landkreis
-(› Gemeinde on the pages with `gemeinde`), each step a list of its level. The area the page shows is filled in the
-green of chosen buttons, the steps on the way to it are light green (Deutschland a button back), the steps still open
-dashed, those not possible yet faded. Each list is as wide as its choice where the browser can (`field-sizing`). A
-page renders its `ScopeBar` where it likes – or not – and the bar goes into the header through a portal (`ScopeSlot` in
-`scopeSlot.js`, provided by `Dashboard.jsx`).
+Every setting looks the same (`components/ui/Setting.jsx`): one box, its name in the box's first field, then its
+options – no name floats beside its control, every box is 36 px high (the area 40 px). The name is bold on a light tint
+of its layer's colour – green for the area and a card's settings, the topic's colour for the technology and its
+filters –, so it stands out from the options and tells the layers apart. The boxes sit in bands on the
+sunken tone (`.settings-band`, rows of `SettingsRow`): the area's band in the header, the page's band at its top, a
+card's band between its head and its chart (`AnalysisPanel`'s `settings`, the map's toolbar, the table's toolbar). A
+row's right side (`aside`) says what the settings amount to and offers the way back: "Alle Seiten zeigen nur Bayern"
+with "Ganz Deutschland", "Gefiltert: nur Freifläche" with "Filter aufheben", the number of wind turbines shown.
+
+The choice of the area (`ScopeBar.jsx`) is a path in one box in the header above the tabs: Deutschland › Bundesland ›
+Landkreis (› Gemeinde on the pages with `gemeinde`), each step a list of its level. The area the page shows is filled
+in the green of chosen buttons, the steps on the way to it in green letters (Deutschland a button back), a step with
+none chosen says so – "Alle Bundesländer", "Alle Landkreise", "Alle Gemeinden" (the first option of its list) –, those
+not possible yet faded. Narrowed to an area, the band takes a green line on its left. A page
+renders its `ScopeBar` where it likes – or not – and the bar goes into the header through a portal (`ScopeSlot` in
+`scopeSlot.js`, provided by `Dashboard.jsx`). Beside "Alle Seiten zeigen …" the area's outline (`ScopeOutline.jsx`:
+Germany, the Land, or the Kreis – a Gemeinde shows its Kreis). While the header is scrolled out of view, a small card at
+the bottom left keeps the outline and the name in sight (`ScopeIndicator.jsx`); its "ändern" goes back up to the Gebiet,
+which lights up and takes the keyboard.
 
 `useDashboardState.js` reads the state all pages share from the URL – scope, technology and its filters – and keeps it
 when switching pages (`hrefOf(view)`; on Zubau down to the Kreis: its views have no Gemeinden). Each technology's filters have their own
-parameters, so the Steckbrief and the timeline can read solar's choice while wind is active (`selectionOf`).
+parameters, so Auf einen Blick and the timeline can read solar's choice while wind is active (`selectionOf`).
 
 ### URL state
 
@@ -97,14 +111,15 @@ subtypes: { param: 'anlagenart', label: 'Anlagenart', options: [{ id: 'gebaeude'
 leistung: { param: 'leistung', label: 'Leistung', options: [{ id: 'netto', … }, { id: 'brutto', … }], note: '…' }
 ```
 
-The technology and its filters are one bar at the top of every page that has a choice of them – Karte, Regionen im
-Detail, Anlagen, Regionen im Vergleich – the same everywhere (`SelectionBar.jsx`): a tray with the names in a column on
-the left, "Technologie" (the Netzanschlüsse: `technologyLabel`, "Anschlüsse") with the chips, the chosen one filled in
-the topic's colour; below it the chosen technology's filters ("Filter für Solar", `TechFilters.jsx`) in a row of their
-own, tinted in the topic's colour and hanging off the choice by the colour line on the left: `SubtypePicker` boxes (at
-least one stays selected; an option with a `color` shows it in its box) and the `OptionSwitch` Netto (AC) / Brutto
-(DC), every option as high as the others. The `note` of `leistung` is the footnote below them, marked ¹ at the switch
-and in the map title (`footnoteId`). Also with a single technology (Speicher; Regionen im Detail: the dashboard's one).
+The technology and its filters are one band at the top of every page that has a choice of them – Karte (the top band
+of the map card, its toolbar the second row), Regionen im Detail, Anlagen, Regionen im Vergleich – the same everywhere
+(`SelectionBar.jsx`): a box "Technologie" (the Netzanschlüsse: `technologyLabel`, "Anschlüsse") with the technologies,
+the chosen one filled in the topic's colour, and right after it a box per filter of the chosen technology
+(`TechFilters.jsx`): the `SubtypePicker` (Anlagenart, Lage …: at least one stays selected; an option with a `color`
+shows it in its box) and the `OptionSwitch` Netto (AC) / Brutto (DC). The `note` of `leistung` is a remark at the
+page's bottom, marked ¹ at the switch and in the map title. Further rows of the band: the map's toolbar, on Anlagen
+the wind turbines' status and colour (`WindControls.jsx`). Also with a single technology (Speicher; Regionen im Detail:
+the dashboard's one).
 A technology's selection comes from its own parameters, so a page can show another one than the URL's (Anlagen: the
 batteries while the map is on Pumpspeicher) with its filters (`setSubtypesOf`, `setLeistungOf`).
 
@@ -157,12 +172,28 @@ How long after going into operation units were registered, per year of commissio
 complete year (share in time, median days). Data: `/zubau/registrierungsverzug` from `mrt.registrierungsverzug`
 (`aggregate_registrierungsverzug.sql`). The latest years still gain late registrations.
 
-### Steckbrief (`RegionProfile.jsx`, page Regionen)
+### Auf einen Blick (`overview/`, page `ueberblick`)
 
-One card per technology with area stats (`statsPath`) for the scope: Anlagen, Leistung, je km², je Einwohner, Zubau of
-12 months; each with its share of the whole (sums) or its multiple of the average (densities), and its rank – among the
-16 Länder, or among the Kreise of the Land and of Germany. Areas and population for the averages come from
-`/regions/areas` (`geo.gemeinden`). Germany: the totals and the Land in front.
+The bold overview of one technology in the scope – the page most visitors need. The technology is chosen in the band on
+top (`SelectionBar` without filters, the URL's `technologie`); the page is all its own (`OverviewView.jsx`, the numbers
+computed apart from the drawing in `model.js`: `partsOf`, `pageModel`):
+
+- **Tiles:** a number per card, its name and one line of context – the Bestand (Leistung netto; the batteries their
+  capacity and power, `overview.measure`, `overview.also`) with its share of the whole, the units in operation with
+  their rank, the Zubau of the running year since January, what is planned (`/zubau/geplant`). The Bestand comes from the
+  stats, the same numbers as the map's KPIs.
+- **Arten** (`overview.parts`, like a table of cards): Solar Gebäude, Balkonkraftwerke and Freifläche (`/solar/arten`,
+  `mrt.solar_arten_regions` – the only place the Balkonkraftwerke are apart), Wind an Land and auf See (the stats per
+  Lage and the yearly series), the batteries' Heim-, Gewerbe- and Großspeicher (`/battery/zubau`): each with its units
+  and its measure, their shares (a pie each) and their Zubau in the running year.
+- **Zubau je Jahr:** the last 15 years stacked by the Arten, the running year lighter, the change of the last full year
+  against the one before as a chip (whole years: registrations come weeks late; below 1 % of the Bestand "kaum Zubau").
+- **Germany:** beside it the national targets for 2030 in Bruttoleistung (`overview.targets`, `config/targets.js`) with
+  the earlier goal as a mark and the pace of the last full year against what the target needs per year, and the three
+  Länder with the most (wind: Nord- und Ostsee too).
+
+Netto throughout, no switch; only the targets are brutto, as the law counts. Remarks: the planned units, the
+Balkonkraftwerke (a lower bound, see Datenqualität), the targets. Every section has its downloads.
 
 ### Registrierungen im MaStR (`RegistrationsAnalysis.jsx`, kind `registrations`)
 
@@ -174,8 +205,8 @@ technologies: a URL of its own per set of series, never an older cached answer w
 `mrt.registrierungen` (`aggregate_registrierungen.sql`: per month and, with `month` null, per year; `units` registered in
 the period, `total` all up to its end; `?yearly=true` only the years), every unit the register lists whatever its
 status. The same time controls as the Ausbau im Zeitverlauf (below): aggregiert (all registered so far), Jährlich or
-Monatlich, the span. Each dashboard lists its technologies in `registrations.series` (Erzeuger: Solar, Wind,
-Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas: Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands
+Monatlich, the span. Each dashboard lists its technologies in `registrations.series` (Erzeuger: Solar Gebäude and
+Freifläche, Wind an Land and auf See, Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas: Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands
 on the axis (`StackedChart`, unit `Anzahl`).
 
 ### Ausrichtung nach Neigungswinkel (`OrientationTiltAnalysis.jsx`, kind `orientation-tilt`)
@@ -209,7 +240,7 @@ The controls look like what they choose: the analysis (Ausrichtung / Anlagengrö
 the labelled dropdown "Gebiete", the cells in two steps – "Werte" (Leistung MW, for batteries Kapazität MWh, or Anzahl)
 and "Darstellung" (Wert, or Anteil % of the area's total) – search and CSV as tools on the right.
 
-On the Regionen page, below the Steckbrief, for the technology chosen there – or the first one with a table (Speicher:
+On the page Regionen im Vergleich, for the technology chosen there – or the first one with a table (Speicher:
 Batteriespeicher, with the size classes by capacity, `/battery/size-distribution/regions`).
 
 Data: `{path of the card}/regions?level=…&within=…` (e.g. `/solar/orientation/regions?level=gemeinde&within=09`),
@@ -409,6 +440,12 @@ Kreis – the Land's row is more than its Kreise.
 
 ## Start page (`pages/HomePage.jsx`, `features/home/`)
 
+Beside the title, live previews in tabs (`HeroPreviews.jsx`): Solar and Wind per Land on the map of Germany (a click
+on a Land opens its map), the batteries added per year by size class (`/battery/zubau`), the orientation of the solar
+modules (the rose of the page Anlagen, `RoseSvg`; its styles in `features/dashboard/rose.css`). They turn every 8 s until
+someone picks one – not while the pointer or the keyboard rests on them, never with reduced motion; each leads to its
+page and has its downloads.
+
 After the hero: the register in five large numbers (`RegisterFigures.jsx`: solar, wind, batteries, gas storages,
 Netzanschlusspunkte, live from the dashboards' endpoints), one chapter per dashboard with a live chart of its data
 (`Chapters.jsx`: the Zubau of both timelines per year, the gas storages as circles on a small SVG map, `lib/svgMap.js`,
@@ -498,10 +535,17 @@ its style before it becomes an image: Leaflet places it with a CSS transform, wh
 The map's CSV holds its areas or plants with every value; on the continuous map, the points it spreads (position, kW
 or kWh, the width of each point's kernel).
 
-## CSV of every chart
+## Exports of every chart: CSV, JSON, PNG, PDF
 
-Each chart, the Rangliste and the Kreis map have their data as a CSV file: a small link at the right of the chart's
-foot (`components/ui/CsvLink.jsx`, `ChartFoot` beside its note or legend). The file holds what the chart shows, in
-its current settings (Zubau or Bestand, years or months, the series shown, the scope and the selection, which also
-name the file): numbers unformatted with a decimal point, units in the column names (`lib/files.js`, UTF-8 with a byte
-order mark for Excel). The Rangliste's file ranks all areas of the scope, not only the ten shown.
+Each chart, the Rangliste, the tables and the Kreis map have a "Download" button with the download pictogram at the
+right of the chart's foot (`components/ui/ChartExport.jsx`, `ChartFoot` beside its note or legend); it opens a menu
+in two groups, Rohdaten (CSV, JSON) and Bilder (PNG, PDF) (`ExportMenu.jsx`; the map card the same in its head). The data files hold what the
+chart shows, in its current settings (Zubau or Bestand, years or months, the series shown, the scope and the
+selection, which also name the file): CSV with numbers unformatted with a decimal point, units in the column names
+(UTF-8 with a byte order mark for Excel), JSON the same rows as a list of objects (`lib/files.js`). PNG and PDF show the
+card or figure the chart lies in, without the export links (`lib/exportChart.js`, html2canvas; the PDF an A4 page with
+the card's title and the source, landscape when the card is wide); a chart in the map's rail its panel, a block can
+mark itself as what is shown (`data-export`), a card can name a part of it (`target`: the Kreis map its map frame). A
+Leaflet map goes through the map's own capture (`exportMap.js`: its layers and background tiles copied first, html2canvas
+misplaces them). The map card has the same four. html2canvas reads no `color-mix()`: the CSS keeps to plain colours.
+The Rangliste's file ranks all areas of the scope, not only the ten shown.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Construction, Download, Maximize2, Minimize2, RefreshCw, Scale, TriangleAlert } from 'lucide-react';
+import { BookOpen, Construction, Maximize2, Minimize2, RefreshCw, Scale, TriangleAlert } from 'lucide-react';
 import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -8,13 +8,14 @@ import { trackEvent } from '../../lib/usage';
 import { makeColorScale, scaleDomainMax } from '../../lib/colorScale';
 import { DEFAULT_SMOOTHING, SMOOTHINGS } from '../../lib/heatmap';
 import { statsUrl, useDatenstand, useJson, useStats, useTopology } from '../../lib/data';
-import { exportCsv } from '../../lib/files';
+import { exportCsv, exportJson } from '../../lib/files';
 import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import ChoroplethMap from './ChoroplethMap';
 import KpiStrip from './KpiStrip';
 import MapLegend, { HeatmapLegend } from './MapLegend';
 import RankingPanel from './RankingPanel';
 import MapRail from './MapRail';
+import ExportMenu from '../../components/ui/ExportMenu';
 import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
@@ -364,6 +365,7 @@ export default function MapView({ config, state }) {
       if (kind === 'png') await exportPng(frameRef.current, fileBase);
       if (kind === 'pdf') await exportPdf(frameRef.current, fileBase, `${technology.label}: ${mapTitle} – ${scopeLabel} (${layerLabel})`, datenstand);
       if (kind === 'csv') exportCsv(isHeatmap ? heatRows() : mapData.data, fileBase);
+      if (kind === 'json') exportJson(isHeatmap ? heatRows() : mapData.data, fileBase);
     } finally {
       setExporting(null);
     }
@@ -389,20 +391,12 @@ export default function MapView({ config, state }) {
             </div>
           </div>
           <div className="map-card__tools">
-            <div className="export-group" role="group" aria-label="Exportieren">
-              <Download size={15} aria-hidden="true" className="export-group__icon" />
-              {['png', 'pdf', 'csv'].map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className="export-group__btn"
-                  disabled={Boolean(exporting) || mapState !== 'ready' || (kind === 'csv' && !hasTable)}
-                  onClick={() => handleExport(kind)}
-                >
-                  {exporting === kind ? '…' : kind.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <ExportMenu
+              size="md"
+              busy={exporting}
+              onExport={(kind) => handleExport(kind)}
+              disabled={{ csv: mapState !== 'ready' || !hasTable, json: mapState !== 'ready' || !hasTable, png: mapState !== 'ready', pdf: mapState !== 'ready' }}
+            />
             <button
               type="button"
               className="icon-btn"
@@ -415,25 +409,25 @@ export default function MapView({ config, state }) {
           </div>
         </header>
 
-        {/* What the map shows, right above how it shows it: part of the map, also in fullscreen */}
-        <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} inCard />
-
-        <MapToolbar
-          technology={technology}
-          metrics={metrics}
-          metric={metric}
-          onMetric={(id) => {
-            trackEvent('Kartenansicht', { einstellung: 'kennzahl', wert: id });
-            setParam('kennzahl', id, metrics[0].id);
-          }}
-          granularity={granularity}
-          onGranularity={(id) => {
-            trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
-            setParam('ebene', id, config.defaultGranularity);
-          }}
-          smoothing={smoothingId}
-          onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
-        />
+        {/* What the map shows, and below it how it shows it: one band of the card, part of the map also in fullscreen */}
+        <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} inCard>
+          <MapToolbar
+            technology={technology}
+            metrics={metrics}
+            metric={metric}
+            onMetric={(id) => {
+              trackEvent('Kartenansicht', { einstellung: 'kennzahl', wert: id });
+              setParam('kennzahl', id, metrics[0].id);
+            }}
+            granularity={granularity}
+            onGranularity={(id) => {
+              trackEvent('Kartenansicht', { einstellung: 'ebene', wert: id });
+              setParam('ebene', id, config.defaultGranularity);
+            }}
+            smoothing={smoothingId}
+            onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
+          />
+        </SelectionBar>
 
         <div className="map-workspace__body">
           <div className="map-frame" ref={frameRef}>

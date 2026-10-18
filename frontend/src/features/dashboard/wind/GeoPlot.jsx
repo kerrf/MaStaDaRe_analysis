@@ -18,8 +18,10 @@ function useWidth(ref) {
  * A plain map for analyses (no tiles): the areas of a topology (only those under `within`, a key prefix), filled by
  * fillOf(ags) (null: no data), their name and value in describe(ags, name); optionally dots on a canvas over them (dots:
  * { lon, lat, color } arrays of the same length, drawn in their order). Keeps Germany's shape (svgMap's projection).
+ * onLayout({ height, latToY }): once laid out and on every change – where a latitude lies on the plot, in px from its
+ * top (the projection keeps parallels straight and level), so a chart beside it can line up with the map.
  */
-export default function GeoPlot({ topology, within = null, fillOf, describe, dots = null, maxHeight = 620, label }) {
+export default function GeoPlot({ topology, within = null, fillOf, describe, dots = null, maxHeight = 620, label, onLayout }) {
   const frame = useRef(null);
   const canvas = useRef(null);
   const width = useWidth(frame);
@@ -41,6 +43,11 @@ export default function GeoPlot({ topology, within = null, fillOf, describe, dot
     const scale = Math.min(width / vw, height / vh);
     return { vx, vy, vw, vh, height, scale, ox: (width - vw * scale) / 2, oy: (height - vh * scale) / 2 };
   }, [svg, width, maxHeight]);
+
+  useEffect(() => {
+    if (!box || !width || !onLayout) return;
+    onLayout({ height: box.height, latToY: (lat) => box.oy + (project([0, lat])[1] - box.vy) * box.scale });
+  }, [box, width, onLayout]);
 
   useEffect(() => {
     const element = canvas.current;

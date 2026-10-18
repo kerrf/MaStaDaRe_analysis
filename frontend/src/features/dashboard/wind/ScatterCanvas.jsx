@@ -27,8 +27,9 @@ function useWidth(ref) {
 /**
  * Every turbine as a dot, on a canvas (tens of thousands), the axes in SVG over it, a tooltip for the dot under the
  * pointer. xs, ys: the values (NaN: left out); group: the colour index of each point, colors: the palette; xMax, yMax:
- * the axes' ends; describe(k): the tooltip's title and rows for point k. compact: a cell of the matrix – fewer ticks,
- * the axes' names left to the matrix. height: of the plot area with its axes; square: as high as wide.
+ * the axes' ends; describe(k): the tooltip's title and rows for point k. compact: a small plot – fewer ticks, the axes'
+ * names left to its caption. height: of the plot area with its axes; square: as high as wide. note: in the plot's top
+ * left corner, above the dots (the correlation).
  */
 export default function ScatterCanvas({
   xs,
@@ -43,6 +44,7 @@ export default function ScatterCanvas({
   height = 340,
   square = false,
   compact = false,
+  note,
   label,
 }) {
   const frame = useRef(null);
@@ -140,6 +142,11 @@ export default function ScatterCanvas({
           )}
           {hover != null && <circle className="scatter__hover" cx={hx} cy={hy} r={5} />}
         </svg>
+      )}
+      {note && width > 0 && (
+        <div className="scatter__note" style={{ left: margin.left + 8, top: margin.top + 6 }}>
+          {note}
+        </div>
       )}
       {tip && (
         <div className="scatter__tooltip" style={{ left: hx, top: hy, transform: `translate(${hx > width / 2 ? 'calc(-100% - 12px)' : '12px'}, -50%)` }}>

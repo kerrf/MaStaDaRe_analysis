@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { BatteryCharging, Gauge, History, Sun } from 'lucide-react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import StatTile from '../../components/ui/StatTile';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';

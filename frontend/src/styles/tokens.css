@@ -59,6 +59,8 @@
   --series-solar: #f2b200;
   /* Solar on open land in the Zubau charts: the solar yellow, a shade deeper than the rooftops' */
   --series-solar-freiflaeche: #c99300;
+  /* The Balkonkraftwerke, apart only on the page Auf einen Blick: a lighter yellow than the rooftops */
+  --series-solar-balkon: #f7d978;
   /* Solar on open land, next to the rooftops' --series-solar */
   --series-freiflaeche: #b25a06;
   --series-wind-land: #5ea66b;

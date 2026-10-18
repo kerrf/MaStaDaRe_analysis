@@ -177,6 +177,20 @@ export const ERZEUGER = {
           'Jede Solaranlage besitzt im MaStR eine Bruttoleistung und Nettonennleistung. Die Bruttoleistung entspricht ' +
           'der Peakproduktion der Anlage, während die Nettonennleistung dem Minimum aus Bruttoleistung und Wechselrichterwirkleistung entspricht.',
       },
+      // Auf einen Blick (OverviewView): its Arten with the Balkonkraftwerke apart (/solar/arten, the only place they
+      // are: everywhere else they count with the Gebäude), the series of its planned units (/zubau/geplant, Netto) and
+      // the national target it counts toward (config/targets.js, in Bruttoleistung)
+      overview: {
+        source: 'solar',
+        title: 'Dach, Balkon oder Freifläche',
+        parts: [
+          { id: 'gebaeude', label: 'Gebäude', hint: 'Dach, Fassade', color: 'var(--series-solar)' },
+          { id: 'balkon', label: 'Balkonkraftwerke', hint: 'steckerfertig', color: 'var(--series-solar-balkon)' },
+          { id: 'freiflaeche', label: 'Freifläche', hint: 'Solarparks', color: 'var(--series-solar-freiflaeche)' },
+        ],
+        planned: ['solar_gebaeude_netto', 'solar_freiflaeche_netto'],
+        targets: ['solar'],
+      },
       // Shown after the dashboard-wide analyses of their page while the technology is active
       analyses: [
         {
@@ -221,6 +235,18 @@ export const ERZEUGER = {
       },
       // Offshore wind is an area of its own in the sea (key "offshore" on every level), shown while this subtype is chosen
       offshore: 'auf_see',
+      // Auf einen Blick: an Land and auf See from the yearly series of the Zubau (/zubau/zeitverlauf) and the stats per
+      // Lage (?lage=…), each with its national target
+      overview: {
+        source: 'series',
+        title: 'An Land oder auf See',
+        parts: [
+          { id: 'wind_an_land', lage: 'an_land', label: 'An Land', color: 'var(--series-wind-land)' },
+          { id: 'wind_auf_see', lage: 'auf_see', label: 'Auf See', hint: 'Nord- und Ostsee', color: 'var(--series-wind-sea)' },
+        ],
+        planned: ['wind_an_land', 'wind_auf_see'],
+        targets: ['wind_an_land', 'wind_auf_see'],
+      },
     },
     { id: 'biomasse', label: 'Biomasse', icon: Leaf },
     {
@@ -230,6 +256,12 @@ export const ERZEUGER = {
       statsPath: '/water/dashboard-stats',
       sizesPath: '/water/size-distribution',
       granularities: REGION_LEVELS,
+      // Auf einen Blick: from the yearly series of the Zubau, no parts, no target
+      overview: {
+        source: 'series',
+        parts: [{ id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' }],
+        planned: ['wasserkraft'],
+      },
     },
   ],
   // heat: what the continuous map shows of an absolute Kennzahl – its density, the measure of its points (default power),
@@ -294,7 +326,8 @@ export const ERZEUGER = {
       [
         { id: 'solar_gebaeude', label: 'Solar Gebäude', color: 'var(--series-solar)' },
         { id: 'solar_freiflaeche', label: 'Solar Freifläche', color: 'var(--series-solar-freiflaeche)' },
-        { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)', hidden: true },
+        { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)', hidden: true },
+        { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)', hidden: true },
         { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
       ],
       { stacked: true },
@@ -377,6 +410,21 @@ export const SPEICHER = {
       statsPath: '/battery/dashboard-stats',
       heatmapPath: '/battery/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
+      // Auf einen Blick: the batteries by their capacity (MWh), their power beside it; the size classes of the timeline
+      // from /battery/zubau (per class and year: units, capacity, power); no series of planned ones
+      overview: {
+        source: 'battery',
+        title: 'Heim-, Gewerbe- oder Großspeicher',
+        measure: { field: 'total_capacity', format: 'capacity', label: 'Speicherkapazität' },
+        also: { field: 'total_power', format: 'power', label: 'Leistung' },
+        // What the units are: one, several (after "aus")
+        units: ['Speicher', 'Speicher'],
+        parts: [
+          { id: 'heimspeicher', label: 'Heimspeicher', hint: 'unter 30 kWh', color: 'var(--series-heimspeicher)' },
+          { id: 'gewerbespeicher', label: 'Gewerbespeicher', hint: 'bis 1 MWh', color: 'var(--series-gewerbespeicher)' },
+          { id: 'grossspeicher', label: 'Großspeicher', hint: 'ab 1 MWh', color: 'var(--series-grossspeicher)' },
+        ],
+      },
       // The page Anlagen, in the scope: size classes by the plant's capacity (mrt.battery_size_distribution), and the
       // units by battery technology and by coupling (mrt.battery_kinds)
       analyses: [

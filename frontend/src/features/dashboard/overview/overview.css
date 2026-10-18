@@ -1,0 +1,443 @@
+/* Auf einen Blick (OverviewView): one technology of an area on the whole page – its numbers on cards, its Arten, the
+   Zubau per year, in Germany the targets */
+
+.ov-head__title {
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ov-head__lead {
+  margin-top: 4px;
+  color: var(--ink-secondary);
+}
+
+/* ------------------------------------------------------------------ Tiles */
+/* A number per card: its name, the number large, one line of context – nothing else */
+.ov-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 16px;
+}
+
+.ov-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px 20px;
+  border-top: 3px solid var(--accent);
+}
+
+.ov-tile__label {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.ov-tile__value {
+  font-size: clamp(34px, 3.2vw, 44px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink-primary);
+}
+
+.ov-tile__unit {
+  margin-left: 6px;
+  font-size: 0.42em;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--ink-secondary);
+}
+
+.ov-tile__sub {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* --------------------------------------------------------------- Sections */
+.ov-section {
+  display: flex;
+  flex-direction: column;
+  border-top: 3px solid var(--accent);
+}
+
+.ov-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 16px 20px 0;
+}
+
+.ov-section__title {
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.ov-section__lead {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.ov-section__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.ov-section__foot {
+  padding: 0 20px 14px;
+}
+
+/* ------------------------------------------------------------------ Arten */
+/* One card per Art, like a table: its name with its colour, then its units and its measure, each with its share and
+   this year's Zubau */
+.ov-parts__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ov-part {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-subtle);
+  border-left: 6px solid var(--part-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-page);
+}
+
+.ov-part__name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ov-part__name strong {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--ink-primary);
+}
+
+.ov-part__name span {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.ov-part__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-part__value {
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink-primary);
+}
+
+.ov-part__value span {
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-secondary);
+}
+
+.ov-part__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* --------------------------------------------------------------- Chips */
+/* A share in grey with its pie, a Zubau or a change up in green, about the same grey, down or short of the target warm,
+   far from it red */
+.ov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ov-chip--up {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.ov-chip--flat {
+  background: var(--surface-sunken);
+  color: var(--ink-secondary);
+}
+
+.ov-chip--down,
+.ov-chip--fair {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.ov-chip--poor {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.ov-pie circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.ov-pie .ov-pie__slice {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* ------------------------------------------------------- Zubau and targets */
+/* Germany: the Zubau beside the targets and the Länder in front; a Land or Kreis: the Zubau alone */
+.ov-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.ov-row--aside {
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  align-items: start;
+}
+
+.ov-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ov-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.ov-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.ov-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.ov-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+.ov-note strong {
+  color: var(--ink-primary);
+}
+
+/* A target reached; the earlier goal a mark with its year below it */
+.ov-progress {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+}
+
+.ov-progress__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+.ov-progress__mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-primary);
+}
+
+.ov-progress__mark-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  color: var(--ink-secondary);
+  transform: translateX(-50%);
+}
+
+.ov-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ov-target + .ov-target {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.ov-target .ov-progress:has(.ov-progress__mark) {
+  margin-bottom: 14px;
+}
+
+.ov-target__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.ov-target__name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.ov-target__pct {
+  font-size: 16px;
+  color: var(--ink-primary);
+}
+
+.ov-target__pace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+/* Germany: the Länder with the most */
+.ov-leaders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+
+.ov-leaders li {
+  display: grid;
+  grid-template-columns: 1rem minmax(6rem, 10rem) minmax(0, 1fr) 3.6rem;
+  align-items: center;
+  gap: 8px;
+}
+
+.ov-leaders__rank {
+  font-weight: 650;
+  color: var(--ink-muted);
+}
+
+.ov-leaders__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-primary);
+}
+
+.ov-leaders__bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+}
+
+.ov-leaders__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.ov-leaders b {
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (max-width: 1000px) {
+  .ov-row--aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .ov-part {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ov-section__head,
+  .ov-section__body {
+    padding-inline: 16px;
+  }
+
+  .ov-section__foot {
+    padding-inline: 16px;
+  }
+
+  /* Two numbers side by side */
+  .ov-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .ov-tile {
+    padding: 12px 12px 14px;
+  }
+
+  .ov-tile__label {
+    font-size: 11px;
+  }
+
+  .ov-tile__value {
+    font-size: 27px;
+  }
+}

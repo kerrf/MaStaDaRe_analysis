@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Gauge, Target } from 'lucide-react';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { FigureBlock, FigureRow } from '../../components/ui/FigureBlock';
 import { API_BASE_URL } from '../../config/site';
 import { TARGETS, neededPerYear, yearsLeft } from '../../config/targets';
@@ -58,7 +58,8 @@ export default function TargetsOverview() {
     : null;
 
   return (
-    <div className="targets-overview">
+    // data-export: the block is what its PNG and PDF show
+    <div className="targets-overview" data-export="">
       <FigureBlock
         icon={Target}
         title={`Stand gegenüber dem Ziel ${YEAR}`}

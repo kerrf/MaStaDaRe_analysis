@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import PieChart from '../../components/charts/PieChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting from '../../components/ui/Setting';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
@@ -64,7 +65,9 @@ export default function KindShares({ path, region, query, groups, measures, unit
     <div className="kind-shares">
       {measures.length > 1 && (
         <div className="kind-shares__controls">
-          <SegmentedControl label="Anteile nach" options={measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
+          <Setting label="Anteile nach">
+            <SegmentedControl label="Anteile nach" options={measures.map(({ id, label }) => ({ id, label }))} value={measure.id} onChange={setMeasureId} />
+          </Setting>
         </div>
       )}
       <div className={`kind-shares__pies${pies.length > 1 ? ' kind-shares__pies--pair' : ''}`}>

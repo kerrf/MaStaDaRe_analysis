@@ -1,5 +1,5 @@
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { round } from '../../lib/files';
 import { formatFixed } from '../../lib/format';
 

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import StackedChart from '../../components/charts/StackedChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
 import { fileName } from '../../lib/files';
@@ -129,22 +130,22 @@ export default function RegistrationsAnalysis({ analysis, region = 'DE', scopeNa
       title={analysis.title}
       lead={lead}
       className="registrations"
-      tools={
-        !stacked && (
-          <SegmentedControl
-            label="Technologie"
-            value={selected.id}
-            onChange={setSelectedId}
-            options={series.map((s) => ({ id: s.id, label: s.label }))}
-          />
-        )
+      settings={
+        <SettingsRow>
+          {!stacked && (
+            <Setting label="Technologie">
+              <SegmentedControl
+                label="Technologie"
+                value={selected.id}
+                onChange={setSelectedId}
+                options={series.map((s) => ({ id: s.id, label: s.label }))}
+              />
+            </Setting>
+          )}
+          {facts?.table && <TimeControls time={time} since={facts.since} latestYear={latestYear} />}
+        </SettingsRow>
       }
     >
-      {facts?.table && (
-        <div className="timeline__controls">
-          <TimeControls time={time} since={facts.since} latestYear={latestYear} />
-        </div>
-      )}
       {data.status === 'error' ? (
         <ChartPlaceholder variant="bars" title="Keine Daten" note="Die Registrierungen konnten nicht geladen werden." />
       ) : !facts ? (

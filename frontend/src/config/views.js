@@ -1,17 +1,20 @@
-import { ChartColumnIncreasing, Landmark, Map as MapIcon, MapPinned, Ruler, UtilityPole } from 'lucide-react';
+import { ChartColumnIncreasing, Landmark, LayoutDashboard, Map as MapIcon, MapPinned, Ruler, UtilityPole } from 'lucide-react';
 
 // The pages of a dashboard: the map, and one page per kind of analysis, so no page has to hold everything. path: after
 // the dashboard's basePath ("/erzeuger/zubau"). scoped: the page shows a Land or Kreis (URL /<view>/<land>/<kreis>);
 // the others are about Germany as a whole.
 export const VIEWS = {
   karte: { id: 'karte', label: 'Karte', icon: MapIcon, path: '', scoped: true },
-  // One Landkreis and its Gemeinden in depth, on a detailed map (KommuneView)
-  kommune: { id: 'kommune', label: 'Regionen im Detail', icon: Landmark, path: 'kommune', scoped: true, gemeinde: true },
+  // Every technology of an area in one card each: Bestand, Zubau, Planung, its place among its peers, the targets
+  // (OverviewView) – in Deutschland, a Land or a Kreis
+  ueberblick: { id: 'ueberblick', label: 'Auf einen Blick', icon: LayoutDashboard, path: 'ueberblick', scoped: true },
   // In Deutschland, a Land or a Kreis (no Gemeinde: the monthly series stop at the Kreise)
   zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: true },
   // gemeinde: the page can show a single Gemeinde of the Kreis too (?gemeinde=…)
   anlagen: { id: 'anlagen', label: 'Anlagen', icon: Ruler, path: 'anlagen', scoped: true, gemeinde: true },
-  // Steckbrief of an area and its parts side by side
+  // One Landkreis and its Gemeinden in depth, on a detailed map (KommuneView)
+  kommune: { id: 'kommune', label: 'Regionen im Detail', icon: Landmark, path: 'kommune', scoped: true, gemeinde: true },
+  // The parts of an area side by side (Länder of Germany, Kreise of a Land, Gemeinden of a Kreis)
   regionen: { id: 'regionen', label: 'Regionen im Vergleich', icon: MapPinned, path: 'regionen', scoped: true },
   // The Netzanschlüsse of an area by Netzebene, technology and grid operator (NetzView), in Deutschland, a Land or a Kreis
   spannungsebenen: {
@@ -33,10 +36,11 @@ export const DASHBOARD_MENUS = [
     basePath: '/erzeuger',
     views: {
       karte: 'Solar, Wind und Wasserkraft je Land, Kreis, Gemeinde',
-      kommune: 'Ein Landkreis und seine Gemeinden im Detail: Karte, Kennzahlen, Zubau je Jahr',
+      ueberblick: 'Solar, Wind und Wasserkraft eines Gebiets: Bestand, Zubau, Planung, Rang und Ausbauziel',
       zubau: 'Zubau seit 2000, Registrierungen und Meldefristen',
       anlagen: 'Größenklassen, Ausrichtung, Batteriespeicher an Solaranlagen',
-      regionen: 'Steckbrief eines Gebiets und seine Teile im Vergleich',
+      kommune: 'Ein Landkreis und seine Gemeinden im Detail: Karte, Kennzahlen, Zubau je Jahr',
+      regionen: 'Die Teile eines Gebiets im Vergleich: Ausrichtung und Anlagengröße je Land, Kreis, Gemeinde',
     },
   },
   {
@@ -45,10 +49,11 @@ export const DASHBOARD_MENUS = [
     basePath: '/speicher',
     views: {
       karte: 'Batterie- und Pumpspeicher je Land, Kreis, Gemeinde',
-      kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',
+      ueberblick: 'Batteriespeicher eines Gebiets: Bestand, Zubau, Speichergrößen und Rang',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
       anlagen: 'Speichergröße, Batterietechnologie und Kopplung, Batteriespeicher an Solaranlagen',
-      regionen: 'Steckbrief eines Gebiets',
+      kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',
+      regionen: 'Die Teile eines Gebiets im Vergleich: Speichergröße je Land, Kreis, Gemeinde',
     },
   },
   {

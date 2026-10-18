@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ChartPlaceholder from '../../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../../components/ui/CsvLink';
+import { ChartFoot } from '../../../components/ui/ChartExport';
 import { fileName, round } from '../../../lib/files';
 import { formatNumber } from '../../../lib/format';
 import { niceTicks, quantile } from './turbines';

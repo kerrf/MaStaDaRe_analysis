@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import Chapters from '../features/home/Chapters';
-import GermanyPreview from '../features/home/GermanyPreview';
+import HeroPreviews from '../features/home/HeroPreviews';
 import RegisterFigures from '../features/home/RegisterFigures';
 import TargetsOverview from '../features/home/TargetsOverview';
 import { SITE } from '../config/site';
@@ -37,7 +37,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <GermanyPreview />
+          <HeroPreviews />
         </div>
       </section>
 

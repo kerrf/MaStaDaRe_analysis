@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import GroupedBarChart from '../../components/charts/GroupedBarChart';
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting from '../../components/ui/Setting';
 import { API_BASE_URL } from '../../config/site';
 import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
@@ -32,6 +33,8 @@ const axesOf = (measure, unitsLabel) => ({
 // footnote below the chart; fileBase: of its CSV ("mastr_solar")
 export default function SizeDistribution({ path, region, query, measure: initial = 'power', measures, unitsLabel = 'Anlagen', note, fileBase }) {
   const [measureId, setMeasureId] = useState(initial);
+  // A click on a series in the legend hides or shows it; one always stays
+  const [hidden, setHidden] = useState(null);
   const measure = MEASURES[measureId];
   const stats = useStats(`${API_BASE_URL}${path}?region=${region}${query ? `&${query}` : ''}`);
 
@@ -50,6 +53,7 @@ export default function SizeDistribution({ path, region, query, measure: initial
     }));
   }, [stats.status, stats.data, measure]);
   const series = seriesOf(measure, unitsLabel);
+  const visible = series.filter((s) => s.id !== hidden);
 
   if (stats.status === 'error') {
     return <ChartPlaceholder variant="bars" title="Keine Daten" note="Die Verteilung konnte nicht geladen werden." />;
@@ -59,30 +63,42 @@ export default function SizeDistribution({ path, region, query, measure: initial
 
   return (
     <div className="sizes-chart">
-      <div className="sizes-chart__bar">
-        <div className="sizes-chart__legend">
-          {series.map((s) => (
-            <span key={s.id}>
-              <span className="sizes__key" style={{ background: s.color }} /> {s.label}
-              <span className="sizes__axis"> · {s.axis === 'left' ? 'linke' : 'rechte'} Achse</span>
-            </span>
-          ))}
+      {measures?.length > 1 && (
+        <div className="sizes-chart__bar">
+          <Setting label="Messgröße">
+            <SegmentedControl
+              label="Messgröße"
+              options={measures.map((id) => ({ id, label: MEASURES[id].label, title: `${MEASURES[id].label} in ${MEASURES[id].unit}` }))}
+              value={measureId}
+              onChange={setMeasureId}
+            />
+          </Setting>
         </div>
-        {measures?.length > 1 && (
-          <SegmentedControl
-            label="Messgröße"
-            options={measures.map((id) => ({ id, label: MEASURES[id].label, title: `${MEASURES[id].label} in ${MEASURES[id].unit}` }))}
-            value={measureId}
-            onChange={setMeasureId}
-          />
-        )}
-      </div>
+      )}
       <GroupedBarChart
         categories={categories}
-        series={series}
+        series={visible}
         axes={axesOf(measure, unitsLabel)}
-        label={`${measure.label} und ${unitsLabel} je Größenklasse`}
+        label={`${visible.map((s) => s.label).join(' und ')} je Größenklasse`}
       />
+      <div className="timeline-legend" role="group" aria-label="Datenreihen ein- und ausblenden">
+        {series.map((s) => {
+          const off = hidden === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={`timeline-legend__item${off ? ' is-off' : ''}`}
+              aria-pressed={!off}
+              title={off ? `${s.label} einblenden` : `${s.label} ausblenden`}
+              onClick={() => setHidden(off ? null : s.id)}
+            >
+              <span className="timeline-legend__dot" style={{ background: off ? undefined : s.color }} />
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
       <ChartFoot
         csv={{
           name: 'groessenklassen',

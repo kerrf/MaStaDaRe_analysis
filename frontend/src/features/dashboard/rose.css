@@ -1,0 +1,99 @@
+/* The compass rose of the solar orientation (OrientationRose.jsx, RoseSvg): on the dashboards and the start page */
+
+/* Ausrichtung: compass rose, values inside its sectors, Ost-West and tracked in the centre */
+.rose svg {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+}
+
+.rose__part path {
+  stroke: var(--surface-card);
+  stroke-width: 2;
+  transition: filter var(--dur-fast) var(--ease);
+}
+
+.rose__part:hover path {
+  filter: brightness(0.93);
+}
+
+.rose__power {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__share {
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__direction {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink-secondary);
+}
+
+.rose__centre-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.rose__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__foot strong {
+  color: var(--ink-primary);
+}
+
+.rose__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, var(--border-strong) 0 2px, var(--surface-sunken) 2px 4px);
+  vertical-align: -1px;
+}
+
+.rose__note {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.rose__svg--compact {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  font-family: var(--font-sans);
+}
+
+.rose__svg--compact .rose__pct {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rose__svg--compact .rose__direction {
+  font-size: 19px;
+}
+
+.rose__svg--compact .rose__centre-label {
+  font-size: 15px;
+}

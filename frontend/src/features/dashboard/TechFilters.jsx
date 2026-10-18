@@ -1,28 +1,16 @@
 import { Check } from 'lucide-react';
+import Setting from '../../components/ui/Setting';
 import { footnoteAnchor } from './footnoteContext';
 import { FootnoteRef } from './footnotes';
 
-// One filter of the active technology: its name, then its options
-function FilterRow({ id, label, footnote, children }) {
-  return (
-    <div className="tech-filters__row">
-      <span id={id} className="tech-filters__label">
-        {label}
-        {footnote && <FootnoteRef id={footnote} />}
-      </span>
-      {children}
-    </div>
-  );
-}
-
 // Multiple choice (Solar: Anlagenart, Gas: Technologie, Speicherart). At least one option stays selected. Options with a
 // colour show it in their box: the colour of their sites on the map.
-function SubtypePicker({ labelledBy, subtypes, selected, onChange }) {
+function SubtypePicker({ subtypes, selected, onChange }) {
   const toggle = (optionId) =>
     onChange(subtypes.options.map((o) => o.id).filter((x) => (x === optionId ? !selected.includes(x) : selected.includes(x))));
 
   return (
-    <div className="tech-subtypes__options" role="group" aria-labelledby={labelledBy}>
+    <div className="tech-subtypes__options">
       {subtypes.options.map((option) => {
         const checked = selected.includes(option.id);
         const locked = checked && selected.length === 1;
@@ -51,10 +39,10 @@ function SubtypePicker({ labelledBy, subtypes, selected, onChange }) {
   );
 }
 
-// A small either/or (Solar: Netto (AC) or Brutto (DC)); its footnote is below the map
-function OptionSwitch({ labelledBy, describedBy, option, value, onChange }) {
+// A small either/or (Solar: Netto (AC) or Brutto (DC)); its footnote is at the page's bottom
+function OptionSwitch({ label, describedBy, option, value, onChange }) {
   return (
-    <div className="tech-switch__options" role="radiogroup" aria-labelledby={labelledBy} aria-describedby={describedBy}>
+    <div className="tech-switch__options" role="radiogroup" aria-label={label} aria-describedby={describedBy}>
       {option.options.map((o) => (
         <button
           key={o.id}
@@ -71,36 +59,28 @@ function OptionSwitch({ labelledBy, describedBy, option, value, onChange }) {
   );
 }
 
-// The active technology's own filters, a row below the choice of technology that hangs off it (SelectionBar): they
+// The active technology's own filters, each a box of its own right after the choice of technology (SelectionBar): they
 // narrow down the technology (Solar: Anlagenart, Leistung), they are not another technology. In the topic's colour like
-// the chosen technology, every option as high as the others.
+// the chosen technology.
 export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {
-  const Icon = technology.icon;
-  const id = `filter-${technology.id}`;
   return (
-    <div id={id} className="tech-filters" role="group" aria-labelledby={`${id}-title`}>
-      <div id={`${id}-title`} className="selection-bar__label tech-filters__title">
-        <Icon size={14} aria-hidden="true" />
-        Filter für {technology.label}
-      </div>
-      <div className="tech-filters__items">
-        {technology.subtypes && (
-          <FilterRow id={`${id}-arten`} label={technology.subtypes.label}>
-            <SubtypePicker labelledBy={`${id}-arten`} subtypes={technology.subtypes} selected={subtypes} onChange={onSubtypes} />
-          </FilterRow>
-        )}
-        {technology.leistung && (
-          <FilterRow id={`${id}-leistung`} label={technology.leistung.label} footnote={technology.leistung.note && 'leistung'}>
-            <OptionSwitch
-              labelledBy={`${id}-leistung`}
-              describedBy={technology.leistung.note ? footnoteAnchor('leistung') : undefined}
-              option={technology.leistung}
-              value={leistung}
-              onChange={onLeistung}
-            />
-          </FilterRow>
-        )}
-      </div>
-    </div>
+    <>
+      {technology.subtypes && (
+        <Setting label={technology.subtypes.label} tone="topic">
+          <SubtypePicker subtypes={technology.subtypes} selected={subtypes} onChange={onSubtypes} />
+        </Setting>
+      )}
+      {technology.leistung && (
+        <Setting label={technology.leistung.label} note={technology.leistung.note && <FootnoteRef id="leistung" />} tone="topic">
+          <OptionSwitch
+            label={technology.leistung.label}
+            describedBy={technology.leistung.note ? footnoteAnchor('leistung') : undefined}
+            option={technology.leistung}
+            value={leistung}
+            onChange={onLeistung}
+          />
+        </Setting>
+      )}
+    </>
   );
 }

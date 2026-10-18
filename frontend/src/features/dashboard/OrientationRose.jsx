@@ -1,11 +1,12 @@
 import ChartPlaceholder from '../../components/ui/ChartPlaceholder';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import { API_BASE_URL } from '../../config/site';
 import { RAMPS, inkOn, makeColorScale } from '../../lib/colorScale';
 import { useStats } from '../../lib/data';
 import { fileName, round, selectionSlug } from '../../lib/files';
 import { formatAmount, formatCount, formatNumber, formatShare } from '../../lib/format';
 import { CENTRE, DIRECTIONS } from './orientations';
+import './rose.css';
 
 const OUTER = 150; // radius of the ring
 const INNER = 66; // radius of the centre

@@ -11,8 +11,10 @@ import { formatDate } from '../../lib/format';
 import useDocumentTitle from '../../lib/useDocumentTitle';
 import AnlagenView from './AnlagenView';
 import NetzView from './NetzView';
+import OverviewView from './overview/OverviewView';
 import RegionenView from './RegionenView';
 import ZubauView from './ZubauView';
+import ScopeIndicator from './ScopeIndicator';
 import { ScopeSlot } from './scopeSlot';
 import useDashboardState from './useDashboardState';
 import { Footnotes, FootnotesProvider } from './footnotes';
@@ -23,6 +25,7 @@ const MapView = lazy(() => import('./MapView'));
 const KommuneView = lazy(() => import('./KommuneView'));
 const PAGES = {
   karte: MapView,
+  ueberblick: OverviewView,
   kommune: KommuneView,
   zubau: ZubauView,
   anlagen: AnlagenView,
@@ -39,10 +42,11 @@ function PageLoader() {
 }
 
 /**
- * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Landkreis/Gemeinde, Zubau &
- * Registrierungen, Anlagen, Regionen. The header – the settings of every page, apart from what the pages show – names
- * the dashboard once, holds the page's choice of the area (ScopeBar, through ScopeSlot), and below it the tabs lead to
- * the other pages, keeping the area and the choices (technology, filters) where the page has them.
+ * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Auf einen Blick, Zubau &
+ * Registrierungen, Anlagen, Regionen im Detail (a Landkreis and its Gemeinden), Regionen im Vergleich. The header – the
+ * settings of every page, apart from what the pages show – names the dashboard once, holds the page's choice of the
+ * area (ScopeBar, through ScopeSlot), and below it the tabs lead to the other pages, keeping the area and the choices
+ * (technology, filters) where the page has them.
  */
 export default function Dashboard({ config, view }) {
   const state = useDashboardState(config, view);
@@ -122,6 +126,8 @@ export default function Dashboard({ config, view }) {
             <Footnotes />
           </FootnotesProvider>
         </ScopeSlot.Provider>
+        {/* The area while its choice in the header is out of view */}
+        {page.scoped && <ScopeIndicator state={state} anchor={scopeSlot} />}
         {/* Notes for development (config todos): only in `npm run dev`, not for visitors */}
         {import.meta.env.DEV && view === 'karte' && config.todos?.map((todo) => <TodoNote key={todo}>{todo}</TodoNote>)}
       </div>

@@ -1,5 +1,5 @@
 // Files for the visitor to save: the map as an image or PDF (features/dashboard/exportMap.js), the tables and the data of
-// every chart as CSV (components/ui/CsvLink.jsx)
+// every chart as CSV and JSON (components/ui/ChartExport.jsx)
 
 // Saves a file: a link to it (a data or blob URL), clicked
 export function saveFile(href, filename) {
@@ -23,6 +23,15 @@ export function exportCsv(rows, filename) {
   const blob = new Blob([`\uFEFF${lines.join('\n')}\n`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   saveFile(url, `${filename}.csv`);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// The same rows as JSON: a list of objects, the numbers as numbers
+export function exportJson(rows, filename) {
+  if (!rows?.length) return;
+  const blob = new Blob([`${JSON.stringify(rows, null, 2)}\n`], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  saveFile(url, `${filename}.json`);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 

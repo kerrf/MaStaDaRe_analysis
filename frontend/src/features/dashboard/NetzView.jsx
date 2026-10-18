@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { TriangleAlert } from 'lucide-react';
-import { ChartFoot } from '../../components/ui/CsvLink';
+import { ChartFoot } from '../../components/ui/ChartExport';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { NETZEBENEN, NETZ_TECHNOLOGIEN } from '../../config/dashboards';
 import { API_BASE_URL } from '../../config/site';
 import { useJson } from '../../lib/data';
@@ -103,13 +104,17 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
       icon={analysis.icon}
       title={analysis.title}
       lead={`${scopeName} · Netzanschlusspunkte der Stromerzeugung und die Leistung ihrer Einheiten je Netzebene`}
-      tools={
-        <SegmentedControl
-          label="Anteile nach"
-          options={MEASURES.map((m) => ({ id: m.id, label: m.label, title: `Technologien nach ${m.title}` }))}
-          value={measureId}
-          onChange={setMeasureId}
-        />
+      settings={
+        <SettingsRow>
+          <Setting label="Anteile nach">
+            <SegmentedControl
+              label="Anteile nach"
+              options={MEASURES.map((m) => ({ id: m.id, label: m.label, title: `Technologien nach ${m.title}` }))}
+              value={measureId}
+              onChange={setMeasureId}
+            />
+          </Setting>
+        </SettingsRow>
       }
     >
       {data.status === 'ready' && total.punkte + total.geplant > 0 ? (
@@ -223,13 +228,17 @@ function NetzbetreiberAnalysis({ analysis, region, scopeName, fileBase }) {
       icon={analysis.icon}
       title={analysis.title}
       lead={`${scopeName} · die ${TOP} größten nach ${measure.title}, von ${formatNumber(all.length)} Netzbetreibern`}
-      tools={
-        <SegmentedControl
-          label="Rangfolge nach"
-          options={MEASURES.map((m) => ({ id: m.id, label: m.label, title: `Nach ${m.title}` }))}
-          value={measureId}
-          onChange={setMeasureId}
-        />
+      settings={
+        <SettingsRow>
+          <Setting label="Rangfolge nach">
+            <SegmentedControl
+              label="Rangfolge nach"
+              options={MEASURES.map((m) => ({ id: m.id, label: m.label, title: `Nach ${m.title}` }))}
+              value={measureId}
+              onChange={setMeasureId}
+            />
+          </Setting>
+        </SettingsRow>
       }
     >
       {data.status === 'ready' && all.length ? (
