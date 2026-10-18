@@ -24,7 +24,6 @@ const COLUMNS = [
       { label: 'Datenquellen', to: '/info#quellen' },
       { label: 'FAQ', to: '/info#faq' },
       { label: 'GitHub', href: SITE.links.github },
-      { label: 'LinkedIn', href: SITE.links.linkedin },
     ],
   },
   {
@@ -76,7 +75,7 @@ export default function Footer() {
 
       <div className="container footer__bottom">
         <span>
-          © {new Date().getFullYear()} {SITE.owner.name || SITE.name}
+          © {new Date().getFullYear()} {SITE.name}
         </span>
         <span>
           Daten: Marktstammdatenregister der Bundesnetzagentur,{' '}

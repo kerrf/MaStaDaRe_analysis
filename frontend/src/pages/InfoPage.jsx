@@ -357,9 +357,6 @@ export default function InfoPage() {
               <a className="btn btn--secondary" href={SITE.links.github} target="_blank" rel="noopener noreferrer">
                 GitHub <ArrowUpRight size={14} aria-hidden="true" />
               </a>
-              <a className="btn btn--secondary" href={SITE.links.linkedin} target="_blank" rel="noopener noreferrer">
-                LinkedIn <ArrowUpRight size={14} aria-hidden="true" />
-              </a>
             </div>
             <TodoNote>E-Mail-Adresse in src/config/site.js (owner.email) eintragen – dann erscheint hier ein E-Mail-Button.</TodoNote>
           </section>

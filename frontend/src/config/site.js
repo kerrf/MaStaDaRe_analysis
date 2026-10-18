@@ -12,7 +12,6 @@ export const SITE = {
 
   links: {
     github: 'https://github.com/kerrf',
-    linkedin: 'https://www.linkedin.com/in/maxim-sokol-3997b6291/',
   },
 
   // TODO: Pflichtangaben für das Impressum (§ 5 DDG). Leere Felder werden als Platzhalter angezeigt.
