@@ -5,7 +5,7 @@ import SelectionBar from './SelectionBar';
 import { selectionOf } from './useDashboardState';
 
 // The page "Regionen im Vergleich" of a dashboard: the parts of the scope side by side (Länder of Germany, Kreise of a
-// Land, Gemeinden of a Kreis) for a technology's analyses. The scope itself, every technology at once: Auf einen Blick.
+// Land, Gemeinden of a Kreis) for a technology's analyses. The scope itself, a technology at a time: Überblick.
 export default function RegionenView({ config, state }) {
   const { region, kreisAgs, kreisOptions, selectScope } = state;
   const withTables = config.technologies.filter((t) => regionTablesOf(t).length);

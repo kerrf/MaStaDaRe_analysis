@@ -4,8 +4,9 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.zubau_zeitverlauf_regions;
 
 -- The Ausbau im Zeitverlauf of mrt.zubau_zeitverlauf (aggregate_zubau.sql: the same series, units and rules) for
 -- Deutschland ('DE'), every Bundesland (2-digit key) and Landkreis (5 digits): Zubau and Bestand per month and, with
--- month NULL, per year since 2000. A unit counts in the Land and Kreis of its Gemeindeschlüssel; one without (offshore
--- wind) for Deutschland only. A series that never had a unit in a region has no rows there.
+-- month NULL, per year since 2000, the Bestand as amount and as units. A unit counts in the Land and Kreis of its
+-- Gemeindeschlüssel; one without (offshore wind) for Deutschland only. A series that never had a unit in a region has
+-- no rows there.
 CREATE MATERIALIZED VIEW mrt.zubau_zeitverlauf_regions AS
 WITH battery_plants AS (
     -- The capacity (kWh) is registered per storage plant (AnlagenStromSpeicher), the power (kW) per unit.
@@ -40,6 +41,19 @@ units AS (
         (a.art || '_netto', u."Nettonennleistung")
     ) AS s(technology, amount)
     WHERE u."Inbetriebnahmedatum" IS NOT NULL
+
+    UNION ALL
+    -- The Balkonkraftwerke (steckerfertige Solaranlagen, 2961) on their own, Nettonennleistung: in solar_gebaeude too,
+    -- like everywhere on the site; the page Überblick takes them out of it
+    SELECT
+        'solar_balkon_netto',
+        "Gemeindeschluessel",
+        "Inbetriebnahmedatum",
+        CASE WHEN "EinheitBetriebsstatus" = '38'
+            THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
+        "Nettonennleistung"
+    FROM raw.solar_units
+    WHERE "Inbetriebnahmedatum" IS NOT NULL AND "ArtDerSolaranlage" = '2961'
 
     UNION ALL
     SELECT
@@ -94,8 +108,8 @@ units AS (
       AND b.capacity / b.power BETWEEN 0.1 AND 12
 ),
 monthly AS (
-    -- 2. Per series, region and month: the units that came (count and amount) and the net change, minus what left.
-    --    Deutschland, the Länder and the Kreise in one pass.
+    -- 2. Per series, region and month: the units that came (count and amount) and the net change, minus what left (in
+    --    amount and units). Deutschland, the Länder and the Kreise in one pass.
     SELECT
         u.technology,
         CASE
@@ -106,12 +120,13 @@ monthly AS (
         date_trunc('month', c.day)::date AS month_start,
         sum(c.units) AS added_units,
         sum(c.added) AS added,
-        sum(c.net) AS net
+        sum(c.net) AS net,
+        sum(c.net_units) AS net_units
     FROM units u
     CROSS JOIN LATERAL (VALUES
-        (u.added_on, 1, u.amount, u.amount),
-        (u.removed_on, 0, 0, -u.amount)
-    ) AS c(day, units, added, net)
+        (u.added_on, 1, u.amount, u.amount, 1),
+        (u.removed_on, 0, 0, -u.amount, -1)
+    ) AS c(day, units, added, net, net_units)
     WHERE c.day IS NOT NULL
     GROUP BY GROUPING SETS (
         (u.technology, date_trunc('month', c.day)),
@@ -130,7 +145,7 @@ latest AS (
     SELECT max(month_start) FILTER (WHERE added_units > 0) AS last_month FROM monthly WHERE region = 'DE'
 ),
 series AS (
-    -- 3. Every month, also without changes; the Bestand is the running total of the net changes
+    -- 3. Every month, also without changes; the Bestand is the running total of the net changes, in amount and units
     SELECT
         p.technology,
         p.region,
@@ -139,7 +154,8 @@ series AS (
         CAST(EXTRACT(MONTH FROM m.month_start) AS INTEGER) AS month,
         COALESCE(c.added_units, 0) AS added_units,
         COALESCE(c.added, 0) AS added,
-        COALESCE(sum(c.net) OVER (PARTITION BY p.technology, p.region ORDER BY m.month_start), 0) AS installed
+        COALESCE(sum(c.net) OVER w, 0) AS installed,
+        COALESCE(sum(c.net_units) OVER w, 0) AS installed_units
     FROM periods p
     CROSS JOIN latest l
     CROSS JOIN LATERAL (
@@ -147,6 +163,7 @@ series AS (
         FROM generate_series(CAST(p.first_month AS timestamp), CAST(l.last_month AS timestamp), interval '1 month') g
     ) m
     LEFT JOIN monthly c ON c.technology = p.technology AND c.region = p.region AND c.month_start = m.month_start
+    WINDOW w AS (PARTITION BY p.technology, p.region ORDER BY m.month_start)
 )
 -- 4. Months, and with ROLLUP their years (month NULL). A period's Bestand is the one at the end of its last month.
 SELECT
@@ -157,7 +174,8 @@ SELECT
     CASE WHEN technology LIKE '%speicher' THEN 'MWh' ELSE 'MW' END AS unit,  -- '..._leistung': MW
     CAST(SUM(added_units) AS INTEGER) AS added_units,
     CAST(SUM(added) / 1000 AS NUMERIC(12,3)) AS added,
-    CAST((array_agg(installed ORDER BY month_start DESC))[1] / 1000 AS NUMERIC(12,3)) AS installed
+    CAST((array_agg(installed ORDER BY month_start DESC))[1] / 1000 AS NUMERIC(12,3)) AS installed,
+    CAST((array_agg(installed_units ORDER BY month_start DESC))[1] AS INTEGER) AS installed_units
 FROM series
 WHERE year >= 2000
 GROUP BY region, technology, year, ROLLUP (month)

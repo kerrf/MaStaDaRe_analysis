@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { hatchOf } from '../../lib/colorScale';
 import { formatAmount, formatNumber } from '../../lib/format';
 import './StackedChart.css';
 
@@ -86,8 +87,10 @@ function roundedTop(x, y, width, height, radius) {
 /**
  * Stacked bars or stacked areas over equally spaced periods, or lines side by side, with a tooltip per period.
  *
- * periods: [{ key, label (tooltip title), tick (axis label, or null), partial (drawn lighter), values: { [series.id]: number | null } }]
- * series:  [{ id, label, color }], stacked in this order, the first at the bottom
+ * periods: [{ key, label (tooltip title), tick (axis label, or null), partial (drawn lighter), dimmed (drawn faint: not the
+ *          period the chart is about), values: { [series.id]: number | null } }]
+ * series:  [{ id, label, color, hatch }], stacked in this order, the first at the bottom; hatch: the colour of diagonal
+ *          lines over the colour (a series that is a lower bound: the Balkonkraftwerke)
  * kind:    'bars' | 'area' (both stacked) | 'lines' (not stacked, e.g. shares)
  * unit:    unit of the values, 'MW' or 'MWh' (from 1,000 on, the axis switches to GW or GWh), '%', or a count such as
  *          'Anzahl' (from 10,000 on, the axis counts in thousands)
@@ -106,6 +109,9 @@ export default function StackedChart({
 }) {
   const frameRef = useRef(null);
   const clipId = useId();
+  // A hatched series fills with its pattern (in the chart's defs)
+  const patternId = (s) => `hatch${clipId.replace(/[^\w-]/g, '')}-${s.id}`;
+  const fillOf = (s) => (s.hatch ? `url(#${patternId(s)})` : s.color);
   const width = useWidth(frameRef);
   const [activeKey, setActiveKey] = useState(null);
   // Lines: the axis near the lines (the default) or from 0, switchable below the chart
@@ -211,6 +217,14 @@ export default function StackedChart({
             <clipPath id={clipId}>
               <rect x={MARGIN.left} y={0} width={plotWidth} height={MARGIN.top + plotHeight} />
             </clipPath>
+            {series
+              .filter((s) => s.hatch)
+              .map((s) => (
+                <pattern key={s.id} id={patternId(s)} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width="6" height="6" style={{ fill: s.color }} />
+                  <rect width="2" height="6" style={{ fill: s.hatch }} />
+                </pattern>
+              ))}
           </defs>
 
           <g className="stacked-chart__grid">
@@ -259,7 +273,7 @@ export default function StackedChart({
                     const tops = withData.map((j) => y(stacks[j][i].top));
                     const bottoms = withData.map((j) => y(stacks[j][i].bottom));
                     const d = `M${xs[0]},${tops[0]}${curve(xs, tops)}L${xs.at(-1)},${bottoms.at(-1)}${curve(xs, bottoms, true)}Z`;
-                    return <path key={s.id} className="stacked-chart__area" d={d} style={{ fill: s.color }} />;
+                    return <path key={s.id} className="stacked-chart__area" d={d} style={{ fill: fillOf(s) }} />;
                   })}
                 </g>
               )
@@ -268,11 +282,11 @@ export default function StackedChart({
                 const topIndex = segments.findLastIndex((seg) => seg.top > seg.bottom);
                 const x = cx(j) - barWidth / 2;
                 return (
-                  <g key={period.key} className={period.partial ? 'is-partial' : undefined}>
+                  <g key={period.key} className={[period.partial && 'is-partial', period.dimmed && 'is-dimmed'].filter(Boolean).join(' ') || undefined}>
                     {segments.map((seg, i) => {
                       if (seg.top <= seg.bottom) return null;
                       const [top, bottom] = [y(seg.top), y(seg.bottom)];
-                      const style = { fill: series[i].color };
+                      const style = { fill: fillOf(series[i]) };
                       return i === topIndex ? (
                         <path key={series[i].id} d={roundedTop(x, top, barWidth, bottom - top, 3)} style={style} />
                       ) : (
@@ -341,7 +355,7 @@ export default function StackedChart({
                 .map(({ s, value }) => (
                   <tr key={s.id}>
                     <th>
-                      <span className="stacked-chart__swatch" style={{ background: s.color }} />
+                      <span className="stacked-chart__swatch" style={{ background: s.hatch ? hatchOf(s) : s.color }} />
                       {s.label}
                     </th>
                     <td>{formatValue(value)}</td>

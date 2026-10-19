@@ -1,23 +1,84 @@
-/* Auf einen Blick (OverviewView): one technology of an area on the whole page – its numbers on cards, its Arten, the
-   Zubau per year, in Germany the targets */
+/* Überblick (OverviewView): one technology of an area for a year or a month, like a report – its numbers on cards, its
+   Arten side by side, the Zubau per year or month, in Germany the targets; and the same as a PDF (OverviewReport) */
+
+.ov-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.ov-head__text {
+  flex: 1 1 32rem;
+  min-width: 0;
+}
 
 .ov-head__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
   font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.ov-head__lead {
-  margin-top: 4px;
+/* The period beside the title: what all numbers of the page refer to */
+.ov-head__period {
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0;
   color: var(--ink-secondary);
 }
 
+.ov-head__lead {
+  max-width: 62rem;
+  margin-top: 6px;
+  color: var(--ink-secondary);
+}
+
+.ov-head__report {
+  flex: none;
+}
+
+/* The year and the month, two lists in one box */
+.ov-period .setting__control {
+  gap: 6px;
+}
+
 /* ------------------------------------------------------------------ Tiles */
-/* A number per card: its name, the number large, one line of context – nothing else */
+/* A number per card: its name, the number large, one line of context – in rows of three or four (--ov-columns) */
 .ov-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  grid-template-columns: var(--ov-template, repeat(4, minmax(0, 1fr)));
   gap: 16px;
+}
+
+.ov-tiles > * {
+  min-width: 0;
+}
+
+/* Two numbers in one card, a dashed line between them */
+.ov-tile__values {
+  display: flex;
+  gap: 18px;
+}
+
+.ov-tile__part {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-tile__part + .ov-tile__part {
+  padding-left: 18px;
+  border-left: 1px dashed var(--border);
 }
 
 .ov-tile {
@@ -37,11 +98,19 @@
 }
 
 .ov-tile__value {
-  font-size: clamp(34px, 3.2vw, 44px);
+  font-size: clamp(30px, 3vw, 40px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
   color: var(--ink-primary);
+}
+
+.ov-tile--up .ov-tile__value {
+  color: var(--success-ink);
+}
+
+.ov-tile--down .ov-tile__value {
+  color: var(--warn-ink);
 }
 
 .ov-tile__unit {
@@ -53,6 +122,9 @@
 }
 
 .ov-tile__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 13px;
   color: var(--ink-muted);
 }
@@ -98,54 +170,71 @@
 }
 
 /* ------------------------------------------------------------------ Arten */
-/* One card per Art, like a table: its name with its colour, then its units and its measure, each with its share and
-   this year's Zubau */
-.ov-parts__list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* The Arten side by side, each a column read downwards: its name under a band of its colour, then its units and its
+   measure – the number, its share as a slim bar, its Zubau relative to the Bestand before */
+.ov-arten {
+  display: grid;
+  grid-template-columns: repeat(var(--ov-arten, 3), minmax(0, 1fr));
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.ov-part {
-  display: grid;
-  grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 12px 24px;
-  padding: 14px 18px;
-  border: 1px solid var(--border-subtle);
-  border-left: 6px solid var(--part-color);
-  border-radius: var(--radius-md);
-  background: var(--surface-page);
+.ov-art {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 20px 4px;
 }
 
-.ov-part__name {
+.ov-art + .ov-art {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.ov-art__head {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.ov-part__name strong {
-  font-size: 16px;
+/* The band of the part's colour above it, hatched where the part is (a lower bound) */
+.ov-art__head::before {
+  content: '';
+  height: 3px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  background: var(--part-pattern, var(--part-color));
+}
+
+.ov-art__head strong {
+  font-size: 17px;
   font-weight: 750;
+  letter-spacing: -0.01em;
   color: var(--ink-primary);
 }
 
-.ov-part__name span {
+.ov-art__head span {
   font-size: 12.5px;
   color: var(--ink-muted);
 }
 
-.ov-part__metric {
+.ov-art__metric {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+  gap: 6px;
 }
 
-.ov-part__value {
+.ov-art__label {
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.ov-art__value {
   font-size: clamp(24px, 2.2vw, 30px);
   font-weight: 700;
   line-height: 1.05;
@@ -153,22 +242,63 @@
   color: var(--ink-primary);
 }
 
-.ov-part__value span {
+.ov-art__value small {
+  margin-left: 5px;
   font-size: 0.5em;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0;
   color: var(--ink-secondary);
 }
 
-.ov-part__chips {
+.ov-art__share {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+
+.ov-art__share b {
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.ov-art__bar {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.ov-art__bar i {
+  display: block;
+  min-width: 3px;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--part-pattern, var(--part-color));
+}
+
+.ov-art__growth {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-secondary);
+}
+
+.ov-art__growth.is-up {
+  color: var(--success-ink);
+}
+
+.ov-art__also {
+  font-size: 12.5px;
+  color: var(--ink-muted);
 }
 
 /* --------------------------------------------------------------- Chips */
-/* A share in grey with its pie, a Zubau or a change up in green, about the same grey, down or short of the target warm,
-   far from it red */
+/* The pace toward a target: enough in green, short of it warm, far from it red */
 .ov-chip {
   display: inline-flex;
   align-items: center;
@@ -185,12 +315,6 @@
   color: var(--success-ink);
 }
 
-.ov-chip--flat {
-  background: var(--surface-sunken);
-  color: var(--ink-secondary);
-}
-
-.ov-chip--down,
 .ov-chip--fair {
   background: var(--warn-bg);
   color: var(--warn-ink);
@@ -201,19 +325,8 @@
   color: var(--danger-ink);
 }
 
-.ov-pie circle {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.4;
-}
-
-.ov-pie .ov-pie__slice {
-  fill: currentColor;
-  stroke: none;
-}
-
 /* ------------------------------------------------------- Zubau and targets */
-/* Germany: the Zubau beside the targets and the Länder in front; a Land or Kreis: the Zubau alone */
+/* Germany: the Zubau beside the targets; a Land or Kreis: the Zubau alone */
 .ov-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -223,20 +336,6 @@
 .ov-row--aside {
   grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
   align-items: start;
-}
-
-.ov-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.ov-change {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink-muted);
 }
 
 .ov-legend {
@@ -274,15 +373,15 @@
 /* A target reached; the earlier goal a mark with its year below it */
 .ov-progress {
   position: relative;
-  height: 10px;
-  border-radius: 5px;
+  height: 14px;
+  border-radius: 7px;
   background: var(--surface-sunken);
 }
 
 .ov-progress__fill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: 5px;
+  border-radius: 7px;
   background: var(--accent);
 }
 
@@ -353,63 +452,131 @@
   color: var(--ink-secondary);
 }
 
-/* Germany: the Länder with the most */
-.ov-leaders {
+/* ----------------------------------------------------------------- Report */
+/* The page as the PDF shows it, off screen while it is made: the width of a page, white, the blocks one below the other
+   (report.js cuts the image between them) */
+.ov-report {
+  --surface-card: #ffffff;
+  --surface-page: #ffffff;
+
+  position: fixed;
+  top: 0;
+  left: -12000px;
+  z-index: -1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13.5px;
+  gap: 18px;
+  width: 940px;
+  padding: 8px 4px;
+  background: #ffffff;
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
 }
 
-.ov-leaders li {
-  display: grid;
-  grid-template-columns: 1rem minmax(6rem, 10rem) minmax(0, 1fr) 3.6rem;
-  align-items: center;
-  gap: 8px;
+.ov-report .ov-tiles {
+  grid-template-columns: var(--ov-template);
+  gap: 12px;
 }
 
-.ov-leaders__rank {
+.ov-report .ov-tile__value {
+  font-size: 32px;
+}
+
+.ov-report .ov-art__value {
+  font-size: 26px;
+}
+
+.ov-report__cover {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--ink-primary);
+}
+
+.ov-report__brand {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
   font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ink-muted);
 }
 
-.ov-leaders__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--ink-primary);
+.ov-report__title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
-.ov-leaders__bar {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--surface-sunken);
+.ov-report__title h1 {
+  font-size: 34px;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-.ov-leaders__bar i {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-  background: var(--accent);
+.ov-report__title p {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--ink-secondary);
 }
 
-.ov-leaders b {
-  font-weight: 700;
-  text-align: right;
+
+.ov-report__notes h3 {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.ov-report__notes ol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ov-report__notes li {
+  display: grid;
+  grid-template-columns: 1.2rem minmax(0, 1fr);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-secondary);
 }
 
 @media (max-width: 1000px) {
   .ov-row--aside {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .ov-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ov-tile--wide {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 760px) {
-  .ov-part {
+  /* The Arten one below the other */
+  .ov-arten {
     grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .ov-art {
+    padding: 0;
+  }
+
+  .ov-art + .ov-art {
+    border-left: 0;
   }
 }
 
@@ -438,6 +605,6 @@
   }
 
   .ov-tile__value {
-    font-size: 27px;
+    font-size: 26px;
   }
 }

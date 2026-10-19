@@ -42,7 +42,7 @@ function PageLoader() {
 }
 
 /**
- * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Auf einen Blick, Zubau &
+ * A dashboard (Erzeuger, Speicher, Gas) with its pages (config/views.js): the map, Überblick, Zubau &
  * Registrierungen, Anlagen, Regionen im Detail (a Landkreis and its Gemeinden), Regionen im Vergleich. The header – the
  * settings of every page, apart from what the pages show – names the dashboard once, holds the page's choice of the
  * area (ScopeBar, through ScopeSlot), and below it the tabs lead to the other pages, keeping the area and the choices

@@ -11,16 +11,21 @@ export const sourceLine = (datenstand, credits = '') =>
 // What doesn't belong in the image of a chart: its export buttons, and what marks itself so (data-export-skip)
 const isSkipped = (element) => Boolean(element.classList?.contains('chart-export') || element.dataset?.exportSkip != null);
 
-// For the copy html2canvas renders: no animations, and the capitals of `text-transform: uppercase` written out –
-// html2canvas measures the text after the transform but cuts it in the original, and "Größe" becomes "GRÖSSE", one
-// letter longer (it fails on "ß")
+// For the copy html2canvas renders: no animations, and
+// - the capitals of `text-transform: uppercase` written out: html2canvas measures the text after the transform but cuts
+//   it in the original, and "Größe" becomes "GRÖSSE", one letter longer (it fails on "ß");
+// - a letter-spacing of 0.01 px where there is none: without one, html2canvas draws the words of a text one by one
+//   ("Baden", "-", "Württemberg") and loses the room between them ("Baden -Württemberg"); with one, it puts every
+//   letter where the browser has it.
 export function prepareCopy(copy) {
   const style = copy.createElement('style');
   style.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
   copy.head.appendChild(style);
   const view = copy.defaultView;
   for (const element of copy.body.querySelectorAll('*')) {
-    if (view.getComputedStyle(element).textTransform !== 'uppercase') continue;
+    const computed = view.getComputedStyle(element);
+    if (computed.letterSpacing === 'normal') element.style.letterSpacing = '0.01px';
+    if (computed.textTransform !== 'uppercase') continue;
     for (const child of element.childNodes) {
       if (child.nodeType === 3) child.textContent = child.textContent.toUpperCase();
     }
@@ -28,15 +33,31 @@ export function prepareCopy(copy) {
   }
 }
 
-// A chart's card as an image, on its own background. html2canvas and jsPDF are ~500 kB together: they load only when
-// someone exports.
+// html2canvas finds the baseline of a font with a 1×1 image beside a text, in a hidden box on this page; the site's
+// `img { display: block }` (index.css) put it on a line of its own, and every text came out half a line too low.
+const BASELINE_PROBE = 'body > div[style*="visibility: hidden"] > img { display: inline !important; }';
+
+// html2canvas(node, options), with its baseline probe inline while it runs. html2canvas and jsPDF are ~500 kB together:
+// they load only when someone exports.
+export async function renderCanvas(node, options) {
+  const { default: html2canvas } = await import('html2canvas');
+  const probe = document.createElement('style');
+  probe.textContent = BASELINE_PROBE;
+  document.head.appendChild(probe);
+  try {
+    return await html2canvas(node, options);
+  } finally {
+    probe.remove();
+  }
+}
+
+// A chart's card as an image, on its own background
 export async function captureNode(node) {
   // A Leaflet map inside: html2canvas would misplace its layers, the map export copies them first
   if (node.querySelector('.leaflet-pane')) return (await import('../features/dashboard/exportMap')).captureMap(node);
-  const { default: html2canvas } = await import('html2canvas');
   let background = getComputedStyle(node).backgroundColor;
   if (!background || background === 'rgba(0, 0, 0, 0)') background = getComputedStyle(document.body).backgroundColor;
-  return html2canvas(node, {
+  return renderCanvas(node, {
     useCORS: true,
     backgroundColor: background,
     scale: SCALE,
@@ -65,7 +86,8 @@ export async function savePdf(canvas, filename, title, source) {
   const maxH = pageH - 2 * margin - 16;
   const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
   const [w, h] = [canvas.width * ratio, canvas.height * ratio];
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pageW - w) / 2, margin + 9, w, h);
+  // Compressed: jsPDF keeps an image's pixels as they are unless told otherwise (megabytes for a chart)
+  pdf.addImage(canvas, 'PNG', (pageW - w) / 2, margin + 9, w, h, undefined, 'FAST');
 
   pdf.setFontSize(7);
   pdf.setTextColor(102, 112, 133);

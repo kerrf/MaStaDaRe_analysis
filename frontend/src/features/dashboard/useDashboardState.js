@@ -123,6 +123,23 @@ export default function useDashboardState(config, view) {
     [setSearchParams, location.state],
   );
 
+  // Several parameters in one step (the year and month of the Überblick): { key: value }, null removing one
+  const setParams = useCallback(
+    (values) =>
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [key, value] of Object.entries(values)) {
+            if (value == null) next.delete(key);
+            else next.set(key, value);
+          }
+          return next;
+        },
+        { replace: true, state: location.state },
+      ),
+    [setSearchParams, location.state],
+  );
+
   // Moves to Deutschland (no arguments), a Land, a Landkreis of a Land, or a Gemeinde of that Kreis (on the pages that
   // show one). The history entry remembers the resolution
   // switch made when entering each level ({ land, kreis }: { from, to }), so leaving the level – by the map, the scope
@@ -225,6 +242,7 @@ export default function useDashboardState(config, view) {
     selectionNote: selection.note,
     redirect,
     setParam,
+    setParams,
     setTechnology,
     setSubtypesOf,
     setLeistungOf,

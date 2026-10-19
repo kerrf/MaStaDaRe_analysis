@@ -40,3 +40,21 @@ export function inkOn(rgb) {
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25 ? '#fff' : 'var(--ink-primary)';
 }
+
+// A colour as a value: a CSS variable ("var(--series-solar-balkon)") read from the page's tokens
+const resolved = (color) => {
+  const name = /^var\((--[\w-]+)\)$/.exec(color)?.[1];
+  if (!name || typeof document === 'undefined') return color;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || color;
+};
+
+/**
+ * Diagonal lines over a series' colour, for CSS: its swatch, a legend, a bar (series: { color, hatch }). A tile of SVG
+ * repeated, not a repeating-linear-gradient: html2canvas draws no repeating gradients, and the exports would lose it.
+ */
+export function hatchOf({ color, hatch }) {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6'><rect width='6' height='6' fill='${resolved(color)}'/>` +
+    `<path d='M-1,1 l2,-2 M0,6 l6,-6 M5,7 l2,-2' stroke='${resolved(hatch)}' stroke-width='1.6'/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") repeat`;
+}

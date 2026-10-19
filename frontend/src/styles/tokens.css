@@ -57,10 +57,12 @@
 
   /* Chart series (Ausbau im Zeitverlauf) */
   --series-solar: #f2b200;
-  /* Solar on open land in the Zubau charts: the solar yellow, a shade deeper than the rooftops' */
-  --series-solar-freiflaeche: #c99300;
-  /* The Balkonkraftwerke, apart only on the page Auf einen Blick: a lighter yellow than the rooftops */
-  --series-solar-balkon: #f7d978;
+  /* Solar on open land in the Zubau charts: the solar yellow turned to a deep ochre, clearly apart from the rooftops' */
+  --series-solar-freiflaeche: #9e6a00;
+  /* The Balkonkraftwerke, apart only on the page Überblick: a pale yellow with diagonal lines in a deeper one (hatched: the
+     register knows only a part of them, the number is a lower bound) */
+  --series-solar-balkon: #fbe7a6;
+  --series-solar-balkon-hatch: #e3a600;
   /* Solar on open land, next to the rooftops' --series-solar */
   --series-freiflaeche: #b25a06;
   --series-wind-land: #5ea66b;

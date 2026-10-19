@@ -98,7 +98,7 @@ function MapPreview({ id, label, foot }) {
   );
 }
 
-// The batteries' capacity added per year in Germany, by size class (/battery/zubau, as on the page Auf einen Blick)
+// The batteries' capacity added per year in Germany, by size class (/battery/zubau)
 function BatteryPreview({ foot }) {
   const zubau = useJson(`${API_BASE_URL}/battery/zubau?region=DE`);
   const periods = useMemo(() => {

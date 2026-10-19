@@ -1,4 +1,4 @@
-import { prepareCopy, savePdf, savePng, sourceLine } from '../../lib/exportChart';
+import { prepareCopy, renderCanvas, savePdf, savePng, sourceLine } from '../../lib/exportChart';
 
 const CREDITS = 'Karte: © GeoBasis-DE / BKG (2025) dl-de/by-2-0 (Daten verändert), Marine Regions CC BY 4.0, Natural Earth';
 
@@ -28,10 +28,8 @@ function imageOf(svg) {
 
 // The map frame as an image. html2canvas misplaces Leaflet's layers once the map has moved (they sit in panes moved by
 // translate3d), so the layers are copied first, each where it is on screen, in the order of their panes; html2canvas
-// only adds what lies on top: the place names, the legend, the chips. html2canvas and jsPDF are ~500 kB together, so
-// they load only when someone exports.
+// only adds what lies on top: the place names, the legend, the chips.
 export async function captureMap(node) {
-  const { default: html2canvas } = await import('html2canvas');
   const frame = node.getBoundingClientRect();
   const image = document.createElement('canvas');
   image.width = Math.round(frame.width * SCALE);
@@ -58,7 +56,7 @@ export async function captureMap(node) {
   }
   ctx.globalAlpha = 1;
 
-  const overlay = await html2canvas(node, {
+  const overlay = await renderCanvas(node, {
     useCORS: true,
     backgroundColor: null,
     scale: SCALE,

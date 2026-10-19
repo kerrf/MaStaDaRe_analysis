@@ -1,11 +1,13 @@
 from typing import Literal
 
-from sqlalchemy import Column, Float, Integer, String
+from sqlalchemy import Column, Float, Integer, String, text
+from sqlalchemy.orm import Session
 
 from app.models.solar import Base
 
 # solar: Bruttoleistung (DC), solar_netto: Nettonennleistung (AC), also per Anlagenart (solar_gebaeude,
-# solar_freiflaeche); batteries: capacity, and power as "..._leistung"
+# solar_freiflaeche) and the Balkonkraftwerke on their own (solar_balkon_netto, also in solar_gebaeude); batteries:
+# capacity, and power as "..._leistung"
 Technology = Literal[
     "solar",
     "solar_netto",
@@ -13,6 +15,7 @@ Technology = Literal[
     "solar_gebaeude_netto",
     "solar_freiflaeche",
     "solar_freiflaeche_netto",
+    "solar_balkon_netto",
     "wind_an_land",
     "wind_auf_see",
     "wasserkraft",
@@ -46,6 +49,38 @@ class ZubauRegion(Base):
     added_units = Column(Integer)
     added = Column(Float)  # Zubau: went into operation within the period
     installed = Column(Float)  # Bestand at the end of the period
+    installed_units = Column(Integer)  # units in it
+
+    @classmethod
+    def bestand(cls, db: Session, technologies: list[str], year: int, month: int | None, parent: str) -> list[dict]:
+        """The Bestand of the series (summed) at the end of a year or, with month, a month: in an area ("DE" or a Land)
+        and in each of its parts (the Länder, or the Kreise of the Land, as today's boundaries have them), with their
+        inhabitants and area (geo.gemeinden). A part without the series has none."""
+        rows = db.execute(
+            text("""
+            WITH gemeinden AS (
+                SELECT ags, einwohner, qkm FROM geo.gemeinden WHERE :parent = 'DE' OR ags LIKE :parent || '%'
+            ),
+            areas AS (
+                SELECT LEFT(ags, CASE WHEN :parent = 'DE' THEN 2 ELSE 5 END) AS region, sum(einwohner) AS einwohner,
+                    sum(qkm) AS qkm
+                FROM gemeinden
+                GROUP BY 1
+                UNION ALL
+                SELECT :parent, sum(einwohner), sum(qkm) FROM gemeinden
+            )
+            SELECT a.region, COALESCE(sum(z.installed), 0) AS installed,
+                COALESCE(sum(z.installed_units), 0) AS installed_units, a.einwohner, a.qkm
+            FROM areas a
+            LEFT JOIN mrt.zubau_zeitverlauf_regions z
+                ON z.region = a.region AND z.technology = ANY(:technologies) AND z.year = :year
+                AND z.month IS NOT DISTINCT FROM CAST(:month AS INTEGER)
+            GROUP BY a.region, a.einwohner, a.qkm
+            ORDER BY a.region
+        """),
+            {"technologies": technologies, "year": year, "month": month, "parent": parent},
+        )
+        return [row._asdict() for row in rows]
 
 
 class GeplantRegion(Base):

@@ -63,8 +63,6 @@ VIEW_FILES = [
     "aggregate_solar_orientation_tilt.sql",
     # Solar Zubau and Bestand per year in every region (the Landkreis/Gemeinde page)
     "aggregate_solar_zubau_regions.sql",
-    # The same per Art with the Balkonkraftwerke apart, in Deutschland, the Länder and Kreise (Auf einen Blick)
-    "aggregate_solar_arten_regions.sql",
     # The same for batteries, their size classes by capacity (the Landkreis/Gemeinde page of the Speicher), and their
     # battery technology and AC/DC coupling (the Anlagen page)
     "aggregate_battery_zubau_regions.sql",

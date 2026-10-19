@@ -21,7 +21,7 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | the choice of technology, KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Auf einen Blick | `/erzeuger/ueberblick/:land?/:kreis?` | every technology of the scope on a card: Bestand, its parts, Zubau per year, in Germany the national targets and their pace, else its share and densities among its peers, what is planned (see below) | `overview/OverviewView.jsx` |
+| Überblick | `/erzeuger/ueberblick/:land?/:kreis?` | one technology of the scope for a year or month, like a report: Bestand, its parts, Zubau per year or month, its share and rank among its peers, in Germany the national targets and their pace, what is planned; also as a PDF (see below) | `overview/OverviewView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units; wind every turbine on its own: size classes, the correlation of Nabenhöhe, Rotordurchmesser and Leistung (three plots, r in each), their growth per year, Anlagengröße je nach geographischem Standort (a map with the bands of latitude, beside it each band's median) | `AnlagenView.jsx`, `wind/` |
 | Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
@@ -63,7 +63,7 @@ which lights up and takes the keyboard.
 
 `useDashboardState.js` reads the state all pages share from the URL – scope, technology and its filters – and keeps it
 when switching pages (`hrefOf(view)`; on Zubau down to the Kreis: its views have no Gemeinden). Each technology's filters have their own
-parameters, so Auf einen Blick and the timeline can read solar's choice while wind is active (`selectionOf`).
+parameters, so the timeline can read solar's choice while wind is active (`selectionOf`).
 
 ### URL state
 
@@ -172,28 +172,39 @@ How long after going into operation units were registered, per year of commissio
 complete year (share in time, median days). Data: `/zubau/registrierungsverzug` from `mrt.registrierungsverzug`
 (`aggregate_registrierungsverzug.sql`). The latest years still gain late registrations.
 
-### Auf einen Blick (`overview/`, page `ueberblick`)
+### Überblick (`overview/`, page `ueberblick`)
 
-The bold overview of one technology in the scope – the page most visitors need. The technology is chosen in the band on
-top (`SelectionBar` without filters, the URL's `technologie`); the page is all its own (`OverviewView.jsx`, the numbers
-computed apart from the drawing in `model.js`: `partsOf`, `pageModel`):
+One technology of the scope for a period, like a report – the page most visitors need. The technology is chosen in the
+band on top (`SelectionBar` without filters, the URL's `technologie`), the period below it: a year, the running one by
+default (`?jahr=`), and a month of it or the whole year (`?monat=`). The page is all its own (`OverviewView.jsx`; the
+numbers in `model.js`, `pageModel`, the blocks in `blocks.jsx`, the same on the page and in the PDF). Everything comes
+from the monthly series of the Zubau of the parts (`/zubau/zeitverlauf`, `mrt.zubau_zeitverlauf_regions`: Zubau and
+Bestand, in amount and units, per month and year) – so any year or month works – and the Bestand of the area and its
+peers at the period's end (`/zubau/bestand`). The series count by commissioning and final decommissioning date, a few
+per mille more than the map, which counts by today's status (a remark says so).
 
-- **Tiles:** a number per card, its name and one line of context – the Bestand (Leistung netto; the batteries their
-  capacity and power, `overview.measure`, `overview.also`) with its share of the whole, the units in operation with
-  their rank, the Zubau of the running year since January, what is planned (`/zubau/geplant`). The Bestand comes from the
-  stats, the same numbers as the map's KPIs.
-- **Arten** (`overview.parts`, like a table of cards): Solar Gebäude, Balkonkraftwerke and Freifläche (`/solar/arten`,
-  `mrt.solar_arten_regions` – the only place the Balkonkraftwerke are apart), Wind an Land and auf See (the stats per
-  Lage and the yearly series), the batteries' Heim-, Gewerbe- and Großspeicher (`/battery/zubau`): each with its units
-  and its measure, their shares (a pie each) and their Zubau in the running year.
-- **Zubau je Jahr:** the last 15 years stacked by the Arten, the running year lighter, the change of the last full year
-  against the one before as a chip (whole years: registrations come weeks late; below 1 % of the Bestand "kaum Zubau").
-- **Germany:** beside it the national targets for 2030 in Bruttoleistung (`overview.targets`, `config/targets.js`) with
-  the earlier goal as a mark and the pace of the last full year against what the target needs per year, and the three
-  Länder with the most (wind: Nord- und Ostsee too).
+- **Tiles:** the Bestand at the period's end (Leistung netto; the batteries their capacity, `overview.measure`, and power,
+  `overview.also`) with its share of the area above and its rank among its peers, the units with their average size,
+  the Zubau of the period with the growth of the Bestand it made (net of what was decommissioned), against the same
+  period a year before (the running year by its complete months, the running month not at all), what is planned (the
+  running period only, `/zubau/geplant`). All in one row.
+- **Arten** (`overview.parts`, each with its `series`, less another where it has one: `minus`): Solar Gebäude,
+  Balkonkraftwerke (`solar_balkon_netto`, the only place they are apart; hatched – `hatch` in the config,
+  `hatchOf` in `lib/colorScale.js`, a pattern in `StackedChart` – as a lower bound) and Freifläche, Wind an Land and auf See, the
+  batteries' Heim-, Gewerbe- and Großspeicher – side by side, each a column: its units and its measure, their shares as
+  slim bars, their Zubau in the period relative to their Bestand at its start.
+- **Zubau:** per year, the 15 up to the year chosen, or per month of the year with the month chosen and the others
+  faint; the running period lighter.
+- **Germany:** beside it the national targets for 2030 in Bruttoleistung (`overview.targets`: target → its series,
+  `config/targets.js`) at the period's end, with the earlier goal as a mark and the pace of the last full year then.
+- **PDF report** ("Bericht als PDF"): the page rendered once more off screen at the width of a page (`OverviewReport`):
+  a title with the area's outline, the period and the Datenstand, the blocks, the remarks; drawn by
+  html2canvas in a desktop-wide window (the same from a phone), cut between the blocks onto A4 pages (`report.js`: a
+  block never cut, one a little too tall shrinks to fit), the source, the page's address and the page number in text
+  at the foot of every page.
 
-Netto throughout, no switch; only the targets are brutto, as the law counts. Remarks: the planned units, the
-Balkonkraftwerke (a lower bound, see Datenqualität), the targets. Every section has its downloads.
+Netto throughout, no switch; only the targets are brutto, as the law counts. Remarks: how the Bestand is counted, the
+planned units, the Balkonkraftwerke (a lower bound, see Datenqualität), the targets. Every section has its downloads.
 
 ### Registrierungen im MaStR (`RegistrationsAnalysis.jsx`, kind `registrations`)
 
@@ -549,4 +560,9 @@ the card's title and the source, landscape when the card is wide); a chart in th
 mark itself as what is shown (`data-export`), a card can name a part of it (`target`: the Kreis map its map frame). A
 Leaflet map goes through the map's own capture (`exportMap.js`: its layers and background tiles copied first, html2canvas
 misplaces them). The map card has the same four. html2canvas reads no `color-mix()`: the CSS keeps to plain colours.
+Two more of its quirks are handled in `renderCanvas` and `prepareCopy`: it measures the baseline of a font with a 1×1
+image beside a text on the page, which the site's `img { display: block }` put on a line of its own (every text came
+out half a line too low) – a style puts it back inline while it renders; and without letter-spacing it draws a text
+word by word and loses the room between them ("Baden -Württemberg") – its copy gets 0.01 px where there is none. The
+images go into a PDF compressed (`'FAST'`), else jsPDF keeps every pixel (megabytes a page).
 The Rangliste's file ranks all areas of the scope, not only the ten shown.

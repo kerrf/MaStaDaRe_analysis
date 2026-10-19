@@ -60,22 +60,6 @@ class ZubauYear(BaseModel):
     installed: float  # MW
 
 
-class SolarArtYear(BaseModel):
-    """Solar units of one Art – gebaeude, balkon (steckerfertig), freiflaeche – in a region: those that went into
-    operation in the year, and those in operation at its end, Brutto and Netto (mrt.solar_arten_regions)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    year: int
-    art: str
-    added_units: int
-    added: float  # MW, Brutto
-    added_net: float  # MW, Netto
-    installed_units: int
-    installed: float  # MW, Brutto
-    installed_net: float  # MW, Netto
-
-
 class BatteryZubauYear(BaseModel):
     """Battery units of one size class in a region: those that went into operation in the year, and those in operation
     at its end (mrt.battery_zubau_regions)."""

@@ -142,7 +142,6 @@ export default function InfoPage() {
               Dieses Projekt bereitet sie auf und macht den Ausbau erneuerbarer Energien regional sichtbar und vergleichbar: bundesweit,
               je Bundesland und kleinräumig bis auf Postleitzahl-Ebene.
             </p>
-            <TodoNote>Eigene Motivation ergänzen: Wer steckt dahinter, was ist das Ziel, für wen ist das Dashboard gedacht?</TodoNote>
           </section>
 
           <section id="methodik">
@@ -222,11 +221,6 @@ export default function InfoPage() {
               Glättung. Das Ergebnis ist eine Dichte (kW je km²) auf einer logarithmischen Farbskala, die sich dem Kartenausschnitt
               anpasst.
             </p>
-            <TodoNote>
-              Das PLZ-Rollup (aggregate_pv_by_plz_power.sql) filtert nicht nach <code>EinheitBetriebsstatus</code> – stillgelegte und
-              geplante Einheiten zählen dort mit, anders als bei Bundesland/Landkreis/Gemeinde. Außerdem rundet <code>NUMERIC(10,0)</code> die
-              Leistung je PLZ auf ganze MW (kleine Gebiete werden 0).
-            </TodoNote>
           </section>
 
           <section id="quellen">
@@ -291,7 +285,7 @@ export default function InfoPage() {
                 Lokation in verschiedenen Gemeinden oder Postleitzahlgebieten (das Register kennt Sammel-Lokationen).
               </li>
               <li>
-                <strong>Balkonkraftwerke:</strong> Nur „Auf einen Blick“ zeigt sie getrennt – die als steckerfertige Solaranlage
+                <strong>Balkonkraftwerke:</strong> Nur der „Überblick“ zeigt sie getrennt – die als steckerfertige Solaranlage
                 registrierten Einheiten. Überall sonst zählen sie zu „Gebäude“: Sie machen rund 1 % der Leistung aus, und das Register
                 erfasst sie nur unvollständig (viele sind nicht registriert, manche als Gebäudeanlage) – zu ungenau für eine
                 eigene Kategorie.
@@ -364,7 +358,6 @@ export default function InfoPage() {
                 GitHub <ArrowUpRight size={14} aria-hidden="true" />
               </a>
             </div>
-            <TodoNote>E-Mail-Adresse in src/config/site.js (owner.email) eintragen – dann erscheint hier ein E-Mail-Button.</TodoNote>
           </section>
         </article>
       </div>

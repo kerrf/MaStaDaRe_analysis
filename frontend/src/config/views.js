@@ -5,9 +5,9 @@ import { ChartColumnIncreasing, Landmark, LayoutDashboard, Map as MapIcon, MapPi
 // the others are about Germany as a whole.
 export const VIEWS = {
   karte: { id: 'karte', label: 'Karte', icon: MapIcon, path: '', scoped: true },
-  // Every technology of an area in one card each: Bestand, Zubau, Planung, its place among its peers, the targets
-  // (OverviewView) – in Deutschland, a Land or a Kreis
-  ueberblick: { id: 'ueberblick', label: 'Auf einen Blick', icon: LayoutDashboard, path: 'ueberblick', scoped: true },
+  // One technology of an area on one page, like a report for a year or a month: Bestand, Zubau, its Arten, its place
+  // among its peers, the targets (OverviewView), also as a PDF – in Deutschland, a Land or a Kreis
+  ueberblick: { id: 'ueberblick', label: 'Überblick', icon: LayoutDashboard, path: 'ueberblick', scoped: true },
   // In Deutschland, a Land or a Kreis (no Gemeinde: the monthly series stop at the Kreise)
   zubau: { id: 'zubau', label: 'Zubau & Registrierungen', short: 'Zubau', icon: ChartColumnIncreasing, path: 'zubau', scoped: true },
   // gemeinde: the page can show a single Gemeinde of the Kreis too (?gemeinde=…)
@@ -36,7 +36,7 @@ export const DASHBOARD_MENUS = [
     basePath: '/erzeuger',
     views: {
       karte: 'Solar, Wind und Wasserkraft je Land, Kreis, Gemeinde',
-      ueberblick: 'Solar, Wind und Wasserkraft eines Gebiets: Bestand, Zubau, Planung, Rang und Ausbauziel',
+      ueberblick: 'Solar, Wind oder Wasserkraft eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Rang, Ausbauziel – auch als PDF',
       zubau: 'Zubau seit 2000, Registrierungen und Meldefristen',
       anlagen: 'Größenklassen, Ausrichtung, Batteriespeicher an Solaranlagen',
       kommune: 'Ein Landkreis und seine Gemeinden im Detail: Karte, Kennzahlen, Zubau je Jahr',
@@ -49,7 +49,7 @@ export const DASHBOARD_MENUS = [
     basePath: '/speicher',
     views: {
       karte: 'Batterie- und Pumpspeicher je Land, Kreis, Gemeinde',
-      ueberblick: 'Batteriespeicher eines Gebiets: Bestand, Zubau, Speichergrößen und Rang',
+      ueberblick: 'Batteriespeicher eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Speichergrößen, Rang – auch als PDF',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
       anlagen: 'Speichergröße, Batterietechnologie und Kopplung, Batteriespeicher an Solaranlagen',
       kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',

@@ -1598,7 +1598,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .sizes__bar {
-  height: 6px;
+  height: 10px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
 }
@@ -2127,7 +2127,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .ranking__bar {
   flex: 1;
   min-width: 40px;
-  height: 6px;
+  height: 10px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
 }
@@ -2623,7 +2623,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .kommune-largest__bar {
-  height: 6px;
+  height: 10px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
 }

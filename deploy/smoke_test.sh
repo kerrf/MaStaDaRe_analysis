@@ -49,7 +49,9 @@ ROUTES=(
   # Landkreis/Gemeinde (Landkreis Zwickau, Gemeinde Zwickau)
   "/regions/areas?level=gemeinde&within=14524"
   "/solar/zubau?region=14524"
-  "/solar/arten?region=14524"
+  # Überblick: the monthly series of the parts (with the Balkonkraftwerke apart) and the Bestand of the peers
+  "/zubau/zeitverlauf?region=14524&technology=solar_gebaeude_netto&technology=solar_balkon_netto&technology=solar_freiflaeche_netto&technology=solar"
+  "/zubau/bestand?parent=14&year=2025&technology=solar_netto"
   "/solar/orientation?region=14524330"
   "/solar/orientation-tilt?region=14524330"
   "/solar/size-distribution?region=14524330"

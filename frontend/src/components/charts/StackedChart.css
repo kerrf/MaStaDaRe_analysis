@@ -45,6 +45,15 @@
   opacity: 0.45;
 }
 
+/* Beside the period the chart is about (a month of the year) */
+.stacked-chart .is-dimmed {
+  opacity: 0.3;
+}
+
+.stacked-chart .is-dimmed.is-partial {
+  opacity: 0.18;
+}
+
 .stacked-chart__area {
   stroke: var(--surface-card);
   stroke-width: 1;

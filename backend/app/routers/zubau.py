@@ -33,6 +33,30 @@ async def get_zeitverlauf(
     return query.order_by(ZubauRegion.technology, ZubauRegion.year, ZubauRegion.month.nulls_first()).all()
 
 
+class RegionBestand(BaseModel):
+    region: str  # the area ("DE" or a Land) or one of its parts (a Land, or a Kreis of the Land)
+    installed: float  # Bestand at the end of the period, the series summed
+    installed_units: int
+    einwohner: int
+    qkm: float
+
+
+@router.get("/bestand", response_model=list[RegionBestand])
+def get_bestand(
+    db: Annotated[Session, Depends(get_db)],
+    technology: Annotated[list[Technology], Query()],
+    year: Annotated[int, Query(ge=2000, le=2100)],
+    month: Annotated[int | None, Query(ge=1, le=12, description="A month of the year; none: the whole year")] = None,
+    parent: Annotated[
+        str, Query(pattern=r"^(DE|\d{2})$", description='"DE" (with its Länder) or a Land (with its Kreise)')
+    ] = "DE",
+):
+    """The Bestand of the given series at the end of a year or month in Deutschland or a Land and in each of its parts
+    (the Länder, or the Kreise of the Land), with their inhabitants and area: an area's share and rank among its peers
+    and its Bestand per inhabitant and km², at any time (the page Überblick)."""
+    return ZubauRegion.bestand(db, list(technology), year, month, parent)
+
+
 @router.get("/geplant", response_model=None)
 async def get_geplant(
     technology: Annotated[list[Technology] | None, Query()] = None,

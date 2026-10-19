@@ -9,7 +9,6 @@ from app.models.analyses import (
     HeatmapPoint,
     PvSpeicher,
     SizeDistribution,
-    SolarArtenRegion,
     SolarOrientation,
     SolarOrientationTilt,
     SolarZubauRegion,
@@ -26,7 +25,6 @@ from app.schemas.analyses import (
     Regions,
     RegionTable,
     SizeClassShare,
-    SolarArtYear,
     ZubauYear,
     regions,
 )
@@ -124,13 +122,6 @@ def get_orientation_tilt(db: Annotated[Session, Depends(get_db)], selection: Sel
 def get_zubau(db: Annotated[Session, Depends(get_db)], selection: Selection, region: Region = "DE"):
     """Zubau and Bestand per year since 2000 in a region, per chosen Anlagenart (mrt.solar_zubau_regions)."""
     return SolarZubauRegion.of(db, region, selection.anlagenarten, selection.netto)
-
-
-@router.get("/arten", response_model=list[SolarArtYear])
-def get_arten(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
-    """Zubau and Bestand per year since 2000 in Deutschland, a Land or a Kreis, per Art: Gebäude, Balkonkraftwerk
-    (steckerfertig), Freifläche – Brutto and Netto (mrt.solar_arten_regions). Only here are the Balkonkraftwerke apart."""
-    return SolarArtenRegion.of(db, region)
 
 
 @router.get("/size-distribution/regions", response_model=RegionTable)
