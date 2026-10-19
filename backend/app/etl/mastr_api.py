@@ -39,6 +39,9 @@ HEADER = ("Ergebniscode", "AufrufVeraltet", "AufrufLebenszeitEnde", "AufrufVersi
 # How a detail call says the unit is gone: "Objekt nicht gefunden", "Die Einheit kann nicht abgerufen werden, die Einheit
 # wurde gelöscht / deaktiviert." Any other fault (e.g. quota used up) stops the run instead of passing as a gone unit.
 GONE = ("nicht gefunden", "kann nicht abgerufen werden")
+# How GetMarktakteur refuses a market actor it no longer hands out (deactivated ones, which old Netzanschlusspunkte still
+# name): "… da der Marktakteur nicht gültig ist oder dafür nicht verwendet werden kann"
+INVALID_ACTOR = "der Marktakteur nicht gültig ist"
 ACTIVE = "Aktiv"  # EinheitSystemstatus of the units the register hands out (and the export contains)
 
 
@@ -134,12 +137,12 @@ class MastrApi:
 
     def grid_operator(self, mastr_nummer: str) -> dict | None:
         """A grid operator (Marktakteur) as the export's fields would come from the API (encode with
-        codes.GRID_OPERATOR), or None if the register doesn't know it. Its market roles and grid come as objects, the
+        codes.GRID_OPERATOR), or None if the register doesn't know it or doesn't hand it out (any more). Its market roles and grid come as objects, the
         export keeps their numbers: "SNB…AN, SNB…BV" and "SNE…"."""
         try:
             answer = self.akteur.GetMarktakteur(**self.auth, mastrNummer=mastr_nummer)
         except Fault as error:
-            if not any(reason in error.message for reason in GONE):
+            if not any(reason in error.message for reason in (*GONE, INVALID_ACTOR)):
                 raise
             log.info(f"GetMarktakteur {mastr_nummer}: {error.message}")
             return None
