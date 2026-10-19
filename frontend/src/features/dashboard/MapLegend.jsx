@@ -3,14 +3,40 @@ import { formatTick } from '../../lib/format';
 import { rampGradient } from '../../lib/colorScale';
 import { positionOf } from '../../lib/heatmap';
 
-export default function MapLegend({ title, unit, ramp, max, clipped }) {
+// The value under the pointer, which the map hands over through hoverRef.current(value | null)
+function useHovered(hoverRef) {
+  const [hover, setHover] = useState(null);
+  useEffect(() => {
+    if (!hoverRef) return undefined;
+    const ref = hoverRef;
+    ref.current = setHover;
+    return () => {
+      ref.current = null;
+    };
+  }, [hoverRef]);
+  return hover;
+}
+
+// The colour scale, with a small grey triangle above it where the value under the pointer lies (at: 0..1, null: none)
+function Ramp({ ramp, at }) {
+  return (
+    <div className="map-legend__ramp-wrap">
+      <div className="map-legend__ramp" style={{ background: rampGradient(ramp) }} />
+      {at != null && <span className="map-legend__marker" style={{ left: `${Math.min(1, Math.max(0, at)) * 100}%` }} aria-hidden="true" />}
+    </div>
+  );
+}
+
+/** The legend of a map's areas: its colours from 0 to max, linear; hoverRef: the map's channel for the area under the pointer. */
+export default function MapLegend({ title, unit, ramp, max, clipped, hoverRef }) {
+  const hover = useHovered(hoverRef);
   return (
     <div className="map-legend">
       <div className="map-legend__title">
         {title}
         {unit && <span className="map-legend__unit"> ({unit})</span>}
       </div>
-      <div className="map-legend__ramp" style={{ background: rampGradient(ramp) }} />
+      <Ramp ramp={ramp} at={hover != null && max > 0 ? hover / max : null} />
       <div className="map-legend__ticks tabular">
         <span>0</span>
         <span>{formatTick(max / 2)}</span>
@@ -43,21 +69,14 @@ function ticksOf(scale) {
  * smoothing at this zoom, and the density under the pointer. hoverRef: the map sets it through hoverRef.current(value).
  */
 export function HeatmapLegend({ title, unit, ramp, scale, smoothingKm, hoverRef }) {
-  const [hover, setHover] = useState(null);
-  useEffect(() => {
-    const ref = hoverRef;
-    ref.current = setHover;
-    return () => {
-      ref.current = null;
-    };
-  }, [hoverRef]);
+  const hover = useHovered(hoverRef);
   return (
     <div className="map-legend map-legend--heat">
       <div className="map-legend__title">
         {title}
         <span className="map-legend__unit"> ({unit})</span>
       </div>
-      <div className="map-legend__ramp" style={{ background: rampGradient(ramp) }} />
+      <Ramp ramp={ramp} at={hover != null && scale ? positionOf(Math.max(hover, scale.low), scale) : null} />
       {scale ? (
         <div className="map-legend__scale tabular" aria-label="Logarithmische Skala">
           {ticksOf(scale).map((tick) => (

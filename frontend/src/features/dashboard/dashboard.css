@@ -912,10 +912,29 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-muted);
 }
 
+/* The ramp with room above it for the mark of the area under the pointer */
+.map-legend__ramp-wrap {
+  position: relative;
+  margin-top: 12px;
+}
+
 .map-legend__ramp {
   height: 10px;
-  margin-top: 8px;
   border-radius: var(--radius-xs);
+}
+
+/* A small grey triangle pointing down onto the ramp where the hovered value lies */
+.map-legend__marker {
+  position: absolute;
+  bottom: 100%;
+  width: 0;
+  height: 0;
+  margin-bottom: 1px;
+  border-top: 7px solid #667085;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  transform: translateX(-50%);
+  transition: left var(--dur-fast, 0.15s) var(--ease, ease-out);
 }
 
 .map-legend__ticks {

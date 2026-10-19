@@ -7,6 +7,7 @@ import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { EUROPE_BOUNDS, GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
 import { useLayers, useOpenEdge, useOutline } from '../../lib/data';
 import HeatmapLayer from './HeatmapLayer';
+import { fadeOutline, stopFade } from './mapHover';
 import PlaceLabels from './PlaceLabels';
 
 // Colours as in styles/tokens.css (--map-*): the canvas can't read CSS variables
@@ -18,6 +19,8 @@ const MASK_STYLE = { stroke: false, fillColor: '#f6f7f9', fillOpacity: 0.85 };
 const BASEMAP = '/basemap_europe.topojson';
 const LAND_STYLE = { stroke: false, fillColor: '#eceef1', fillOpacity: 1 };
 const BORDER_STYLE = { color: '#ffffff', weight: 1.2, opacity: 1 };
+// An area under the pointer
+const HOVER_STYLE = { color: '#101828', weight: 2, opacity: 1 };
 // The German sea (offshore wind) is a zone at sea: hatched in its colour, the water showing through, without a border
 // along the coast; out at sea, a dashed line marks where it ends. The choropleth only keeps it for tooltip and click.
 const SEA_HIDDEN = { fillOpacity: 0, weight: 0 };
@@ -115,14 +118,14 @@ export function WheelHandler({ onPlainWheel }) {
   return null;
 }
 
-function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltipFor, onRegionClick }) {
+function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltipFor, onRegionClick, onHover }) {
   const layerRef = useRef(null);
   // Leaflet binds the handlers once per layer. Read the latest ones through a ref, so a new scope (another Land, a
   // Landkreis) that keeps the same layer doesn't click and label with the old one.
-  const handlers = useRef({ tooltipFor, onRegionClick });
+  const handlers = useRef({ tooltipFor, onRegionClick, onHover, valueKey });
   useEffect(() => {
-    handlers.current = { tooltipFor, onRegionClick };
-  }, [tooltipFor, onRegionClick]);
+    handlers.current = { tooltipFor, onRegionClick, onHover, valueKey };
+  }, [tooltipFor, onRegionClick, onHover, valueKey]);
 
   const styleFor = useCallback(
     (feature) => {
@@ -148,11 +151,19 @@ function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltip
       className: 'map-tooltip',
     });
     layer.on({
+      // The outline turns on over a moment; the legend marks the area's value on its scale
       mouseover: (e) => {
-        e.target.setStyle({ weight: 2, color: '#101828', opacity: 1 });
+        const { color, weight, opacity } = e.target.options;
         e.target.bringToFront();
+        fadeOutline(e.target, { color, weight, opacity }, HOVER_STYLE);
+        const { _hasData: has, [handlers.current.valueKey]: value } = feature.properties;
+        handlers.current.onHover?.(has && feature.properties.ags !== OFFSHORE.ags ? (value ?? 0) : null);
       },
-      mouseout: (e) => layerRef.current?.resetStyle(e.target),
+      mouseout: (e) => {
+        stopFade(e.target);
+        layerRef.current?.resetStyle(e.target);
+        handlers.current.onHover?.(null);
+      },
       click: () => handlers.current.onRegionClick?.(feature),
     });
   }, []);
@@ -180,6 +191,7 @@ export default function ChoroplethMap({
   highlight,
   heat,
   onPlainWheel,
+  onHover,
   children,
 }) {
   const maskPositions = useMemo(
@@ -246,6 +258,7 @@ export default function ChoroplethMap({
           lineWeight={lineWeight}
           tooltipFor={tooltipFor}
           onRegionClick={onRegionClick}
+          onHover={onHover}
         />
       )}
 

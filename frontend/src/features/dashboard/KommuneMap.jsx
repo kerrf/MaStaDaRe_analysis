@@ -8,6 +8,7 @@ import { useLayers } from '../../lib/data';
 import { escapeHtml } from '../../lib/format';
 import { placeLabels } from '../../lib/labelPlacement';
 import { WheelHandler } from './ChoroplethMap';
+import { fadeOutline, stopFade } from './mapHover';
 
 // Europe around Germany (scripts/geo/build_basemap.py), under the tiles: basemap.de ends at the German border
 const EUROPE = '/basemap_europe.topojson';
@@ -139,6 +140,7 @@ export default function KommuneMap({
   opacity,
   onBasemap,
   kreisColor = '#823500',
+  onHover,
   children,
 }) {
   const europe = useLayers(EUROPE);
@@ -150,10 +152,10 @@ export default function KommuneMap({
   const onLight = tiles.id !== 'satellit';
 
   // Leaflet binds the handlers once per layer: read the latest ones through a ref
-  const handlers = useRef({ tooltipFor, onSelect, selected });
+  const handlers = useRef({ tooltipFor, onSelect, selected, onHover, valueKey });
   useEffect(() => {
-    handlers.current = { tooltipFor, onSelect, selected };
-  }, [tooltipFor, onSelect, selected]);
+    handlers.current = { tooltipFor, onSelect, selected, onHover, valueKey };
+  }, [tooltipFor, onSelect, selected, onHover, valueKey]);
   const layerRef = useRef(null);
 
   const styleFor = useCallback(
@@ -175,11 +177,19 @@ export default function KommuneMap({
       className: 'map-tooltip',
     });
     layer.on({
+      // The outline turns on over a moment; the legend marks the Gemeinde's value on its scale
       mouseover: (e) => {
-        e.target.setStyle({ weight: 2.5, color: '#101828' });
+        const { color, weight, opacity } = e.target.options;
         e.target.bringToFront();
+        fadeOutline(e.target, { color, weight, opacity }, { color: '#101828', weight: 2.5, opacity: 1 });
+        const { _hasData: has, [handlers.current.valueKey]: value } = feature.properties;
+        handlers.current.onHover?.(has ? (value ?? 0) : null);
       },
-      mouseout: (e) => layerRef.current?.resetStyle(e.target),
+      mouseout: (e) => {
+        stopFade(e.target);
+        layerRef.current?.resetStyle(e.target);
+        handlers.current.onHover?.(null);
+      },
       click: () => {
         const { ags } = feature.properties;
         handlers.current.onSelect(handlers.current.selected === ags ? null : ags);

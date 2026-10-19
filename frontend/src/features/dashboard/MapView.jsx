@@ -120,6 +120,9 @@ export default function MapView({ config, state }) {
   // The density under the pointer goes straight to the legend: the page needn't render for every move of the mouse
   const heatHover = useRef(null);
   const onHeatHover = useCallback((value) => heatHover.current?.(value), []);
+  // The area under the pointer, marked on the legend's scale
+  const areaHover = useRef(null);
+  const onAreaHover = useCallback((value) => areaHover.current?.(value), []);
 
   // The plants lie on the Bundesländer, which are drawn without values. Their subtypes (Gas: Technologie, Speicherart)
   // filter them here and colour them.
@@ -453,11 +456,12 @@ export default function MapView({ config, state }) {
                 isHeatmap ? { data: heat.data, ramp: config.ramp, smoothing: SMOOTHINGS[smoothingId], onDrawn: setHeatDrawn, onHover: onHeatHover } : null
               }
               onPlainWheel={onPlainWheel}
+              onHover={onAreaHover}
             >
               {isSites && <SiteMarkers sites={sites} site={technology.site} categoryOf={categoryOf} />}
             </ChoroplethMap>
             {mapState === 'ready' && !isHeatmap && !bordersOnly && !isSites && (
-              <MapLegend title={metricLegend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />
+              <MapLegend title={metricLegend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />
             )}
             {isHeatmap && mapState === 'ready' && heatDrawn && (
               <HeatmapLegend

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowDown, ArrowUp, ChartColumnIncreasing, Search } from 'lucide-react';
 import AggregateControl from '../../components/charts/AggregateControl';
 import StackedChart from '../../components/charts/StackedChart';
@@ -536,6 +536,9 @@ export default function KommuneView({ config, state }) {
   // The background map, and how strongly the shading covers it: each map comes with its own, the slider changes it
   const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [opacity, setOpacity] = useState(() => BASEMAPS.find((b) => b.id === DEFAULT_BASEMAP).fillOpacity);
+  // The Gemeinde under the pointer, marked on the legend's scale
+  const areaHover = useRef(null);
+  const onAreaHover = useCallback((value) => areaHover.current?.(value), []);
   const chooseBasemap = (id) => {
     setBasemap(id);
     setOpacity(BASEMAPS.find((b) => b.id === id).fillOpacity);
@@ -809,8 +812,9 @@ export default function KommuneView({ config, state }) {
               opacity={opacity}
               onBasemap={chooseBasemap}
               kreisColor={config.ramp[config.ramp.length - 1]}
+              onHover={onAreaHover}
             >
-              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.count ? '' : metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} />}
+              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.count ? '' : metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />}
               {mapStatus === 'loading' && (
                 <div className="map-overlay map-overlay--loading" role="status">
                   <div className="spinner" />
