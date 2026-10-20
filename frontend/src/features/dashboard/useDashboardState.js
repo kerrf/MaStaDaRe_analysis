@@ -34,6 +34,18 @@ function parseSubtypes(value, options) {
  * stay while another is shown. query: the choice as query of its requests, only what differs from the default; note:
  * " · nur Freifläche" while narrowed.
  */
+/**
+ * A choice of a page kept in the URL, so a link shows it too (a card's Kennzahl, the background map, a tab): its value
+ * (`fallback` where the URL has none or one not in `ids`) and how to set it. The fallback stays out of the URL.
+ */
+export function useUrlChoice(state, key, ids, fallback) {
+  const raw = state.searchParams.get(key);
+  const value = raw != null && ids.includes(raw) ? raw : fallback;
+  const { setParam } = state;
+  const set = useCallback((id) => setParam(key, id, fallback), [setParam, key, fallback]);
+  return [value, set];
+}
+
 export function selectionOf(technology, searchParams) {
   const subtypes = technology.subtypes ? parseSubtypes(searchParams.get(technology.subtypes.param), technology.subtypes.options) : null;
   const leistung = technology.leistung

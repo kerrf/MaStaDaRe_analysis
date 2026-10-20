@@ -24,6 +24,7 @@ import { FootnoteRef } from './footnotes';
 import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
+import { useUrlChoice } from './useDashboardState';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -224,8 +225,9 @@ export default function MapView({ config, state }) {
   const hasScopeAnalyses = withData && !isSites && scopeAnalysesOf(technology).length > 0;
   const canPick = hasScopeAnalyses && Boolean(AGS_LENGTH[activeGranularity.id]);
   const [picked, setPicked] = useState(null);
-  // The rail's tab: the Rangliste, or one of the technology's analyses (one it doesn't have falls back to the Rangliste)
-  const [railTab, setRailTab] = useState('rangliste');
+  // The rail's tab: the Rangliste, or one of the technology's analyses (one it doesn't have falls back to the Rangliste);
+  // in the URL, so a link opens the same tab
+  const [railTab, setRailTab] = useUrlChoice(state, 'auswertung', ['rangliste', ...scopeAnalysesOf(technology).map((a) => a.id)], 'rangliste');
   const scopeAnalyses = hasScopeAnalyses ? scopeAnalysesOf(technology) : [];
   const pickContext = `${state.scopeKey}|${activeGranularity.id}|${technology.id}`;
   const [pickedIn, setPickedIn] = useState(pickContext);

@@ -27,7 +27,7 @@ import OrientationRose from './OrientationRose';
 import ScopeBar from './ScopeBar';
 import SelectionBar from './SelectionBar';
 import SizeDistribution from './SizeDistribution';
-import { selectionOf } from './useDashboardState';
+import { selectionOf, useUrlChoice } from './useDashboardState';
 
 const GEMEINDEN_TOPOLOGY = GRANULARITIES.find((g) => g.id === 'gemeinde').topology;
 const KREISE_TOPOLOGY = GRANULARITIES.find((g) => g.id === 'landkreis').topology;
@@ -332,13 +332,15 @@ const SMALLER = { MW: 'kW', MWh: 'kWh' };
  * mrt.solar_zubau_regions; batteries: the size classes, mrt.battery_zubau_regions), in one of its measures.
  * query: the page's selection, for a timeline withSelection; series: the ones to show; fileBase: of its CSV
  */
-function RegionTimeline({ timeline, scopeKey, scopeName, query, series, selectionLabel, fileBase }) {
+function RegionTimeline({ state, timeline, scopeKey, scopeName, query, series, selectionLabel, fileBase }) {
   const data = useJson(`${API_BASE_URL}${timeline.path}?region=${scopeKey}${timeline.withSelection && query ? `&${query}` : ''}`);
-  // Aggregiert: the Bestand at each year's end instead of the Zubau per year
-  const [aggregiert, setAggregiert] = useState(false);
-  const [style, setStyle] = useState('balken');
-  const view = aggregiert ? 'bestand' : 'zubau';
-  const [measureId, setMeasureId] = useState(timeline.measures[0].id);
+  // Aggregiert: the Bestand at each year's end instead of the Zubau per year. All three in the URL (useUrlChoice).
+  const [view, setView] = useUrlChoice(state, 'ansicht', ['zubau', 'bestand'], 'zubau');
+  const aggregiert = view === 'bestand';
+  const setAggregiert = (on) => setView(on ? 'bestand' : 'zubau');
+  const [style, setStyle] = useUrlChoice(state, 'darstellung', ['balken', 'kurve'], 'balken');
+  const measureIds = timeline.measures.map((m) => m.id);
+  const [measureId, setMeasureId] = useUrlChoice(state, 'messgroesse', measureIds, measureIds[0]);
   const measure = timeline.measures.find((m) => m.id === measureId) ?? timeline.measures[0];
   const bestand = view === 'bestand';
 
@@ -531,17 +533,22 @@ export default function KommuneView({ config, state }) {
     ? ['anlagenart=freiflaeche', selection.leistung.id !== technology.leistung.options[0].id && `leistung=${selection.leistung.id}`].filter(Boolean).join('&')
     : '';
 
-  const [metricId, setMetricId] = useState(profile.metrics[0].id);
+  // The map's Kennzahl and background in the URL (useUrlChoice), so a link shows the same map
+  const metricIds = profile.metrics.map((m) => m.id);
+  const [metricId, setMetricId] = useUrlChoice(state, 'kennzahl', metricIds, metricIds[0]);
   const metric = profile.metrics.find((m) => m.id === metricId) ?? profile.metrics[0];
-  // The background map, and how strongly the shading covers it: each map comes with its own, the slider changes it
-  const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
-  const [opacity, setOpacity] = useState(() => BASEMAPS.find((b) => b.id === DEFAULT_BASEMAP).fillOpacity);
+  // The background map, and how strongly the shading covers it: each map comes with its own, the slider changes it (not
+  // in the URL: a fine adjustment)
+  const [basemap, setBasemap] = useUrlChoice(state, 'hintergrund', BASEMAPS.map((b) => b.id), DEFAULT_BASEMAP);
+  const [opacityOf, setOpacityOf] = useState(null);
+  const opacity = opacityOf?.basemap === basemap ? opacityOf.value : BASEMAPS.find((b) => b.id === basemap).fillOpacity;
+  const setOpacity = (value) => setOpacityOf({ basemap, value });
   // The Gemeinde under the pointer, marked on the legend's scale
   const areaHover = useRef(null);
   const onAreaHover = useCallback((value) => areaHover.current?.(value), []);
   const chooseBasemap = (id) => {
     setBasemap(id);
-    setOpacity(BASEMAPS.find((b) => b.id === id).fillOpacity);
+    setOpacityOf(null);
   };
 
   // ------------------------------------------------------------------------------------------------------- data
@@ -849,6 +856,7 @@ export default function KommuneView({ config, state }) {
       {profile.goals === 'storage' && <KommuneStorage scope={goalScope} parent={goalParent} einwohnerDE={einwohnerDE} />}
 
       <RegionTimeline
+        state={state}
         timeline={profile.timeline}
         scopeKey={state.scopeKey}
         scopeName={state.scopeName}

@@ -79,8 +79,15 @@ parameters, so the timeline can read solar's choice while wind is active (`selec
 | `?lage=an_land` | Wind: an Land or auf See. No parameter = both |
 | `?spannung=hochspannung` | Netzanschlüsse: Spannungsebenen (comma separated). No parameter = all |
 | `?gemeinde=` | A Gemeinde of the Kreis (8-digit key), on the pages with `gemeinde` in `VIEWS` (Anlagen, Landkreis/Gemeinde) |
+| `?auswertung=` | Karte: the rail's tab beside the map (`rangliste` or an analysis id, e.g. `ausrichtung`) |
+| `?kennzahl=`, `?hintergrund=` | Regionen im Detail: the map's Kennzahl (an id of the profile's `metrics`) and background map (`BASEMAPS`) |
+| `?ansicht=`, `?darstellung=`, `?messgroesse=` | Regionen im Detail, the timeline: `zubau` or `bestand`, `balken` or `kurve`, a measure id |
+| `?anlagen=` | Anlagen, wind: which turbines (`in_betrieb`, `geplant`, `stillgelegt`, comma separated) |
+| `?jahr=`, `?monat=` | Überblick: the period of the report |
 
-Defaults are never written to the URL.
+Defaults are never written to the URL, and a value a page doesn't know counts as its default. The choices that decide
+what a page shows are all here, so a link shows the same; what is short-lived (zoom, sort, search, the transparency of
+the map's shading) is not (`useUrlChoice` in `useDashboardState.js` for a new one).
 
 ### Zooming in and out (Deutschland › Bundesland › Landkreis)
 
