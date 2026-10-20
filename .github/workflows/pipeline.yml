@@ -169,8 +169,9 @@ jobs:
     needs: [backend, frontend, security, image]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # Usually a few minutes; building views takes longer (all of them, the first time: see DEPLOY.md, section 10)
-    timeout-minutes: 90
+    # Usually a few minutes; building views takes longer (all of them, the first time: see DEPLOY.md, section 10), and
+    # the switch of the raw tables from codes to texts (app/etl/decode_codes.py) before them about 10 minutes more
+    timeout-minutes: 150
     environment:
       name: production
       url: https://api.mastr-data.de/health
