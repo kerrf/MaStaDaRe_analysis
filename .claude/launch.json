@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "--port", "5173", "--strictPort"],
       "port": 5173
+    },
+    {
+      "name": "fb-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /tmp/claude-1000/-home-kerf-energy-projects-mastadatregpv-korrekt-main/9e8555fc-38ea-4d87-854b-e049dbbd8673/scratchpad/wt/backend && set -a && . ../../fb.env && set +a && exec uv run uvicorn app.main:app --port 8001 --reload --reload-dir app"],
+      "port": 8001
+    },
+    {
+      "name": "fb-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/tmp/claude-1000/-home-kerf-energy-projects-mastadatregpv-korrekt-main/9e8555fc-38ea-4d87-854b-e049dbbd8673/scratchpad/wt/frontend", "run", "dev", "--", "--port", "5174", "--strictPort", "--config", ".vite/preview.config.js"],
+      "port": 5174
     }
   ]
 }

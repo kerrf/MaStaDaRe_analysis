@@ -124,6 +124,12 @@ counts AS (
         u.anlagenart,
         c.size_class,
         CASE
+            WHEN GROUPING(u.ags) = 0 THEN 'gemeinde'
+            WHEN GROUPING(LEFT(u.ags, 5)) = 0 THEN 'landkreis'
+            WHEN GROUPING(LEFT(u.ags, 2)) = 0 THEN 'bundesland'
+            ELSE 'deutschland'
+        END AS level,
+        CASE
             WHEN GROUPING(u.ags) = 0 THEN u.ags
             WHEN GROUPING(LEFT(u.ags, 5)) = 0 THEN LEFT(u.ags, 5)
             WHEN GROUPING(LEFT(u.ags, 2)) = 0 THEN LEFT(u.ags, 2)
@@ -164,7 +170,10 @@ FROM classes c
 JOIN kinds k USING (technology)
 CROSS JOIN regions r
 LEFT JOIN counts n
-    ON n.technology = c.technology AND n.anlagenart = k.anlagenart AND n.size_class = c.size_class AND n.region = r.region
+    -- By level too: a unit whose Gemeindeschlüssel is shorter (the register has a few with the Kreis's 5 digits) would
+    -- else give its Kreis a second row
+    ON n.technology = c.technology AND n.anlagenart = k.anlagenart AND n.size_class = c.size_class
+        AND n.level = r.level AND n.region = r.region
 ORDER BY technology, level, region, size_class, anlagenart;
 
 -- One region per request, or all regions of a level (in a Land or Kreis): read in the order of the table, no sorting

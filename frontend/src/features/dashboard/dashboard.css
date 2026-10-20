@@ -446,7 +446,7 @@
 /* One card: title and export, the settings in a band, the map and beside it the rail with the Rangliste and analyses,
    as high as the map, and one footer. --map-height sets both. */
 .map-workspace {
-  --map-height: clamp(600px, 86vh, 936px);
+  --map-height: clamp(660px, 95vh, 1030px);
 }
 
 .map-workspace__body {
