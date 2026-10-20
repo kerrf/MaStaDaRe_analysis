@@ -18,7 +18,7 @@ export const SITE = {
   owner: {
     name: 'Maxim Sokol',
     street: 'Schwalbacher Str. 2',
-    postalCity: '12161, Berlin',
+    postalCity: '12161 Berlin',
     email: 'ms63xicy@gmail.com',
   },
 };

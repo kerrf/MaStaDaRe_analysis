@@ -7,15 +7,15 @@ import { selectionOf } from './useDashboardState';
 
 /**
  * What a page shows, above all it shows of it: a band of settings like every other (Setting), its first row the
- * technology and the active one's filters right after it (Solar: Anlagenart, Leistung; Gas: its kinds), in the topic's
- * colour – apart from the green of how a chart or the map shows it (Kennzahl, Bezug, Zeitraster). Narrowed by a filter,
+ * technology, the active one's filters in the row below the line (Solar: Anlagenart, Leistung; Wind: Lage and which
+ * turbines; Gas: its kinds) – the same for every technology – in the topic's colour – apart from the green of how a chart or the map shows it (Kennzahl, Bezug, Zeitraster). Narrowed by a filter,
  * the row says so on its right, with the way back to all. One look on every page that has a choice of technology
  * (Karte, Regionen im Detail, Anlagen, Regionen im Vergleich).
  * technologies: those the page has something for – also a single one, so every page looks the same; active: the one the
  * page shows (default: the URL's). Its selection comes from the URL, its own parameters. filters: whether the page
  * narrows the technology down by them (Regionen im Detail of the batteries doesn't). label: the box's name (the
- * Netzanschlüsse: "Anschlüsse"). inCard: as the top band of a card (the map's), without a frame of its own. children:
- * further rows of the band (the map's toolbar; wind: which turbines, coloured by what).
+ * Netzanschlüsse: "Anschlüsse"). inCard: as the top band of a card (the map's), without a frame of its own. extra:
+ * further settings of the filters' row (wind: which turbines). children: further rows of the band (the map's toolbar).
  */
 export default function SelectionBar({
   technologies,
@@ -24,6 +24,7 @@ export default function SelectionBar({
   filters = true,
   label = 'Technologie',
   inCard = false,
+  extra,
   children,
 }) {
   const { subtypes, leistung, note } = selectionOf(technology, state.searchParams);
@@ -44,7 +45,7 @@ export default function SelectionBar({
   );
   return (
     <section className={`selection-bar settings-band${inCard ? ' selection-bar--in-card' : ''}`} aria-label="Technologie und Filter">
-      <SettingsRow aside={aside}>
+      <SettingsRow>
         <Setting label={label} tone="topic">
           {technologies.map((tech) => {
             const Icon = tech.icon;
@@ -64,16 +65,21 @@ export default function SelectionBar({
             );
           })}
         </Setting>
-        {filtered && (
-          <TechFilters
-            technology={technology}
-            subtypes={subtypes}
-            onSubtypes={(ids) => state.setSubtypesOf(technology, ids)}
-            leistung={leistung}
-            onLeistung={(id) => state.setLeistungOf(technology, id)}
-          />
-        )}
       </SettingsRow>
+      {(filtered || extra) && (
+        <SettingsRow aside={aside}>
+          {filtered && (
+            <TechFilters
+              technology={technology}
+              subtypes={subtypes}
+              onSubtypes={(ids) => state.setSubtypesOf(technology, ids)}
+              leistung={leistung}
+              onLeistung={(id) => state.setLeistungOf(technology, id)}
+            />
+          )}
+          {extra}
+        </SettingsRow>
+      )}
       {children}
     </section>
   );

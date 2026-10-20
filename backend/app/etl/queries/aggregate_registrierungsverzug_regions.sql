@@ -7,7 +7,20 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.registrierungsverzug_regions;
 -- digits), per technology and year of commissioning. A unit counts in the Land and Kreis of its Gemeindeschlüssel; one
 -- without (offshore, abroad) for Deutschland only.
 CREATE MATERIALIZED VIEW mrt.registrierungsverzug_regions AS
-WITH units AS (
+WITH kwk_places AS (
+    -- Per KWK plant the Gemeinde of its largest unit (biomass, combustion and geothermal units name their KWK plant)
+    SELECT DISTINCT ON (kwk) kwk, ags
+    FROM (
+        SELECT "KwkMaStRNummer" AS kwk, "Gemeindeschluessel" AS ags, "Bruttoleistung" AS kw FROM raw.biomass_units
+        UNION ALL
+        SELECT "KwkMaStRNummer", "Gemeindeschluessel", "Bruttoleistung" FROM raw.combustion_units
+        UNION ALL
+        SELECT "KwkMaStRNummer", "Gemeindeschluessel", "Bruttoleistung" FROM raw.geothermal_units
+    ) u
+    WHERE kwk IS NOT NULL
+    ORDER BY kwk, kw DESC NULLS LAST, ags
+),
+units AS (
     SELECT 'solar' AS technology, "Gemeindeschluessel" AS ags, "Inbetriebnahmedatum" AS commissioned,
         "Registrierungsdatum" AS registered
     FROM raw.solar_units
@@ -17,15 +30,27 @@ WITH units AS (
     SELECT 'wasserkraft', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.water_units
     UNION ALL
     SELECT 'batterie', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum"
-    FROM raw.storage_units WHERE "Technologie" = '524'
+    FROM raw.storage_units WHERE "Technologie" = 'Batterie'
     UNION ALL
     SELECT 'pumpspeicher', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum"
-    FROM raw.storage_units WHERE "Technologie" = '1537'
+    FROM raw.storage_units WHERE "Technologie" = 'Pumpspeicher'
     UNION ALL
     SELECT 'gaserzeuger', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum"
     FROM raw.gas_producer_units WHERE "SpeicherMaStRNummer" IS NULL
     UNION ALL
     SELECT 'gasspeicher', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.gas_storage_units
+    UNION ALL
+    SELECT 'biomasse', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.biomass_units
+    UNION ALL
+    SELECT 'geothermie_grubengas', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum"
+    FROM raw.geothermal_units
+    UNION ALL
+    SELECT 'kwk', k.ags, p."Inbetriebnahmedatum", p."Registrierungsdatum"
+    FROM raw.kwk_plants p
+    LEFT JOIN kwk_places k ON k.kwk = p."KwkMastrNummer"
+    UNION ALL
+    SELECT 'speicher_sonstige', "Gemeindeschluessel", "Inbetriebnahmedatum", "Registrierungsdatum"
+    FROM raw.storage_units WHERE "Technologie" IN ('Druckluft', 'Schwungrad', 'Wasserstoffspeicher')
 ),
 delays AS (
     SELECT

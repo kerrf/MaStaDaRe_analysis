@@ -50,9 +50,7 @@ export default function AnlagenView({ config, state }) {
         />
       )}
       {technologies.length > 0 && (
-        <SelectionBar technologies={technologies} state={state} active={technology}>
-          {isWind && wind.controls}
-        </SelectionBar>
+        <SelectionBar technologies={technologies} state={state} active={technology} extra={isWind && wind.controls} />
       )}
       {cards.length > 0 && (
         <div id="analyse-anlagen" className={`analyses-grid${cards.length > 1 ? ' analyses-grid--pairs' : ' analyses-grid--single'}`}>

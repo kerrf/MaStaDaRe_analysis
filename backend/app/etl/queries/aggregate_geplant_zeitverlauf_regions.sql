@@ -2,9 +2,10 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 
 DROP MATERIALIZED VIEW IF EXISTS mrt.geplant_zeitverlauf_regions;
 
--- Geplante (genehmigte) Anlagen: units in planning (EinheitBetriebsstatus 31, "In Planung") by the date they are to go
+-- Geplante (genehmigte) Anlagen: units in planning (EinheitBetriebsstatus "In Planung") by the date they are to go
 -- into operation (GeplantesInbetriebnahmedatum, as the operators give it), in the series of the Ausbau
--- (mrt.zubau_zeitverlauf_regions: solar per Anlagenart as Brutto and '…_netto', wind an Land and auf See, hydropower),
+-- (mrt.zubau_zeitverlauf_regions: solar per Anlagenart as Brutto and '…_netto', wind an Land and auf See, hydropower,
+-- biomass, geothermal and the like),
 -- for Deutschland ('DE'), every Bundesland (2-digit key) and Landkreis (5 digits): per month and, with month NULL, per
 -- year the power planned to come in the period (added) and all planned up to its end (installed). Units in Germany;
 -- offshore wind (no Gemeindeschlüssel) counts for Deutschland only. Only dates from the current month on (that of the
@@ -21,22 +22,22 @@ WITH units AS (
         s.amount  -- kW
     FROM raw.solar_units u
     CROSS JOIN LATERAL (
-        SELECT CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END AS art
+        SELECT CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END AS art
     ) a
     CROSS JOIN LATERAL (VALUES
         (a.art, u."Bruttoleistung"),
         (a.art || '_netto', u."Nettonennleistung")
     ) AS s(technology, amount)
-    WHERE u."EinheitBetriebsstatus" = '31' AND u."Land" = '84'
+    WHERE u."EinheitBetriebsstatus" = 'In Planung' AND u."Land" = 'Deutschland'
 
     UNION ALL
     SELECT
-        CASE "WindAnLandOderAufSee" WHEN '889' THEN 'wind_auf_see' ELSE 'wind_an_land' END,
+        CASE "WindAnLandOderAufSee" WHEN 'Windkraft auf See' THEN 'wind_auf_see' ELSE 'wind_an_land' END,
         "Gemeindeschluessel",
         CASE WHEN "GeplantesInbetriebnahmedatum" ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST("GeplantesInbetriebnahmedatum" AS date) END,
         "Bruttoleistung"
     FROM raw.wind_units
-    WHERE "EinheitBetriebsstatus" = '31' AND "Land" = '84'
+    WHERE "EinheitBetriebsstatus" = 'In Planung' AND "Land" = 'Deutschland'
 
     UNION ALL
     SELECT
@@ -45,7 +46,25 @@ WITH units AS (
         CASE WHEN "GeplantesInbetriebnahmedatum" ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST("GeplantesInbetriebnahmedatum" AS date) END,
         "Bruttoleistung"
     FROM raw.water_units
-    WHERE "EinheitBetriebsstatus" = '31' AND "Land" = '84'
+    WHERE "EinheitBetriebsstatus" = 'In Planung' AND "Land" = 'Deutschland'
+
+    UNION ALL
+    SELECT
+        'biomasse',
+        "Gemeindeschluessel",
+        CASE WHEN "GeplantesInbetriebnahmedatum" ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST("GeplantesInbetriebnahmedatum" AS date) END,
+        "Bruttoleistung"
+    FROM raw.biomass_units
+    WHERE "EinheitBetriebsstatus" = 'In Planung' AND "Land" = 'Deutschland'
+
+    UNION ALL
+    SELECT
+        'geothermie_grubengas',
+        "Gemeindeschluessel",
+        CASE WHEN "GeplantesInbetriebnahmedatum" ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST("GeplantesInbetriebnahmedatum" AS date) END,
+        "Bruttoleistung"
+    FROM raw.geothermal_units
+    WHERE "EinheitBetriebsstatus" = 'In Planung' AND "Land" = 'Deutschland'
 ),
 monthly AS (
     -- Per series, region and planned month: the units and their power. Deutschland, the Länder and the Kreise in one pass.

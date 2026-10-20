@@ -97,26 +97,9 @@ function SizeWatcher() {
   return null;
 }
 
-// Page scroll stays page scroll; Ctrl/⌘ + wheel zooms the map. Also the map of the Landkreis/Gemeinde page.
-export function WheelHandler({ onPlainWheel }) {
-  const map = useMap();
-  useEffect(() => {
-    map.scrollWheelZoom.disable();
-    const container = map.getContainer();
-    const handleWheel = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        if (e.deltaY < 0) map.zoomIn();
-        else map.zoomOut();
-      } else {
-        onPlainWheel?.();
-      }
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, [map, onPlainWheel]);
-  return null;
-}
+// Zooming: the wheel over the map zooms it, around the pointer, half a level per notch of a mouse wheel (Leaflet's
+// default is more than one), a touchpad finer; + and − by half a level too. Also the map of the Landkreis/Gemeinde page.
+export const ZOOM_OPTIONS = { scrollWheelZoom: true, wheelPxPerZoomLevel: 150, wheelDebounceTime: 20, zoomDelta: 0.5 };
 
 function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltipFor, onRegionClick, onHover }) {
   const layerRef = useRef(null);
@@ -190,7 +173,6 @@ export default function ChoroplethMap({
   onRegionClick,
   highlight,
   heat,
-  onPlainWheel,
   onHover,
   children,
 }) {
@@ -231,11 +213,10 @@ export default function ChoroplethMap({
       maxZoom={12}
       maxBounds={EUROPE_BOUNDS}
       maxBoundsViscosity={1}
-      scrollWheelZoom={false}
+      {...ZOOM_OPTIONS}
       attributionControl={false}
     >
       <SizeWatcher />
-      <WheelHandler onPlainWheel={onPlainWheel} />
       <ViewController focusFeature={focusFeature} homeBounds={homeBounds} />
 
       {basemap.data && (

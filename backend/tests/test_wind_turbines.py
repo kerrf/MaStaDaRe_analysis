@@ -1,5 +1,6 @@
-"""The turbines' answer stays short: whole numbers without ".0", groups of manufacturers by their codes."""
+"""The turbines' answer stays short: whole numbers without ".0", groups of manufacturers by their names."""
 
+from app.codes import KATALOG
 from app.models.wind import GROUP_OF, HERSTELLER_GRUPPEN, number
 
 
@@ -12,6 +13,12 @@ def test_whole_numbers_lose_their_point():
 
 def test_brands_go_to_the_company_they_went_to():
     names = list(HERSTELLER_GRUPPEN)
-    assert names[GROUP_OF[1625]] == "Vestas"  # NEG Micon
-    assert names[GROUP_OF[2888]] == "Senvion"  # REpower
-    assert 2554 not in GROUP_OF  # "Sonstige" in the register: the group after the named ones
+    assert names[GROUP_OF["NEG Micon Deutschland GmbH"]] == "Vestas"
+    assert names[GROUP_OF["REpower Systems SE"]] == "Senvion"
+    assert "Sonstige" not in GROUP_OF  # "Sonstige" in the register: the group after the named ones
+
+
+def test_the_groups_name_manufacturers_of_the_register():
+    """A typo would put a manufacturer's turbines into "Sonstige" without a word"""
+    manufacturers = set(KATALOG[74][1].values())  # WindHersteller
+    assert set(GROUP_OF) <= manufacturers

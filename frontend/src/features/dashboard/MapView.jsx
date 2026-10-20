@@ -281,7 +281,7 @@ export default function MapView({ config, state }) {
         selected: region && { key: region.ags, name: region.name },
       };
 
-  const mapHints = ['Strg/⌘ + Mausrad zum Zoomen'];
+  const mapHints = ['Mausrad über der Karte zoomt'];
   // The continuous map takes no clicks on areas: its Landkreise are in the Rangliste
   if (isHeatmap) {
     if (canDrill && !kreisAgs) mapHints.push('Klick auf einen Landkreis der Rangliste zum Hineinzoomen');
@@ -292,6 +292,8 @@ export default function MapView({ config, state }) {
   if (canPick && !canDrill && !isHeatmap) mapHints.push(`Klick auf ein Gebiet zeigt seine ${scopeAnalysesOf(technology)[0].label}`);
   if (region) mapHints.push(`Klick außerhalb von ${scopeName}: zurück zu ${parentName}`);
 
+  // A technology with measures of its own (KWK: its heat) has its own rows
+  const tooltipRows = technology.tooltipRows ?? config.tooltipRows;
   const tooltipFor = useCallback(
     (f) => {
       const p = f.properties;
@@ -299,7 +301,7 @@ export default function MapView({ config, state }) {
       const rows = isSites
         ? ''
         : p._hasData
-          ? config.tooltipRows
+          ? tooltipRows
               .map(
                 (r) =>
                   `<tr${r.key === metric.id ? ' class="is-active"' : ''}><th>${r.label}</th><td>${formatNumber(p[r.key], r.digits)}</td><td>${r.unit ?? ''}</td></tr>`,
@@ -314,7 +316,7 @@ export default function MapView({ config, state }) {
           : '';
       return `<div class="map-tooltip__title">${escapeHtml(labelFor(f))}</div>${rows && `<table>${rows}</table>`}${hint}`;
     },
-    [isSites, config.tooltipRows, metric.id, labelFor, drillTarget, canPick, activeGranularity.id, technology],
+    [isSites, tooltipRows, metric.id, labelFor, drillTarget, canPick, activeGranularity.id, technology],
   );
 
   // ----------------------------------------------------- fullscreen, hints
@@ -329,15 +331,6 @@ export default function MapView({ config, state }) {
       document.body.style.overflow = '';
     };
   }, [fullscreen]);
-
-  const [wheelHint, setWheelHint] = useState(false);
-  const hintTimer = useRef(null);
-  const onPlainWheel = useCallback(() => {
-    setWheelHint(true);
-    clearTimeout(hintTimer.current);
-    hintTimer.current = setTimeout(() => setWheelHint(false), 1200);
-  }, []);
-  useEffect(() => () => clearTimeout(hintTimer.current), []);
 
   // --------------------------------------------------------------- export
   const frameRef = useRef(null);
@@ -455,7 +448,6 @@ export default function MapView({ config, state }) {
               heat={
                 isHeatmap ? { data: heat.data, ramp: config.ramp, smoothing: SMOOTHINGS[smoothingId], onDrawn: setHeatDrawn, onHover: onHeatHover } : null
               }
-              onPlainWheel={onPlainWheel}
               onHover={onAreaHover}
             >
               {isSites && <SiteMarkers sites={sites} site={technology.site} categoryOf={categoryOf} />}
@@ -502,9 +494,6 @@ export default function MapView({ config, state }) {
               </div>
             )}
             <MapOverlay state={mapState} technology={technology} onRetry={retry} />
-            <div className={`map-hint${wheelHint ? ' is-visible' : ''}`} aria-hidden="true">
-              Strg + Scrollen zum Zoomen
-            </div>
           </div>
 
           <MapRail

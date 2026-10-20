@@ -5,14 +5,14 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_region_stats;
 -- One row per Anlagenart and region: the API sums the Anlagenarten chosen on the dashboard. Both rows of a region carry
 -- its whole area and population, so the values per km² and per inhabitant add up as well.
 --   gebaeude:    Gebäude-, sonstige und steckerfertige Solaranlagen (853, 2484, 2961) and those without an Art
---   freiflaeche: Freiflächensolaranlagen (852)
+--   freiflaeche: Freiflächensolaranlagen
 -- Power as Brutto (DC, Bruttoleistung: the modules' peak) and Netto (AC, Nettonennleistung: at most the inverter's).
 CREATE MATERIALIZED VIEW mrt.solar_region_stats AS
 WITH gemeinde_solar_agg AS (
     -- 1. Pre-aggregate to 1 row per Gemeinde and Anlagenart to prevent JOIN explosions
     SELECT
         "Gemeindeschluessel" AS ags,
-        CASE WHEN "ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power,
         SUM("Nettonennleistung") AS total_power_net,
@@ -20,7 +20,7 @@ WITH gemeinde_solar_agg AS (
         SUM("Bruttoleistung") FILTER (WHERE "Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power,
         SUM("Nettonennleistung") FILTER (WHERE "Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power_net
     FROM raw.solar_units
-    WHERE "EinheitBetriebsstatus" = '35'  -- InBetrieb: installed, without planned or decommissioned units
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'  -- installed, without planned or decommissioned units
       AND "Gemeindeschluessel" IS NOT NULL
     GROUP BY 1, 2
 ),

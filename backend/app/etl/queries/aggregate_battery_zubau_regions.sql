@@ -18,12 +18,12 @@ WITH battery_plants AS (
         sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'  -- Batterie
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 units AS (
     -- Every battery unit in Germany that went into operation: its class, the year it came (before 2013 as 2012), the
-    -- year it was finally decommissioned (38), its power and capacity (kW, kWh)
+    -- year it was finally decommissioned, its power and capacity (kW, kWh)
     SELECT
         CASE
             WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
@@ -32,16 +32,16 @@ units AS (
         END AS size_class,
         u."Gemeindeschluessel" AS ags,
         GREATEST(CAST(EXTRACT(YEAR FROM u."Inbetriebnahmedatum") AS INTEGER), 2012) AS added_in,
-        CASE WHEN u."EinheitBetriebsstatus" = '38' THEN GREATEST(
+        CASE WHEN u."EinheitBetriebsstatus" = 'Endgültig stillgelegt' THEN GREATEST(
             CAST(EXTRACT(YEAR FROM GREATEST(u."DatumEndgueltigeStilllegung"::date, u."Inbetriebnahmedatum")) AS INTEGER), 2012
         ) END AS removed_in,
         u."Bruttoleistung" AS power,
         b.capacity * u."Bruttoleistung" / b.power AS capacity
     FROM raw.storage_units u
     JOIN battery_plants b USING ("SpeMastrNummer")
-    WHERE u."Technologie" = '524'
+    WHERE u."Technologie" = 'Batterie'
       AND u."Inbetriebnahmedatum" IS NOT NULL
-      AND u."Land" = '84'
+      AND u."Land" = 'Deutschland'
       AND u."Gemeindeschluessel" IS NOT NULL
       AND b.capacity > 0.3
       AND b.power > 0.3

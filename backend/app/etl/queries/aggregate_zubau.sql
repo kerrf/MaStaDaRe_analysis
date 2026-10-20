@@ -17,24 +17,24 @@ WITH battery_plants AS (
         sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'  -- Batterie
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 units AS (
     -- 1. Every unit that went into operation (planned ones have no Inbetriebnahmedatum): its series, the day it came,
-    --    the day it was finally decommissioned (38) and its amount. A decommissioned unit without a valid date leaves
+    --    the day it was finally decommissioned and its amount. A decommissioned unit without a valid date leaves
     --    in the month it came.
     -- Solar in one pass, each unit four times: all solar and its Anlagenart (Freifläche, else Gebäude: also
     -- steckerfertige, sonstige and those without an Art), each as Bruttoleistung and as Nettonennleistung ('…_netto')
     SELECT
         s.technology,
         u."Inbetriebnahmedatum" AS added_on,
-        CASE WHEN u."EinheitBetriebsstatus" = '38'
+        CASE WHEN u."EinheitBetriebsstatus" = 'Endgültig stillgelegt'
             THEN GREATEST(u."DatumEndgueltigeStilllegung"::date, u."Inbetriebnahmedatum") END AS removed_on,
         s.amount  -- kW
     FROM raw.solar_units u
     CROSS JOIN LATERAL (
-        SELECT CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END AS art
+        SELECT CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END AS art
     ) a
     CROSS JOIN LATERAL (VALUES
         ('solar', u."Bruttoleistung"),
@@ -46,9 +46,9 @@ units AS (
 
     UNION ALL
     SELECT
-        CASE "WindAnLandOderAufSee" WHEN '889' THEN 'wind_auf_see' ELSE 'wind_an_land' END,
+        CASE "WindAnLandOderAufSee" WHEN 'Windkraft auf See' THEN 'wind_auf_see' ELSE 'wind_an_land' END,
         "Inbetriebnahmedatum",
-        CASE WHEN "EinheitBetriebsstatus" = '38'
+        CASE WHEN "EinheitBetriebsstatus" = 'Endgültig stillgelegt'
             THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
         "Bruttoleistung"
     FROM raw.wind_units
@@ -59,11 +59,11 @@ units AS (
     SELECT
         'wasserkraft',
         "Inbetriebnahmedatum",
-        CASE WHEN "EinheitBetriebsstatus" = '38'
+        CASE WHEN "EinheitBetriebsstatus" = 'Endgültig stillgelegt'
             THEN GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum") END,
         "Bruttoleistung"
     FROM raw.water_units
-    WHERE "Inbetriebnahmedatum" IS NOT NULL AND "Land" = '84'
+    WHERE "Inbetriebnahmedatum" IS NOT NULL AND "Land" = 'Deutschland'
 
     UNION ALL
     -- Size classes of battery-charts.de (RWTH Aachen) by the plant: Heimspeicher below 30 kWh and 30 kW,
@@ -72,7 +72,7 @@ units AS (
     SELECT
         s.technology,
         u."Inbetriebnahmedatum",
-        CASE WHEN u."EinheitBetriebsstatus" = '38'
+        CASE WHEN u."EinheitBetriebsstatus" = 'Endgültig stillgelegt'
             THEN GREATEST(u."DatumEndgueltigeStilllegung"::date, u."Inbetriebnahmedatum") END,
         s.amount
     FROM raw.storage_units u
@@ -88,7 +88,7 @@ units AS (
         (c.size_class, b.capacity * u."Bruttoleistung" / b.power),  -- kWh
         (c.size_class || '_leistung', u."Bruttoleistung")  -- kW
     ) AS s(technology, amount)
-    WHERE u."Technologie" = '524'
+    WHERE u."Technologie" = 'Batterie'
       AND u."Inbetriebnahmedatum" IS NOT NULL
       -- Plausibility check of battery-charts.de: more than 0.3 kWh and 0.3 kW, full in 6 minutes to 12 hours.
       -- Units whose plant is missing (the nightly update fetches it) have no capacity yet and are left out.

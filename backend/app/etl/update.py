@@ -8,13 +8,16 @@ changes). For every unit type it
 2. sorts them (sync.triage) into new units, changed units, and units the table has in that version already. Those need
    no detail call, which saves almost all of them.
 3. fetches the new units of every type first, then the changed ones (1 API call per unit), translates them into the
-   export's format (codes.encode) and upserts them, 5,000 at a time: an interruption loses one slice at most.
+   format of the raw tables (codes.encode: the export's, with the texts of its codes) and upserts them, 5,000 at a time:
+   an interruption loses one slice at most.
 4. notes up to when the table is complete. When the API quota cuts a run short, the next one continues there.
 
 Storage units have no capacity: the register keeps it on their Speicheranlage (raw.storage_plants). With the new units
 the job fetches the plants still missing, with the changed units their plants (1 API call per plant, GetStromSpeicher),
 and upserts them the same way. Gas storage units and their Gasspeicher (raw.gas_storage_plants, GetGasSpeicher)
-likewise. The plant of a brand-new unit is sometimes not published yet ("Objekt nicht gefunden"): every run tries again.
+likewise, and the EEG and KWK plants of biomass, combustion and geothermal units (raw.biomass_eeg_plants,
+geothermal_eeg_plants, kwk_plants: GetAnlageEeg…, GetAnlageKwk). The plant of a brand-new unit is sometimes not published
+yet ("Objekt nicht gefunden"): every run tries again.
 
 Gas producers and gas storage units come from one list call, told apart by their Einheittyp. Like the export, the gas
 producer table also lists the gas storage units (their general fields): the job copies them over from the storage units.
@@ -56,14 +59,19 @@ from sqlalchemy.engine import Engine
 
 from app.codes import (
     BIOMASS,
+    BIOMASS_EEG_PLANT,
     COMBUSTION,
     GAS_PRODUCER,
     GAS_STORAGE,
     GAS_STORAGE_PLANT,
     GEOTHERMAL,
+    GEOTHERMAL_EEG_PLANT,
     GRID_CONNECTION_POINT_LIST,
     GRID_OPERATOR,
+    KWK_PLANT,
+    MARKTFUNKTIONEN,
     NUCLEAR,
+    SEPARATOR,
     SOLAR,
     STORAGE,
     STORAGE_PLANT,
@@ -111,8 +119,11 @@ class PlantType:
 
     table: str  # in the raw schema
     unit_column: str  # the units' column naming their plant
-    detail_call: str  # takes the plant's number as speMastrNummer
+    detail_call: str
     spec: CodeSpec
+    key: str = "MaStRNummer"  # the plant's number, the table's key
+    id_field: str = "speMastrNummer"  # the detail call's parameter for it
+    units_field: str = "VerknuepfteEinheit"  # the answer's list of the plant's units
 
 
 STORAGE_UNITS = UnitType("storage_units", "Speicher", "Stromspeichereinheit", "GetEinheitStromSpeicher", STORAGE)
@@ -147,14 +158,39 @@ UNIT_TYPES = (  # in this order; solar first, it has by far the most changes
         by_type=True,
     ),
 )
+# The plants of the EEG and of the KWK: the KWK plants group units of three types
+KWK_PLANTS = PlantType(
+    "kwk_plants",
+    "KwkMaStRNummer",
+    "GetAnlageKwk",
+    KWK_PLANT,
+    key="KwkMastrNummer",
+    id_field="kwkMastrNummer",
+    units_field="VerknuepfteEinheiten",
+)
+EEG_PLANT = {"unit_column": "EegMaStRNummer", "key": "EegMaStRNummer", "id_field": "eegMastrNummer"}
 # unit table -> the plants of its units
 PLANT_TYPES = {
-    STORAGE_UNITS.table: PlantType("storage_plants", "SpeMastrNummer", "GetStromSpeicher", STORAGE_PLANT),
-    GAS_STORAGE_UNITS.table: PlantType(
-        "gas_storage_plants", "SpeicherMaStRNummer", "GetGasSpeicher", GAS_STORAGE_PLANT
+    STORAGE_UNITS.table: (PlantType("storage_plants", "SpeMastrNummer", "GetStromSpeicher", STORAGE_PLANT),),
+    GAS_STORAGE_UNITS.table: (
+        PlantType("gas_storage_plants", "SpeicherMaStRNummer", "GetGasSpeicher", GAS_STORAGE_PLANT),
+    ),
+    "biomass_units": (
+        PlantType("biomass_eeg_plants", detail_call="GetAnlageEegBiomasse", spec=BIOMASS_EEG_PLANT, **EEG_PLANT),
+        KWK_PLANTS,
+    ),
+    "combustion_units": (KWK_PLANTS,),
+    "geothermal_units": (
+        PlantType(
+            "geothermal_eeg_plants",
+            detail_call="GetAnlageEegGeothermieGrubengasDruckentspannung",
+            spec=GEOTHERMAL_EEG_PLANT,
+            **EEG_PLANT,
+        ),
+        KWK_PLANTS,
     ),
 }
-UNIT_KEY, PLANT_KEY = "EinheitMastrNummer", "MaStRNummer"
+UNIT_KEY = "EinheitMastrNummer"
 
 
 @dataclass(frozen=True)
@@ -170,8 +206,10 @@ class Table:
 POINTS = Table("grid_connection_points", "NetzanschlusspunktMastrNummer", "LetzteAenderung", GRID_CONNECTION_POINT_LIST)
 # sic, the Marktakteure's date drops the "t"
 OPERATORS = Table("grid_operators", "MastrNummer", "DatumLetzeAktualisierung", GRID_OPERATOR)
-# The Marktfunktionen of the grid operators the table holds (db_migrate.ROW_FILTERS), as the API names them
+# The Marktfunktionen of the grid operators the table holds (db_migrate.ROW_FILTERS), as the API names them, and their
+# texts in the table (Marktfunktionen.xml: 1, 8)
 GRID_OPERATOR_FUNCTIONS = ("Stromnetzbetreiber", "Gasnetzbetreiber")
+GRID_OPERATOR_TEXTS = (MARKTFUNKTIONEN[1], MARKTFUNKTIONEN[8])
 # What the export leaves out of the gas storage units it lists among the gas producers
 GAS_STORAGE_ADDRESS = (
     "Strasse",
@@ -259,8 +297,8 @@ def update_plants(
 ) -> None:
     """Upsert plants: without `units` those still missing for a unit (the new units' plants among them), else the plants
     of `units`. `sample`: units whose plants are re-fetched for the sanity check."""
-    table, unit_column, sample = plants.table, plants.unit_column, sample or []
-    which = f'plant."{PLANT_KEY}" IS NULL' if units is None else f'unit."{UNIT_KEY}" = ANY(:units)'
+    table, unit_column, key, sample = plants.table, plants.unit_column, plants.key, sample or []
+    which = f'plant."{key}" IS NULL' if units is None else f'unit."{UNIT_KEY}" = ANY(:units)'
     with engine.connect() as conn:
         columns = table_columns(conn, table)
         ids = (
@@ -268,7 +306,7 @@ def update_plants(
                 text(f"""
             SELECT DISTINCT unit."{unit_column}"
             FROM {raw_table(unit_type.table)} AS unit
-            LEFT JOIN {raw_table(table)} AS plant ON plant."{PLANT_KEY}" = unit."{unit_column}"
+            LEFT JOIN {raw_table(table)} AS plant ON plant."{key}" = unit."{unit_column}"
             WHERE unit."{unit_column}" IS NOT NULL AND ({which})
             ORDER BY 1
         """),
@@ -289,7 +327,7 @@ def update_plants(
     chunk = to_chunk(fetch_plants(api, plants, ids), columns)
     if chunk:
         with engine.begin() as conn:
-            load(conn, table, chunk, plants.spec, PLANT_KEY, sanity=bool(sample))
+            load(conn, table, chunk, plants.spec, key, sanity=bool(sample))
 
 
 def update_points(api: MastrApi, engine: Engine) -> datetime:
@@ -354,7 +392,7 @@ def update_operators(api: MastrApi, engine: Engine) -> datetime:
         if actor is None:
             continue
         row = encode(actor, OPERATORS.spec)
-        if row.get("Marktfunktion") in ("1", "8"):  # the grid operators, like db_migrate.ROW_FILTERS
+        if row.get("Marktfunktion") in GRID_OPERATOR_TEXTS:  # the grid operators, like db_migrate.ROW_FILTERS
             rows.append(row)
     chunk = to_chunk(rows, columns)
     if chunk:
@@ -470,16 +508,16 @@ def fetch(api: MastrApi, unit_type: UnitType, ids: list[str], until: datetime) -
 
 
 def fetch_plants(api: MastrApi, plants: PlantType, ids: list[str]) -> Iterator[dict[str, str | None]]:
-    """All fields of the plants, in the export's format."""
+    """All fields of the plants, in the format of the raw tables."""
     table = plants.table
     gone = 0
     start = time.perf_counter()
-    for i, plant in enumerate(api.details(plants.detail_call, ids, id_field="speMastrNummer"), start=1):
+    for i, plant in enumerate(api.details(plants.detail_call, ids, id_field=plants.id_field), start=1):
         if plant is None:
             gone += 1
         else:
             # The export lists the plant's units as "SEE…, SEE…" (gas: "GEE…, GEE…"), the API as objects
-            units = plant.pop("VerknuepfteEinheit") or []
+            units = plant.pop(plants.units_field) or []
             plant["VerknuepfteEinheitenMaStRNummern"] = ", ".join(unit["MaStRNummer"] for unit in units) or None
             yield encode(plant, plants.spec)
         if i % PROGRESS_EVERY == 0:
@@ -517,11 +555,11 @@ def load(
     dates: tuple[str, ...] = CHANGE_DATES,
 ) -> None:
     """Upsert the rows through a staging table, which also lets the database compare them with what it has.
-    key: the table's primary key (EinheitMastrNummer, for plants MaStRNummer). sanity: rows for the sanity check are in.
+    key: the table's primary key (EinheitMastrNummer, for plants their number). sanity: rows for the sanity check are in.
     dates: the columns that say a row changed (units: their own date and the grid operator's check)."""
     conn.execute(text(f"CREATE TEMP TABLE staging (LIKE {raw_table(table_name)}) ON COMMIT DROP"))  # same column types
     copy_chunk(conn, "staging", chunk)
-    check(conn, table_name, chunk.columns, spec.multi, key, sanity, dates)
+    check(conn, table_name, chunk.columns, spec, key, sanity, dates)
     upsert(conn, table_name, chunk.columns, key)
 
 
@@ -529,7 +567,7 @@ def check(
     conn: Connection,
     table_name: str,
     columns: tuple[str, ...],
-    multi: frozenset[str],
+    spec: CodeSpec,
     key: str,
     sanity: bool,
     dates: tuple[str, ...] = CHANGE_DATES,
@@ -537,14 +575,14 @@ def check(
     """Sort the fetched units into new / changed / unchanged and check that the unchanged ones are identical.
 
     Unchanged (same dates as in the table) means the API must return exactly what the table holds.
-    A difference points at the translation into the export's format, or at the register itself.
+    A difference points at the translation into the tables' format (codes.encode), or at the register itself.
     sanity: the rows include units re-fetched for this check, so some should be unchanged.
     """
     dates = [date for date in dates if date in columns]
     unchanged = " AND ".join(f'staged."{date}" IS NOT DISTINCT FROM stored."{date}"' for date in dates)
     per_column = []
     for column in columns:
-        differs = f"{unchanged} AND {comparable('staged', column, multi)} IS DISTINCT FROM {comparable('stored', column, multi)}"
+        differs = f"{unchanged} AND {comparable('staged', column, spec)} IS DISTINCT FROM {comparable('stored', column, spec)}"
         per_column.append(f'count(*) FILTER (WHERE {differs}), min("{key}") FILTER (WHERE {differs})')
     total, new, same, *differences = conn.execute(
         text(f"""
@@ -568,10 +606,13 @@ def check(
         logger.warning(f"{table_name}: no sanity check, none of the fetched rows was unchanged")
 
 
-def comparable(alias: str, column: str, multi: frozenset[str]) -> str:
+def comparable(alias: str, column: str, spec: CodeSpec) -> str:
     value = f'{alias}."{column}"'
-    if column in multi:  # same codes, different order: the export keeps the order they were entered in, the API sorts
-        return f"ARRAY(SELECT unnest(string_to_array({value}, ', ')) ORDER BY 1)"
+    # Same values in another order: the export keeps the order they were entered in, the API sorts. The texts of several
+    # codes ("…; …"), or numbers of units ("SEE…, SEE…")
+    if column in spec.multi:
+        separator = SEPARATOR if column in spec.columns else ", "
+        return f"ARRAY(SELECT unnest(string_to_array({value}, '{separator}')) ORDER BY 1)"
     return value
 
 
@@ -654,7 +695,7 @@ if __name__ == "__main__":
         # The gas producers and storage units go together, with the storages.
         needed = (unit_type.table,)
         if unit_type in (GAS_PRODUCERS, GAS_STORAGE_UNITS):
-            needed = (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table].table)
+            needed = (GAS_PRODUCERS.table, GAS_STORAGE_UNITS.table, PLANT_TYPES[GAS_STORAGE_UNITS.table][0].table)
         missing = [table for table in needed if not exists(engine, table)]
         if missing:
             logger.warning(
@@ -675,10 +716,19 @@ if __name__ == "__main__":
         )
         sys.exit(1 if failed else 0)
 
-    # 2. The new units of every type first, then the changes of units the table has, each with the plants they need
+    # 2. The new units of every type first, then the changes of units the table has, each with the plants they need.
+    #    Plants whose table isn't loaded yet wait for it (the units don't need them).
+    missing = sorted(
+        {plants.table for kinds in PLANT_TYPES.values() for plants in kinds if not exists(engine, plants.table)}
+    )
+    for table in missing:
+        logger.warning(f"{table}: raw.{table} not in the database yet, skipped {LOAD_HINT}")
+    plant_types = {
+        table: tuple(plants for plants in kinds if plants.table not in missing) for table, kinds in PLANT_TYPES.items()
+    }
     for batch in ("new", "changed"):
         for unit_type, todo in todos:
-            table, plants = unit_type.table, PLANT_TYPES.get(unit_type.table)
+            table = unit_type.table
             if table in failed:
                 continue
             units = todo.new if batch == "new" else todo.changed
@@ -691,7 +741,9 @@ if __name__ == "__main__":
                 logger.exception(f"{table}: update failed")
                 failed.append(table)
                 continue
-            if plants and plants.table not in failed:
+            for plants in plant_types.get(table, ()):
+                if plants.table in failed:
+                    continue
                 try:
                     if batch == "new":
                         update_plants(unit_type, plants, api, engine)

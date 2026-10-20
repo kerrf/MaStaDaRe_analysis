@@ -10,7 +10,7 @@ WITH plz5_bat_agg AS (
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("") AS total_capacity  -- TODO: NutzbareSpeicherkapazitaet, per Speicheranlage in AnlagenStromSpeicher (not loaded yet)
     FROM raw.storage_units
-    WHERE "Technologie" = '524'  -- Batterie: the only storage technology that counts as a battery
+    WHERE "Technologie" = 'Batterie'  -- the only storage technology that counts as a battery
     GROUP BY "Postleitzahl"
 )
 -- 2. Join the 1-to-1 data and run the ROLLUP

@@ -1,6 +1,11 @@
 """
 Migrate data into the database: the MaStR bulk export into the raw schema (plus regions, PLZ population and shapes).
 
+Every table of the export the database doesn't have yet, with the codes of its catalog columns as their texts
+(codes.to_texts: "In Betrieb" for EinheitBetriebsstatus 35). The tables it has already stay as they are: the nightly
+update keeps them current, an older export would take them back (to load one afresh, drop it first; or export_tables.py
+with the newest export). No arguments:
+
     cd backend
     uv run python -m app.etl.db_migrate
 """
@@ -8,6 +13,7 @@ Migrate data into the database: the MaStR bulk export into the raw schema (plus 
 import io
 import sys
 import time
+from functools import partial
 from logging import getLogger
 from pathlib import Path
 
@@ -17,6 +23,7 @@ from sqlalchemy import Connection, create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 
+from app.codes import TABLE_SPECS, to_texts
 from app.core.config import DB_CONNECT_ARGS, settings
 from app.etl.extract import Chunk, find_export_files, parse_files
 from app.services.logger import setup_logging
@@ -47,6 +54,11 @@ EXPORT_FILES = {
     "storage_units": "EinheitenStromSpeicher",
     "storage_plants": "AnlagenStromSpeicher",  # the Speicheranlagen of the storage units, with their capacity (kWh)
     "solar_units": "EinheitenSolar",
+    # The plants of the EEG and the KWK (Kraft-Wärme-Kopplung) of biomass, combustion and geothermal units: the EEG's
+    # installed power, the KWK's electrical and thermal power. Kept current by the nightly update with their units.
+    "geothermal_eeg_plants": "AnlagenEegGeothermieGrubengasDruckentspannung",
+    "biomass_eeg_plants": "AnlagenEegBiomasse",
+    "kwk_plants": "AnlagenKwk",
     # The grid connections (Netzanschlüsse): the grids (Netze) and their operators (of the Marktakteure only the grid
     # operators, see ROW_FILTERS); the Lokationen, each with its units and Netzanschlusspunkte; the Netzanschlusspunkte:
     # which grid a Lokation is connected to, by which operator, at which voltage level and with which
@@ -61,6 +73,9 @@ EXPORT_FILES = {
 PRIMARY_KEYS = {
     "storage_plants": "MaStRNummer",
     "gas_storage_plants": "MaStRNummer",
+    "geothermal_eeg_plants": "EegMaStRNummer",
+    "biomass_eeg_plants": "EegMaStRNummer",
+    "kwk_plants": "KwkMastrNummer",
     "grids": "MastrNummer",
     "grid_operators": "MastrNummer",
     "locations": "MastrNummer",
@@ -84,8 +99,6 @@ NUMERIC_COLUMNS = [
     "Nettonennleistung",
     "ZugeordneteWirkleistungWechselrichter",
     "AnzahlModule",
-    "HauptausrichtungNeigungswinkel",
-    "NebenausrichtungNeigungswinkel",
     "GroesseDerInAnspruchGenommenenFlaecheInHektar",
     "Laengengrad",
     "Breitengrad",
@@ -111,8 +124,15 @@ NUMERIC_COLUMNS = [
     "MaximaleEinspeiseleistung",  # gas, kWh/h
     "MaximaleAusspeiseleistung",  # gas, kWh/h
     "Netzanschlusskapazitaet",  # gas, kWh/h
+    # EEG and KWK plants, kW
+    "InstallierteLeistung",
+    "ElektrischeKwkLeistung",
+    "ThermischeNutzleistung",
+    "BiogasGaserzeugungskapazitaet",  # m³/h
+    "BiogasHoechstbemessungsleistung",
+    "BiogasUmfangLeistungserhoehung",
 ]
-DATE_COLUMNS = ["Registrierungsdatum", "Inbetriebnahmedatum"]
+DATE_COLUMNS = ["Registrierungsdatum", "Inbetriebnahmedatum", "EegInbetriebnahmedatum"]
 # DatumLetzeAktualisierung (sic): the Marktakteure's; LetzteAenderung: the Netzanschlusspunkte's
 DATETIME_COLUMNS = ["DatumLetzteAktualisierung", "DatumLetzeAktualisierung", "LetzteAenderung"]
 
@@ -145,7 +165,8 @@ def migrate_regions(directory_path: Path, engine: Engine) -> None:
 
 
 def migrate_all_files(directory_path: Path, file_prefix: str, table_name: str, engine: Engine) -> None:
-    """Replace raw.<table_name> with all <file_prefix> files of the export.
+    """Replace raw.<table_name> with all <file_prefix> files of the export, the codes of its catalog columns as their
+    texts (codes.TABLE_SPECS).
 
     One transaction for the whole table: if anything fails, the table keeps its old data.
     """
@@ -161,7 +182,9 @@ def migrate_all_files(directory_path: Path, file_prefix: str, table_name: str, e
         known_columns = prepare_table(conn, table_name)
         loaded_columns: set[str] = set()
 
-        for i, (xml_file, chunks) in enumerate(parse_files(xml_files, ROW_FILTERS.get(table_name)), start=1):
+        spec = TABLE_SPECS[table_name]
+        files = parse_files(xml_files, ROW_FILTERS.get(table_name), partial(to_texts, spec=spec))
+        for i, (xml_file, chunks) in enumerate(files, start=1):
             file_columns = chunks[-1].columns if chunks else ()  # columns only grow within a file
             add_columns(conn, table_name, [column for column in file_columns if column not in known_columns])
             known_columns.update(file_columns)
@@ -352,8 +375,15 @@ if __name__ == "__main__":
     engine = connect_to_db()
 
     for table_name, file_prefix in EXPORT_FILES.items():
+        with engine.connect() as conn:
+            there = conn.execute(text("SELECT to_regclass(:table)"), {"table": raw_table(table_name)}).scalar()
+        if there:
+            logger.info(f"{raw_table(table_name)} is there already, stays as it is")
+            continue
         migrate_all_files(EXPORT_DIR, file_prefix, table_name, engine)
         add_constraints_and_indexes(RAW_SCHEMA, table_name, engine)
+        with engine.begin() as conn:  # which export the table holds (deploy/push_raw_tables.sh shows it)
+            conn.execute(text(f"COMMENT ON TABLE {raw_table(table_name)} IS '{EXPORT_DIR.name}'"))
 
     # migrate_regions(Path("data/geo"), engine)
 

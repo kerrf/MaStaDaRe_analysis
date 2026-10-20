@@ -11,7 +11,7 @@ WITH gemeinde_water_agg AS (
         SUM("Bruttoleistung") AS total_power,
         SUM("Bruttoleistung") FILTER (WHERE "Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power  -- in operation since less than 12 months
     FROM raw.water_units
-    WHERE "EinheitBetriebsstatus" = '35'  -- InBetrieb: installed, without planned or decommissioned units
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'  -- installed, without planned or decommissioned units
       AND "Gemeindeschluessel" IS NOT NULL
     GROUP BY "Gemeindeschluessel"
 ),

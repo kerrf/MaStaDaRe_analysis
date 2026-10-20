@@ -12,16 +12,16 @@ WITH units AS (
     SELECT 'solar' AS technology, "Registrierungsdatum" AS registered FROM raw.solar_units
     UNION ALL
     -- Solar per Anlagenart too: Freifläche, else Gebäude (also steckerfertige, sonstige and those without an Art)
-    SELECT CASE WHEN "ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END, "Registrierungsdatum"
+    SELECT CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END, "Registrierungsdatum"
     FROM raw.solar_units
     UNION ALL
     SELECT 'wind', "Registrierungsdatum" FROM raw.wind_units
     UNION ALL
     SELECT 'wasserkraft', "Registrierungsdatum" FROM raw.water_units
     UNION ALL
-    SELECT 'batterie', "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '524'
+    SELECT 'batterie', "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Batterie'
     UNION ALL
-    SELECT 'pumpspeicher', "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '1537'
+    SELECT 'pumpspeicher', "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Pumpspeicher'
     UNION ALL
     -- Without the gas storage units, which the export lists among the gas producers too
     SELECT 'gaserzeuger', "Registrierungsdatum" FROM raw.gas_producer_units WHERE "SpeicherMaStRNummer" IS NULL

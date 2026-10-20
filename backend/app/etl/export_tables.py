@@ -1,8 +1,9 @@
 """
-Reload the tables of the Netzanschlüsse from the bulk export: the Netzanschlusspunkte, the grid operators and the units
-of the other technologies (biomass, combustion, nuclear, geothermal), which place the Netzanschlusspunkte. The nightly
-update (update.py) keeps them current, but only once they are in the database: it can't fetch millions of
-Netzanschlusspunkte through the API. For a database without them, or to start them afresh.
+Reload the tables that came after the first bulk export from it: the Netzanschlusspunkte, the grid operators, the units
+of the other technologies (biomass, combustion, nuclear, geothermal), which place the Netzanschlusspunkte, and the EEG
+and KWK plants of those units. The nightly update (update.py) keeps them current, but only once they are in the
+database: it can't fetch millions of Netzanschlusspunkte through the API. For a database without them, or to start them
+afresh. (db_migrate loads the tables the database doesn't have from the export on disk, EXPORT_DIR.)
 
 From the newest bulk export (the "Gesamtdatenauszug vom Vortag", about 3.2 GB): downloads it into data/raw unless it's
 there already, unpacks only these tables' files, replaces each table (db_migrate: one transaction each, the views
@@ -12,7 +13,7 @@ deletes the unpacked files (the zip stays, for another run).
     cd backend
     uv run python -m app.etl.export_tables
 
-deploy/push_raw_tables.sh then puts the same tables on the server.
+deploy/push_raw_tables.sh then puts those of them on the server that it doesn't have yet.
 """
 
 import re
@@ -49,13 +50,16 @@ CHUNK = 8 * 1024 * 1024
 LOG_EVERY = 256 * 1024 * 1024  # bytes between two progress lines
 
 
-# What aggregate_netzanschluesse.sql reads besides the units the update had before (solar, wind, water, storage), in
-# the order of db_migrate (smallest first)
+# What came after the units the update had before (solar, wind, water, storage, gas), in the order of db_migrate
+# (smallest first): what aggregate_netzanschluesse.sql reads, and the EEG and KWK plants of the other units
 TABLES = [
     "nuclear_units",
     "geothermal_units",
     "biomass_units",
     "combustion_units",
+    "geothermal_eeg_plants",
+    "biomass_eeg_plants",
+    "kwk_plants",
     "grid_operators",
     "grid_connection_points",
 ]

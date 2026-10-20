@@ -7,7 +7,7 @@ import { EUROPE_BOUNDS } from '../../config/regions';
 import { useLayers } from '../../lib/data';
 import { escapeHtml } from '../../lib/format';
 import { placeLabels } from '../../lib/labelPlacement';
-import { WheelHandler } from './ChoroplethMap';
+import { ZOOM_OPTIONS } from './ChoroplethMap';
 import { fadeOutline, stopFade } from './mapHover';
 
 // Europe around Germany (scripts/geo/build_basemap.py), under the tiles: basemap.de ends at the German border
@@ -208,10 +208,9 @@ export default function KommuneMap({
         maxZoom={16}
         maxBounds={EUROPE_BOUNDS}
         maxBoundsViscosity={1}
-        scrollWheelZoom={false}
+        {...ZOOM_OPTIONS}
       >
         <FitKreis bounds={bounds} />
-        <WheelHandler />
         <ScaleBar />
 
         {europe.data && (

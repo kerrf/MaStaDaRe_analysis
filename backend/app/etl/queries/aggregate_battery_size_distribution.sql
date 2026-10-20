@@ -28,11 +28,11 @@ battery_plants AS (
         sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'  -- Batterie
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 units AS (
-    -- Battery units in operation (InBetrieb) in Germany
+    -- Battery units in operation ("In Betrieb") in Germany
     SELECT
         u."Gemeindeschluessel" AS ags,
         b.capacity AS plant_capacity,
@@ -40,9 +40,9 @@ units AS (
         b.capacity * u."Bruttoleistung" / b.power AS capacity
     FROM raw.storage_units u
     JOIN battery_plants b USING ("SpeMastrNummer")
-    WHERE u."Technologie" = '524'
-      AND u."EinheitBetriebsstatus" = '35'
-      AND u."Land" = '84'
+    WHERE u."Technologie" = 'Batterie'
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'
+      AND u."Land" = 'Deutschland'
       AND u."Gemeindeschluessel" IS NOT NULL
       AND b.capacity > 0.3
       AND b.power > 0.3

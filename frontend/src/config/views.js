@@ -35,8 +35,8 @@ export const DASHBOARD_MENUS = [
     label: 'Erzeuger',
     basePath: '/erzeuger',
     views: {
-      karte: 'Solar, Wind und Wasserkraft je Land, Kreis, Gemeinde',
-      ueberblick: 'Solar, Wind oder Wasserkraft eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Rang, Ausbauziel – auch als PDF',
+      karte: 'Solar, Wind, Biomasse, Wasserkraft, Geothermie, KWK je Land, Kreis, Gemeinde',
+      ueberblick: 'Eine Technologie eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Rang, Ausbauziel – auch als PDF',
       zubau: 'Zubau seit 2000, Registrierungen und Meldefristen',
       anlagen: 'Größenklassen, Ausrichtung, Batteriespeicher an Solaranlagen',
       kommune: 'Ein Landkreis und seine Gemeinden im Detail: Karte, Kennzahlen, Zubau je Jahr',
@@ -48,8 +48,8 @@ export const DASHBOARD_MENUS = [
     label: 'Speicher',
     basePath: '/speicher',
     views: {
-      karte: 'Batterie- und Pumpspeicher je Land, Kreis, Gemeinde',
-      ueberblick: 'Batteriespeicher eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Speichergrößen, Rang – auch als PDF',
+      karte: 'Batterie-, Pump-, Druckluft-, Schwungrad- und Wasserstoffspeicher je Land, Kreis, Gemeinde',
+      ueberblick: 'Batterie- oder sonstige Speicher eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Arten, Rang – auch als PDF',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
       anlagen: 'Speichergröße, Batterietechnologie und Kopplung, Batteriespeicher an Solaranlagen',
       kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',

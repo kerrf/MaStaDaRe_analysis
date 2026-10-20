@@ -35,7 +35,7 @@ class NetzEbene(BaseModel):
     """Points in operation, the power of all units of their Lokationen (MW), in total and per technology, and points in
     planning of one Netzebene."""
 
-    spannungsebene: str  # the code, 348 (Höchstspannung, Netzebene 1) to 354 (Niederspannung, 7)
+    netzebene: int  # 1 (Höchstspannung) to 7 (Niederspannung), each voltage and the transformation below it
     punkte: int
     leistung: float
     technologien: dict[
@@ -73,7 +73,7 @@ def get_dashboard_stats(level: RegionLevel, ebenen: Ebenen, db: Session = Depend
 def get_ebenen(db: Annotated[Session, Depends(get_db)], region: NetzScope = "DE"):
     """The Netzanschlusspunkte der Stromerzeugung per Netzebene, in Deutschland, a Land or a Kreis, with the power of all
     units of their Lokationen per technology."""
-    rows = NetzAnschluss.summed(db, region, NetzAnschluss.spannungsebene, technologien=True)
+    rows = NetzAnschluss.summed(db, region, NetzAnschluss.netzebene, technologien=True)
     return [{**row, "technologien": {t: row.pop(f"leistung_{t}") or 0 for t in TECHNOLOGIEN}} for row in rows]
 
 

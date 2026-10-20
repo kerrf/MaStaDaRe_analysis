@@ -114,11 +114,11 @@ leistung: { param: 'leistung', label: 'Leistung', options: [{ id: 'netto', … }
 The technology and its filters are one band at the top of every page that has a choice of them – Karte (the top band
 of the map card, its toolbar the second row), Regionen im Detail, Anlagen, Regionen im Vergleich – the same everywhere
 (`SelectionBar.jsx`): a box "Technologie" (the Netzanschlüsse: `technologyLabel`, "Anschlüsse") with the technologies,
-the chosen one filled in the topic's colour, and right after it a box per filter of the chosen technology
-(`TechFilters.jsx`): the `SubtypePicker` (Anlagenart, Lage …: at least one stays selected; an option with a `color`
-shows it in its box) and the `OptionSwitch` Netto (AC) / Brutto (DC). The `note` of `leistung` is a remark at the
-page's bottom, marked ¹ at the switch and in the map title. Further rows of the band: the map's toolbar, on Anlagen
-the wind turbines' status and colour (`WindControls.jsx`). Also with a single technology (Speicher; Regionen im Detail:
+the chosen one filled in the topic's colour, and in the row below it, under a line, a box per filter of the chosen
+technology (`TechFilters.jsx`): the `SubtypePicker` (Anlagenart, Lage …: at least one stays selected; an option with a
+`color` shows it in its box) and the `OptionSwitch` Netto (AC) / Brutto (DC); on Anlagen also the wind turbines'
+status (`WindControls.jsx`, the `extra` of the row). The same for every technology. The `note` of `leistung` is a
+remark at the page's bottom, marked ¹ at the switch and in the map title. Further rows of the band: the map's toolbar. Also with a single technology (Speicher; Regionen im Detail:
 the dashboard's one).
 A technology's selection comes from its own parameters, so a page can show another one than the URL's (Anlagen: the
 batteries while the map is on Pumpspeicher) with its filters (`setSubtypesOf`, `setLeistungOf`).
@@ -126,7 +126,8 @@ batteries while the map is on Pumpspeicher) with its filters (`setSubtypesOf`, `
 Solar: both go to every solar request as the same parameters as in the page URL
 (`?anlagenart=freiflaeche&leistung=brutto`, only what differs from the default: all Anlagenarten, Netto – the API has
 the same default) – map, KPIs, ranking, analysis cards and the table per region (`selectionQuery` from
-`useDashboardState.js`). The solar views hold one row per Anlagenart (gebaeude: 853, 2484, 2961 and none; freiflaeche: 852)
+`useDashboardState.js`). The solar views hold one row per Anlagenart (gebaeude: Gebäude-, sonstige, steckerfertige Solaranlage
+and none; freiflaeche: Freiflächensolaranlage)
 with Brutto and Netto columns; the API sums the chosen Anlagenarten and answers with the usual field names, so nothing
 else changes on the page. Map title, legend and Top 10 name the measure ("· Netto (AC)"), the map subtitle a narrowed
 selection ("· nur Freifläche"). The Ausbau im Zeitverlauf follows the Leistung (series with `netto`), not the
@@ -135,6 +136,13 @@ Anlagenart.
 Wind: `subtypes` Lage (`?lage=an_land|auf_see`). Offshore wind is the region `offshore` on every level; the API leaves
 it out without `auf_see` and gives the regions on land zeros without `an_land` (`by_lage` in `routers/wind.py`); the
 size classes hold one row per Lage. The map shows the sea while Auf See is chosen (`offshore: 'auf_see'`).
+
+Biomasse (`?art=gasfoermig|fest|fluessig`), Geothermie & Grubengas (`?art=geothermie|grubengas|…`), KWK
+(`?energietraeger=erdgas|biomasse|kohle|sonstige`, the fuel of a plant's largest unit) and the Sonstige Speicher
+(`?art=druckluft|schwungrad|wasserstoff`): their views hold one row per kind, each with its region's whole area and
+population, and the API sums the chosen ones (`KindRegionStats` in `backend/app/models/regions.py`). Their large plants
+published with their Land only count for the Land, not for a Kreis (`note`: a line below the map). KWK has its own
+`metrics` with the quantity `waerme` (Thermische Leistung beside the electrical one) and `tooltipRows`.
 
 Sites (`plantsPath`) with `subtypes` filter their plants in the browser by the plant's `subtypes.field` instead (Gas:
 Technologie, Speicherart), and colour them by the option's `color`.
@@ -217,7 +225,8 @@ technologies: a URL of its own per set of series, never an older cached answer w
 the period, `total` all up to its end; `?yearly=true` only the years), every unit the register lists whatever its
 status. The same time controls as the Ausbau im Zeitverlauf (below): aggregiert (all registered so far), Jährlich or
 Monatlich, the span. Each dashboard lists its technologies in `registrations.series` (Erzeuger: Solar Gebäude and
-Freifläche, Wind an Land and auf See, Wasserkraft; Speicher: Batterie, Pumpspeicher; Gas: Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands
+Freifläche, Wind an Land and auf See, Biomasse, Wasserkraft, Geothermie & Grubengas, KWK; Speicher: Batterie,
+Pumpspeicher, Sonstige; Gas: Gaserzeuger, Gasspeicher). Counts from 10,000 on read in thousands
 on the axis (`StackedChart`, unit `Anzahl`).
 
 ### Ausrichtung nach Neigungswinkel (`OrientationTiltAnalysis.jsx`, kind `orientation-tilt`)

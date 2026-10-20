@@ -35,6 +35,16 @@ backend_healthy() {
 git rev-parse --quiet --verify refs/deploy/previous > /dev/null || die "no earlier deploy noted: nothing to go back to"
 docker image inspect mastr-api:previous > /dev/null 2>&1 || die "the image of the earlier version is gone: nothing to go back to"
 
+# The raw tables hold texts instead of catalog codes since app/etl/decode_codes.py; a version from before reads and writes
+# codes: its views would come out empty, its nightly update would write codes into the tables again. Going back that far
+# is possible, but without the nightly update (a deploy of a version with the texts switches it on again).
+if ! git cat-file -e "refs/deploy/previous:backend/app/etl/decode_codes.py" 2> /dev/null; then
+  step "The earlier version reads catalog codes, the tables hold texts: its nightly update stays off"
+  if [[ $EUID == 0 ]]; then
+    systemctl disable --now --quiet mastr-update.timer 2> /dev/null || true
+  fi
+fi
+
 step "Going back to $(git rev-parse --short refs/deploy/previous)"
 git reset --quiet --hard refs/deploy/previous
 docker tag mastr-api:previous mastr-api:live

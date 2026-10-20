@@ -59,7 +59,7 @@ function OptionSwitch({ label, describedBy, option, value, onChange }) {
   );
 }
 
-// The active technology's own filters, each a box of its own right after the choice of technology (SelectionBar): they
+// The active technology's own filters, each a box of its own in the row below the choice of technology (SelectionBar): they
 // narrow down the technology (Solar: Anlagenart, Leistung), they are not another technology. In the topic's colour like
 // the chosen technology.
 export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {

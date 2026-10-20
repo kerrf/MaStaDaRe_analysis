@@ -7,34 +7,61 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.registrierungen_regions;
 -- year, the units registered in the period and all registered up to its end. A unit counts in the Land and Kreis of its
 -- Gemeindeschlüssel; one without (offshore, abroad) for Deutschland only.
 CREATE MATERIALIZED VIEW mrt.registrierungen_regions AS
-WITH units AS (
+WITH kwk_places AS (
+    -- Per KWK plant the Gemeinde of its largest unit (biomass, combustion and geothermal units name their KWK plant)
+    SELECT DISTINCT ON (kwk) kwk, ags
+    FROM (
+        SELECT "KwkMaStRNummer" AS kwk, "Gemeindeschluessel" AS ags, "Bruttoleistung" AS kw FROM raw.biomass_units
+        UNION ALL
+        SELECT "KwkMaStRNummer", "Gemeindeschluessel", "Bruttoleistung" FROM raw.combustion_units
+        UNION ALL
+        SELECT "KwkMaStRNummer", "Gemeindeschluessel", "Bruttoleistung" FROM raw.geothermal_units
+    ) u
+    WHERE kwk IS NOT NULL
+    ORDER BY kwk, kw DESC NULLS LAST, ags
+),
+units AS (
     -- Solar as a whole and per Anlagenart: Freifläche, else Gebäude (also steckerfertige, sonstige, without an Art)
     SELECT s.technology, u."Gemeindeschluessel" AS ags, u."Registrierungsdatum" AS registered
     FROM raw.solar_units u
     CROSS JOIN LATERAL (VALUES
         ('solar'),
-        (CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END)
+        (CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END)
     ) AS s(technology)
     UNION ALL
-    -- Wind as a whole and per Lage: auf See (889), else an Land
+    -- Wind as a whole and per Lage: auf See, else an Land
     SELECT w.technology, u."Gemeindeschluessel", u."Registrierungsdatum"
     FROM raw.wind_units u
     CROSS JOIN LATERAL (VALUES
         ('wind'),
-        (CASE WHEN u."WindAnLandOderAufSee" = '889' THEN 'wind_auf_see' ELSE 'wind_an_land' END)
+        (CASE WHEN u."WindAnLandOderAufSee" = 'Windkraft auf See' THEN 'wind_auf_see' ELSE 'wind_an_land' END)
     ) AS w(technology)
     UNION ALL
     SELECT 'wasserkraft', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.water_units
     UNION ALL
-    SELECT 'batterie', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '524'
+    SELECT 'batterie', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Batterie'
     UNION ALL
-    SELECT 'pumpspeicher', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '1537'
+    SELECT 'pumpspeicher', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Pumpspeicher'
     UNION ALL
     -- Without the gas storage units, which the export lists among the gas producers too
     SELECT 'gaserzeuger', "Gemeindeschluessel", "Registrierungsdatum"
     FROM raw.gas_producer_units WHERE "SpeicherMaStRNummer" IS NULL
     UNION ALL
     SELECT 'gasspeicher', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.gas_storage_units
+    UNION ALL
+    SELECT 'biomasse', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.biomass_units
+    UNION ALL
+    -- Geothermie, Grubengas, Klärschlamm, Druckentspannung and Solarthermie
+    SELECT 'geothermie_grubengas', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.geothermal_units
+    UNION ALL
+    -- The KWK plants, in the Gemeinde of their largest unit
+    SELECT 'kwk', k.ags, p."Registrierungsdatum"
+    FROM raw.kwk_plants p
+    LEFT JOIN kwk_places k ON k.kwk = p."KwkMastrNummer"
+    UNION ALL
+    -- The storages that are neither batteries nor pumped storage: Druckluft, Schwungrad, Wasserstoff
+    SELECT 'speicher_sonstige', "Gemeindeschluessel", "Registrierungsdatum"
+    FROM raw.storage_units WHERE "Technologie" IN ('Druckluft', 'Schwungrad', 'Wasserstoffspeicher')
 ),
 per_month AS (
     -- Deutschland, the Länder and the Kreise in one pass

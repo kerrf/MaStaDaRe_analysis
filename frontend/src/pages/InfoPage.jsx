@@ -186,7 +186,7 @@ export default function InfoPage() {
                 Gesamtansicht, jeweils mit der vorherigen Auflösung. „Deutschland“ im Gebietsfeld führt direkt zur Gesamtansicht.
               </li>
               <li>
-                <strong>Strg/⌘ + Mausrad</strong> zoomt die Karte, normales Scrollen bewegt die Seite.
+                <strong>Mausrad über der Karte</strong> zoomt sie, um den Mauszeiger; daneben scrollt es die Seite.
               </li>
               <li>
                 <strong>Solar – Anlagenart:</strong> Gebäude- und Freiflächenanlagen lassen sich getrennt auswählen. Der Filter wird gerade
@@ -302,6 +302,18 @@ export default function InfoPage() {
               <li>
                 <strong>Pumpspeicher:</strong> Die einzeln registrierten Maschinen werden über Standort und Speicheranlage zu
                 Kraftwerken zusammengefasst; winzige Fehleinträge (bis 33 kW) zählen nicht.
+              </li>
+              <li>
+                <strong>Biomasse, Geothermie &amp; Grubengas:</strong> Jede Einheit zählt einzeln, wie im Register (eine Biogasanlage
+                hat oft mehrere Motoren). Große Kraftwerke stehen nur mit ihrem Bundesland im Register: Sie zählen für das Land, nicht
+                für einen Kreis.
+              </li>
+              <li>
+                <strong>KWK:</strong> Eine KWK-Anlage liegt, wo ihre größte Einheit liegt, und zählt mit deren Energieträger. Die
+                thermische Leistung nur bis zum 50-Fachen der elektrischen – darüber steht meist kWh statt kW im Register.
+              </li>
+              <li>
+                <strong>Sonstige Speicher:</strong> Druckluft, Schwungrad und Wasserstoff mit der Kapazität, wie sie registriert ist.
               </li>
               <li>
                 <strong>Gas:</strong> Erzeuger und Speicher in Betrieb, nach ihrer Leistung bzw. ihrem Arbeitsgasvolumen.

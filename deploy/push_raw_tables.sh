@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-# Put the tables of the Netzanschlüsse on the server: the Netzanschlusspunkte, the grid operators and the units of the
-# other technologies (backend/app/etl/export_tables.py, which can load them here from the newest export). The nightly
-# update keeps them current once they are there. Not the whole database (deploy/push_db.sh): the rest stays as the
-# nightly update keeps it.
-#   1. count the rows of these tables and dump them (compressed),
+# Put the tables on the server that came after the first bulk export and that it doesn't have yet: the Netzanschlusspunkte,
+# the grid operators, the units of the other technologies and their EEG and KWK plants (TABLES of
+# backend/app/etl/export_tables.py, which can load them here from the newest export; db_migrate from the export on
+# disk). The nightly update keeps them current once they are there. The tables the server has stay as they are: they
+# are newer than these. Not the whole database (deploy/push_db.sh): the rest stays as the nightly update keeps it.
+#   1. ask the server which of the tables it lacks, count their rows here and dump them (compressed),
 #   2. upload the dump (resumable) and check that it arrived unchanged,
 #   3. on the server, restore them next to the live tables, check the row counts and replace the live ones in one
 #      transaction (deploy/raw_tables_on_server.sh); then build the views that were missing for want of them.
@@ -40,19 +41,27 @@ started=$SECONDS
 
 # ------------------------------------------------------------------------------------------------------ 1. checks
 step "Checks"
-# Which tables: export_tables.py names them
-tables=$(cd backend && uv run --quiet python -c 'from app.etl.export_tables import TABLES; print(",".join(TABLES))')
-[[ -n $tables ]] || die "no tables to upload (backend/app/etl/export_tables.py)."
+# Which tables: export_tables.py names them, of them the ones the server doesn't have
+all_tables=$(cd backend && uv run --quiet python -c 'from app.etl.export_tables import TABLES; print(",".join(TABLES))')
+[[ -n $all_tables ]] || die "no tables to upload (backend/app/etl/export_tables.py)."
 docker exec "$LOCAL_CONTAINER" pg_isready -U "$DB_USER" -d "$DB" -q || die "the local database ($LOCAL_CONTAINER) isn't running."
 busy=$(local_psql -c "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND state <> 'idle'")
 [[ $busy == 0 ]] || die "something is still running in the local database (a reload or a view rebuild?). Let it finish first."
-for table in ${tables//,/ }; do
-  [[ $(local_psql -c "SELECT to_regclass('raw.$table') IS NOT NULL") == t ]] ||
-    die "raw.$table isn't in the local database: load it first (cd backend && uv run python -m app.etl.export_tables)."
-  info "raw.$table: $(local_psql -c "SELECT coalesce(obj_description('raw.$table'::regclass, 'pg_class'), 'export unknown')")"
-done
 remote true || die "no ssh access to $SERVER."
 remote "systemctl is-active --quiet mastr-update.service" && die "the nightly update is running on the server. Try again when it's done."
+tables=$(remote "docker exec $REMOTE_CONTAINER psql -U $DB_USER -d $DB -tAc \"SELECT string_agg(t, ',' ORDER BY n) FROM unnest(string_to_array('$all_tables', ',')) WITH ORDINALITY AS a(t, n) WHERE to_regclass('raw.' || t) IS NULL\"")
+for table in ${all_tables//,/ }; do
+  [[ ,$tables, == *,$table,* ]] || info "raw.$table: on the server already, stays as it is"
+done
+if [[ -z $tables ]]; then
+  step "Nothing to upload: the server has every table (the nightly update keeps them current)"
+  exit 0
+fi
+for table in ${tables//,/ }; do
+  [[ $(local_psql -c "SELECT to_regclass('raw.$table') IS NOT NULL") == t ]] ||
+    die "raw.$table isn't in the local database: load it first (cd backend && uv run python -m app.etl.db_migrate)."
+  info "raw.$table, to upload: $(local_psql -c "SELECT coalesce(obj_description('raw.$table'::regclass, 'pg_class'), 'export unknown')")"
+done
 
 # The dump has to come from the server's major version: an older pg_restore can't read the files of a newer pg_dump
 server_major=$(remote "docker exec $REMOTE_CONTAINER psql -U $DB_USER -d $DB -tAc 'SHOW server_version_num'" | cut -c1-2)

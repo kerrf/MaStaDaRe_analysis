@@ -10,19 +10,19 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_zubau_regions;
 CREATE MATERIALIZED VIEW mrt.solar_zubau_regions AS
 WITH units AS (
     -- Every unit in Germany that went into operation (planned ones have no Inbetriebnahmedatum): the year it came,
-    -- before 2000 as 1999, and the year it was finally decommissioned (38), at the earliest the year it came
+    -- before 2000 as 1999, and the year it was finally decommissioned, at the earliest the year it came
     SELECT
-        CASE WHEN "ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         "Gemeindeschluessel" AS ags,
         GREATEST(CAST(EXTRACT(YEAR FROM "Inbetriebnahmedatum") AS INTEGER), 1999) AS added_in,
-        CASE WHEN "EinheitBetriebsstatus" = '38' THEN GREATEST(
+        CASE WHEN "EinheitBetriebsstatus" = 'Endgültig stillgelegt' THEN GREATEST(
             CAST(EXTRACT(YEAR FROM GREATEST("DatumEndgueltigeStilllegung"::date, "Inbetriebnahmedatum")) AS INTEGER), 1999
         ) END AS removed_in,
         COALESCE("Bruttoleistung", 0) AS power,
         COALESCE("Nettonennleistung", 0) AS power_net
     FROM raw.solar_units
     WHERE "Inbetriebnahmedatum" IS NOT NULL
-      AND "Land" = '84'
+      AND "Land" = 'Deutschland'
       AND "Gemeindeschluessel" IS NOT NULL
 ),
 changes AS (

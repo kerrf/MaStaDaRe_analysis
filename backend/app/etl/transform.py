@@ -53,6 +53,13 @@ VIEW_FILES = [
     "aggregate_wind_by_region_power.sql",
     "aggregate_bat_by_region_power.sql",
     "aggregate_water_by_region_power.sql",
+    # The same per Biomasseart, per Energieträger of raw.geothermal_units, for the KWK plants (raw.kwk_plants, placed
+    # by their units) and for the storages that are neither batteries nor pumped storage: also the plants published
+    # with their Land only
+    "aggregate_biomass_by_region_power.sql",
+    "aggregate_geothermal_by_region_power.sql",
+    "aggregate_kwk_by_region_power.sql",
+    "aggregate_other_storage_by_region_power.sql",
     # Needs raw.storage_plants (AnlagenStromSpeicher) for the storage capacity
     "aggregate_pumpspeicher.sql",
     # Ausbau im Zeitverlauf (Germany-wide, per month and year); battery capacity also from raw.storage_plants
@@ -151,13 +158,15 @@ def missing_raw_tables(engine: Engine, sql: str) -> list[str]:
         ]
 
 
-def build_views(engine: Engine) -> list[str]:
+def build_views(engine: Engine, only: set[str] | None = None) -> list[str]:
     """Builds the views whose file changed or that don't exist yet, except those whose raw tables aren't there yet:
     they are left out with a warning (their pages have no data until the tables are loaded with db_migrate), so the
-    other views – and a deploy – go ahead. Returns the files built."""
+    other views – and a deploy – go ahead. only: just these files (decode_codes.py). Returns the files built."""
     stamps = built_stamps(engine)
     todo = []
     for file_name in VIEW_FILES:
+        if only is not None and file_name not in only:
+            continue
         sql = (QUERIES / file_name).read_text(encoding="utf-8")
         views = views_of(sql)
         if not views:

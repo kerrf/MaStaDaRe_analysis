@@ -98,6 +98,27 @@
   --series-netz-erdgas: #8a6a45;
   --series-netz-kohle: #45403b;
   --series-netz-sonstige: #b9ab8f;
+  /* Biomass: the netz green, Biogas in it, the solid fuel in a brown wood, the liquid one in an olive */
+  --series-biomasse: #4f9a3a;
+  --series-biogas: #4f9a3a;
+  --series-biomasse-fest: #8a5a2b;
+  --series-biomasse-fluessig: #a7a33a;
+  /* Geothermal and the like: the earth's red for Geothermie, the mine's grey for Grubengas, sludge brown, pipelines blue */
+  --series-geothermie: #c2453d;
+  --series-grubengas: #5b6472;
+  --series-klaerschlamm: #8a6a45;
+  --series-druckentspannung: #3b6fd4;
+  --series-solarthermie: #e8a33a;
+  /* KWK by the fuel of its largest unit, like the Netzanschlüsse */
+  --series-kwk: #c25a0e;
+  --series-kwk-erdgas: #8a6a45;
+  --series-kwk-biomasse: #4f9a3a;
+  --series-kwk-kohle: #45403b;
+  --series-kwk-sonstige: #b9ab8f;
+  /* The other storages: compressed air light, the flywheel's steel, hydrogen's blue (as the gas sites') */
+  --series-druckluft: #86b6ef;
+  --series-schwungrad: #5b6472;
+  --series-wasserstoffspeicher: #0f9fc4;
   /* Time from commissioning to registration: grey early, green within the deadline, then warmer the later */
   --delay-early: #98a2b3;
   --delay-in-time: #3f9b63;

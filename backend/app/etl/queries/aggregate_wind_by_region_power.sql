@@ -7,13 +7,13 @@ WITH gemeinde_wind_agg AS (
     -- 1. Pre-aggregate to 1 row per Gemeinde to prevent JOIN explosions.
     --    Offshore units (WindAufSee) lie in no Gemeinde: together they are the row 'offshore', the sea.
     SELECT
-        CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'offshore' ELSE "Gemeindeschluessel" END AS ags,
+        CASE WHEN "WindAnLandOderAufSee" = 'Windkraft auf See' THEN 'offshore' ELSE "Gemeindeschluessel" END AS ags,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power,
         SUM("Bruttoleistung") FILTER (WHERE "Inbetriebnahmedatum" > CURRENT_DATE - INTERVAL '12 months') AS added_12m_power  -- in operation since less than 12 months
     FROM raw.wind_units
-    WHERE "EinheitBetriebsstatus" = '35'  -- InBetrieb: installed, without planned or decommissioned units
-      AND ("WindAnLandOderAufSee" = '889' OR "Gemeindeschluessel" IS NOT NULL)
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'  -- installed, without planned or decommissioned units
+      AND ("WindAnLandOderAufSee" = 'Windkraft auf See' OR "Gemeindeschluessel" IS NOT NULL)
     GROUP BY 1
 ),
 joined AS (

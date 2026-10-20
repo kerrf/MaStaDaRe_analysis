@@ -76,7 +76,7 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
   const rows = useMemo(() => {
     if (!data.data) return [];
     return NETZEBENEN.map((ebene) => {
-      const own = data.data.find((row) => row.spannungsebene === ebene.code);
+      const own = data.data.find((row) => row.netzebene === ebene.ne);
       return { ...ebene, punkte: own?.punkte ?? 0, leistung: own?.leistung ?? 0, geplant: own?.geplant ?? 0, byTech: own?.technologien ?? {} };
     });
   }, [data.data]);
@@ -129,7 +129,7 @@ function NetzebenenAnalysis({ analysis, region, scopeName, fileBase }) {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.code}>
+                <tr key={row.ne}>
                   <th scope="row">
                     <span className="netz-table__ne">{row.ne}</span> {row.label}
                   </th>

@@ -9,12 +9,12 @@ WITH plz5_solar_agg AS (
     -- 1. Pre-aggregate to 1 row per PLZ5 and Anlagenart to prevent JOIN explosions
     SELECT
         "Postleitzahl" AS plz5,
-        CASE WHEN "ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power,
         SUM("Nettonennleistung") AS total_power_net
     FROM raw.solar_units
-    WHERE "EinheitBetriebsstatus" = '35'  -- InBetrieb, like the region rollups
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'  -- like the region rollups
     GROUP BY 1, 2
 ),
 plz_areas AS (

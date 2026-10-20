@@ -35,14 +35,14 @@ battery_plants AS (
     SELECT u."SpeMastrNummer", max(p."NutzbareSpeicherkapazitaet") AS capacity, sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 units AS (
-    -- Every unit in operation (InBetrieb): where it is, its power (Brutto, Netto) and capacity
+    -- Every unit in operation ("In Betrieb"): where it is, its power (Brutto, Netto) and capacity
     SELECT
         'solar' AS technology,
-        CASE WHEN "ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         "Laengengrad" AS x,
         "Breitengrad" AS y,
         "Postleitzahl" AS plz,
@@ -50,11 +50,11 @@ units AS (
         "Nettonennleistung" AS power_net,
         NULL::float8 AS capacity
     FROM raw.solar_units
-    WHERE "EinheitBetriebsstatus" = '35'
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'
     UNION ALL
     SELECT
         'wind',
-        CASE WHEN "WindAnLandOderAufSee" = '889' THEN 'auf_see' ELSE 'an_land' END,
+        CASE WHEN "WindAnLandOderAufSee" = 'Windkraft auf See' THEN 'auf_see' ELSE 'an_land' END,
         "Laengengrad",
         "Breitengrad",
         "Postleitzahl",
@@ -62,7 +62,7 @@ units AS (
         "Nettonennleistung",
         NULL
     FROM raw.wind_units
-    WHERE "EinheitBetriebsstatus" = '35'
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'
     UNION ALL
     SELECT
         'batterie',
@@ -78,8 +78,8 @@ units AS (
             THEN b.capacity * u."Bruttoleistung" / b.power END
     FROM raw.storage_units u
     LEFT JOIN battery_plants b USING ("SpeMastrNummer")
-    WHERE u."Technologie" = '524'  -- Batterie
-      AND u."EinheitBetriebsstatus" = '35'
+    WHERE u."Technologie" = 'Batterie'
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'
 ),
 located AS (
     -- At its coordinates (site) or its postcode (area)

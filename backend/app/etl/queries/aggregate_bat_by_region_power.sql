@@ -8,7 +8,7 @@ WITH battery_plants AS (
     SELECT u."SpeMastrNummer", max(p."NutzbareSpeicherkapazitaet") AS capacity, sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 gemeinde_battery_agg AS (
@@ -31,8 +31,8 @@ gemeinde_battery_agg AS (
         ) AS added_12m_capacity
     FROM raw.storage_units u
     LEFT JOIN battery_plants b USING ("SpeMastrNummer")
-    WHERE u."Technologie" = '524'  -- Batterie: the only storage technology that counts as a battery (not Pumpspeicher, Druckluft, ...)
-      AND u."EinheitBetriebsstatus" = '35'  -- InBetrieb: installed, without planned or decommissioned units
+    WHERE u."Technologie" = 'Batterie'  -- the only storage technology that counts as a battery (not Pumpspeicher, Druckluft, ...)
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'  -- installed, without planned or decommissioned units
       AND u."Gemeindeschluessel" IS NOT NULL
     GROUP BY u."Gemeindeschluessel"
 ),

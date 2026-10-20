@@ -14,7 +14,7 @@ WITH RECURSIVE units AS (
         -- the name without its last word ("Wehr MS A10" -> "Wehr"), for plants whose machines have different names
         regexp_replace("NameStromerzeugungseinheit", '(\s+(PSS|MS|Maschine|Turbine|-))*\s+\S+$', '') AS station
     FROM raw.storage_units
-    WHERE "Technologie" = '1537'  -- Pumpspeicher
+    WHERE "Technologie" = 'Pumpspeicher'
       AND "DatumEndgueltigeStilllegung" IS NULL
 ),
 same_location AS (
@@ -58,7 +58,7 @@ plants AS (
         string_agg(DISTINCT u.station, ' / ') AS stations,
         CASE
             WHEN bool_and(u."GeplantesInbetriebnahmedatum" IS NOT NULL) THEN 'in Planung'  -- not built yet
-            WHEN bool_and(u."EinheitBetriebsstatus" = '37') THEN 'vorübergehend stillgelegt'
+            WHEN bool_and(u."EinheitBetriebsstatus" = 'Vorübergehend stillgelegt') THEN 'vorübergehend stillgelegt'
             ELSE 'in Betrieb'
         END AS status,
         count(*) AS total_units,
@@ -69,8 +69,7 @@ plants AS (
         avg(u."Laengengrad") AS lon,
         mode() WITHIN GROUP (ORDER BY u."Ort") AS ort,
         min(u."Gemeindeschluessel") AS ags,  -- empty for the plants in Austria and Luxembourg
-        CASE min(u."Land") WHEN '84' THEN 'Deutschland' WHEN '206' THEN 'Österreich' WHEN '169' THEN 'Luxemburg'
-            WHEN '231' THEN 'Schweiz' ELSE min(u."Land") END AS land
+        min(u."Land") AS land
     FROM plant_units u
     JOIN shared s USING (plant)
     LEFT JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"

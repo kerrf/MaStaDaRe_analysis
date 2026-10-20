@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from app.models.solar import Base
 
 # solar: Bruttoleistung (DC), solar_netto: Nettonennleistung (AC), also per Anlagenart (solar_gebaeude,
-# solar_freiflaeche) and the Balkonkraftwerke on their own (solar_balkon_netto, also in solar_gebaeude); batteries:
-# capacity, and power as "..._leistung"
+# solar_freiflaeche) and the Balkonkraftwerke on their own (solar_balkon_netto, also in solar_gebaeude); batteries and the
+# other storages: capacity, and power as "..._leistung"; biomass, geothermal (geothermie_grubengas) and KWK (electrical
+# power) as a whole and per kind
 Technology = Literal[
     "solar",
     "solar_netto",
@@ -25,6 +26,27 @@ Technology = Literal[
     "heimspeicher_leistung",
     "gewerbespeicher_leistung",
     "grossspeicher_leistung",
+    "biomasse",
+    "biomasse_gasfoermig",
+    "biomasse_fest",
+    "biomasse_fluessig",
+    "geothermie_grubengas",
+    "geothermie",
+    "grubengas",
+    "klaerschlamm",
+    "druckentspannung",
+    "solarthermie",
+    "kwk",
+    "kwk_erdgas",
+    "kwk_biomasse",
+    "kwk_kohle",
+    "kwk_sonstige",
+    "druckluftspeicher",
+    "schwungradspeicher",
+    "wasserstoffspeicher",
+    "druckluftspeicher_leistung",
+    "schwungradspeicher_leistung",
+    "wasserstoffspeicher_leistung",
 ]
 
 

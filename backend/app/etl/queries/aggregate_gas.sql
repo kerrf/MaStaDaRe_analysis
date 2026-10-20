@@ -13,16 +13,16 @@ SELECT
     u."EinheitMastrNummer" AS mastr_nummer,
     u."NameGaserzeugungseinheit" AS name,
     CASE u."Technologie"
-        WHEN '825' THEN 'biomethan'
-        WHEN '824' THEN 'erdgas'
-        WHEN '829' THEN 'lng'
-        WHEN '826' THEN 'wasserstoff'
-        WHEN '827' THEN 'methan'
+        WHEN 'Biomethan-Erzeugung' THEN 'biomethan'
+        WHEN 'Förderung fossilen Erdgases' THEN 'erdgas'
+        WHEN 'Liquefied Natural Gas' THEN 'lng'
+        WHEN 'Power-to-Gas (Wasserstoff)' THEN 'wasserstoff'
+        WHEN 'Power-to-Gas (Methan)' THEN 'methan'
     END AS technologie,
     CASE u."EinheitBetriebsstatus"
-        WHEN '35' THEN 'in Betrieb'
-        WHEN '31' THEN 'in Planung'
-        WHEN '37' THEN 'vorübergehend stillgelegt'
+        WHEN 'In Betrieb' THEN 'in Betrieb'
+        WHEN 'In Planung' THEN 'in Planung'
+        WHEN 'Vorübergehend stillgelegt' THEN 'vorübergehend stillgelegt'
     END AS status,
     CAST(u."Erzeugungsleistung" / 1000 AS NUMERIC(12,1)) AS total_power,  -- MW
     u."Inbetriebnahmedatum" AS inbetriebnahme,
@@ -30,12 +30,12 @@ SELECT
     u."Laengengrad" AS lon,
     u."Ort" AS ort,
     u."Gemeindeschluessel" AS ags,  -- empty abroad
-    CASE u."Land" WHEN '84' THEN 'Deutschland' WHEN '198' THEN 'Niederlande' ELSE u."Land" END AS land
+    u."Land" AS land
 FROM raw.gas_producer_units u
 WHERE u."SpeicherMaStRNummer" IS NULL
-  AND u."EinheitBetriebsstatus" <> '38'  -- finally decommissioned: gone for good
+  AND u."EinheitBetriebsstatus" <> 'Endgültig stillgelegt'  -- gone for good
   AND u."Breitengrad" IS NOT NULL
-  AND NOT (u."Technologie" = '824' AND EXISTS (
+  AND NOT (u."Technologie" = 'Förderung fossilen Erdgases' AND EXISTS (
       SELECT FROM raw.gas_storage_units s WHERE s."Gemeindeschluessel" = u."Gemeindeschluessel"
   ));
 
@@ -50,14 +50,14 @@ SELECT
     p."MaStRNummer" AS mastr_nummer,
     coalesce(p."Speichername", min(u."NameGasspeicher")) AS name,
     CASE mode() WITHIN GROUP (ORDER BY u."Speicherart")
-        WHEN '658' THEN 'kaverne'
-        WHEN '659' THEN 'pore'
-        WHEN '660' THEN 'aquifer'
+        WHEN 'Kavernenspeicher' THEN 'kaverne'
+        WHEN 'Porenspeicher' THEN 'pore'
+        WHEN 'Aquiferspeicher' THEN 'aquifer'
     END AS speicherart,
     CASE p."AnlageBetriebsstatus"
-        WHEN '35' THEN 'in Betrieb'
-        WHEN '31' THEN 'in Planung'
-        WHEN '37' THEN 'vorübergehend stillgelegt'
+        WHEN 'In Betrieb' THEN 'in Betrieb'
+        WHEN 'In Planung' THEN 'in Planung'
+        WHEN 'Vorübergehend stillgelegt' THEN 'vorübergehend stillgelegt'
     END AS status,
     count(*) AS total_units,
     CAST(sum(u."MaximalNutzbaresArbeitsgasvolumen") / 1e6 AS NUMERIC(12,1)) AS total_capacity,  -- GWh
@@ -69,11 +69,11 @@ SELECT
     avg(u."Laengengrad") AS lon,
     mode() WITHIN GROUP (ORDER BY u."Ort") AS ort,
     min(u."Gemeindeschluessel") AS ags,
-    CASE min(u."Land") WHEN '84' THEN 'Deutschland' ELSE min(u."Land") END AS land
+    min(u."Land") AS land
 FROM raw.gas_storage_plants p
 JOIN raw.gas_storage_units u ON u."SpeicherMaStRNummer" = p."MaStRNummer"
-WHERE p."AnlageBetriebsstatus" <> '38'  -- finally decommissioned
-  AND u."EinheitBetriebsstatus" <> '38'
+WHERE p."AnlageBetriebsstatus" <> 'Endgültig stillgelegt'
+  AND u."EinheitBetriebsstatus" <> 'Endgültig stillgelegt'
 GROUP BY p."MaStRNummer", p."Speichername", p."AnlageBetriebsstatus"
 HAVING avg(u."Breitengrad") IS NOT NULL;
 

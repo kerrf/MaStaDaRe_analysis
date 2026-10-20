@@ -16,9 +16,9 @@ WITH units AS (
     UNION ALL
     SELECT 'wasserkraft', "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.water_units
     UNION ALL
-    SELECT 'batterie', "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '524'
+    SELECT 'batterie', "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Batterie'
     UNION ALL
-    SELECT 'pumpspeicher', "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = '1537'
+    SELECT 'pumpspeicher', "Inbetriebnahmedatum", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Pumpspeicher'
     UNION ALL
     SELECT 'gaserzeuger', "Inbetriebnahmedatum", "Registrierungsdatum"
     FROM raw.gas_producer_units WHERE "SpeicherMaStRNummer" IS NULL

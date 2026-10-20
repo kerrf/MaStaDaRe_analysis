@@ -35,6 +35,15 @@ ROUTES=(
   "/water/dashboard-stats?level=bundesland"
   /water/size-distribution
   "/water/size-distribution/regions?level=bundesland"
+  # Biomasse, Geothermie & Grubengas, KWK and the other storages (their tables come from the bulk export)
+  "/biomass/dashboard-stats?level=bundesland"
+  /biomass/size-distribution
+  "/geothermal/dashboard-stats?level=bundesland"
+  /geothermal/size-distribution
+  "/kwk/dashboard-stats?level=bundesland"
+  /kwk/size-distribution
+  "/other-storage/dashboard-stats?level=bundesland"
+  "/zubau/zeitverlauf?yearly=true&technology=biomasse&technology=geothermie_grubengas&technology=kwk&technology=wasserstoffspeicher"
   "/battery/dashboard-stats?level=bundesland"
   # The Anlagen pages of Speicher and Gas: size classes and kinds (the pies)
   /battery/kinds

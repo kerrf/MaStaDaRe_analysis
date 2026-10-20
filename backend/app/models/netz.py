@@ -9,7 +9,7 @@ TECHNOLOGIEN = ("solar", "wind", "wasser", "speicher", "biomasse", "erdgas", "ko
 
 class NetzAnschluss(Base):
     """The Netzanschlusspunkte der Stromerzeugung per Landkreis (the sea: "offshore"; a Land's 2-digit key: its plants
-    without a Gemeinde; NULL: abroad), Netzebene (the Spannungsebene's code, 348–354) and grid operator, with the power
+    without a Gemeinde; NULL: abroad), Netzebene (1–7, by the Spannungsebene) and grid operator, with the power
     of all units of their Lokationen, in total and per technology (mrt.netz_anschluesse,
     etl/queries/aggregate_netzanschluesse.sql). Only summed, per scope."""
 
@@ -17,7 +17,7 @@ class NetzAnschluss(Base):
     __table_args__ = {"schema": "mrt"}
 
     landkreis = Column(String, primary_key=True)
-    spannungsebene = Column(String, primary_key=True)
+    netzebene = Column(Integer, primary_key=True)  # 1 (Höchstspannung) to 7 (Niederspannung)
     netzbetreiber = Column(String, primary_key=True)
     netzbetreiber_name = Column(String)
     netz = Column(String)  # the operator's grid: uebertragungsnetz (Übertragungsnetzbetreiber) or verteilnetz

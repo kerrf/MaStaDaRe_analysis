@@ -1,0 +1,3355 @@
+{
+ "quelle": "Marktstammdatenregister der Bundesnetzagentur, Gesamtdatenexport Gesamtdatenexport_20260926_26.1: Katalogkategorien.xml, Katalogwerte.xml, Einheitentypen.xml, Lokationstypen.xml, Marktfunktionen.xml, Marktrollen.xml",
+ "lizenz": "Datenlizenz Deutschland – Namensnennung – 2.0 (https://www.govdata.de/dl-de/by-2-0)",
+ "aufbereitet": "mastr-data.de",
+ "hinweise": [
+  "Der Gesamtdatenexport führt viele Felder als Zahl (EinheitBetriebsstatus 35). Was die Zahl bedeutet, steht in „kataloge“ (aus Katalogwerte.xml) oder in „listen“ (aus den Dateien gleichen Namens).",
+  "Welche Spalte welchen Katalog nutzt, sagt der Export nicht. „spalten“ nennt es je Datei: abgeglichen mit dem Webdienst des Registers (SOAP-API), der statt der Zahl ihre Bedeutung liefert.",
+  "„mehrere“: die Zelle führt mehrere Zahlen, durch Kommas getrennt (z. B. „813, 3186“).",
+  "Sechs Texte enden in Katalogwerte.xml mit einem Leerzeichen; hier ohne."
+ ],
+ "spalten": {
+  "AnlagenEegBiomasse": {
+   "AnlageBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   }
+  },
+  "AnlagenEegGeothermieGrubengasDruckentspannung": {
+   "AnlageBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   }
+  },
+  "AnlagenGasSpeicher": {
+   "AnlageBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   }
+  },
+  "AnlagenKwk": {
+   "AnlageBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   }
+  },
+  "AnlagenStromSpeicher": {
+   "AnlageBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   }
+  },
+  "EinheitenBiomasse": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "Hauptbrennstoff": {
+    "kataloge": [
+     134,
+     135,
+     136,
+     138,
+     139,
+     140,
+     141,
+     142,
+     143,
+     144,
+     187
+    ]
+   },
+   "Biomasseart": {
+    "kataloge": [
+     58
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     31
+    ]
+   }
+  },
+  "EinheitenGasErzeuger": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     80
+    ]
+   }
+  },
+  "EinheitenGasSpeicher": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Speicherart": {
+    "kataloge": [
+     46
+    ]
+   }
+  },
+  "EinheitenGasverbraucher": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   }
+  },
+  "EinheitenGeothermieGrubengasDruckentspannung": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     31
+    ]
+   }
+  },
+  "EinheitenKernkraft": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     103
+    ]
+   }
+  },
+  "EinheitenSolar": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "ArtDerSolaranlage": {
+    "kataloge": [
+     82
+    ]
+   },
+   "Leistungsbegrenzung": {
+    "kataloge": [
+     76
+    ]
+   },
+   "Hauptausrichtung": {
+    "kataloge": [
+     34
+    ]
+   },
+   "Nebenausrichtung": {
+    "kataloge": [
+     34
+    ]
+   },
+   "HauptausrichtungNeigungswinkel": {
+    "kataloge": [
+     33
+    ]
+   },
+   "NebenausrichtungNeigungswinkel": {
+    "kataloge": [
+     33
+    ]
+   },
+   "Nutzungsbereich": {
+    "kataloge": [
+     57
+    ]
+   },
+   "VorherigerNutzungsartenbereichDerFlaeche": {
+    "kataloge": [
+     205
+    ]
+   },
+   "UeberwiegendeNutzungsartDerFlaecheVorErrichtung": {
+    "kataloge": [
+     204
+    ]
+   },
+   "ZusaetzlicheMerkmaleDerFlaecheUndDerAktuellenFlaechennutzung": {
+    "kataloge": [
+     56
+    ],
+    "mehrere": true
+   }
+  },
+  "EinheitenStromSpeicher": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     29
+    ]
+   },
+   "Batterietechnologie": {
+    "kataloge": [
+     62
+    ]
+   },
+   "Pumpspeichertechnologie": {
+    "kataloge": [
+     171
+    ]
+   },
+   "AcDcKoppelung": {
+    "kataloge": [
+     55
+    ]
+   },
+   "Einsatzort": {
+    "kataloge": [
+     63
+    ]
+   },
+   "EegAnlagentyp": {
+    "liste": "Einheitentypen"
+   }
+  },
+  "EinheitenStromVerbraucher": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   }
+  },
+  "EinheitenVerbrennung": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "Hauptbrennstoff": {
+    "kataloge": [
+     134,
+     135,
+     136,
+     138,
+     139,
+     140,
+     141,
+     142,
+     143,
+     144,
+     187
+    ]
+   },
+   "WeitererHauptbrennstoff": {
+    "kataloge": [
+     134,
+     135,
+     136,
+     138,
+     139,
+     140,
+     141,
+     142,
+     143,
+     144,
+     187
+    ]
+   },
+   "WeitereBrennstoffe": {
+    "kataloge": [
+     134,
+     135,
+     136,
+     138,
+     139,
+     140,
+     141,
+     142,
+     143,
+     144,
+     187
+    ],
+    "mehrere": true
+   },
+   "Technologie": {
+    "kataloge": [
+     31
+    ]
+   },
+   "Einsatzort": {
+    "kataloge": [
+     63
+    ]
+   }
+  },
+  "EinheitenWasser": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "ArtDerWasserkraftanlage": {
+    "kataloge": [
+     88
+    ]
+   },
+   "ArtDesZuflusses": {
+    "kataloge": [
+     61
+    ]
+   }
+  },
+  "EinheitenWind": {
+   "EinheitSystemstatus": {
+    "kataloge": [
+     19
+    ]
+   },
+   "EinheitBetriebsstatus": {
+    "kataloge": [
+     4
+    ]
+   },
+   "NetzbetreiberpruefungStatus": {
+    "kataloge": [
+     175
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     101
+    ]
+   },
+   "Energietraeger": {
+    "kataloge": [
+     132,
+     133,
+     146,
+     147,
+     148,
+     149,
+     150,
+     151
+    ]
+   },
+   "Einspeisungsart": {
+    "kataloge": [
+     52
+    ]
+   },
+   "WindAnLandOderAufSee": {
+    "kataloge": [
+     87
+    ]
+   },
+   "Seelage": {
+    "kataloge": [
+     39
+    ]
+   },
+   "GebietNachDemFlaechenentwicklungsplanNordsee": {
+    "kataloge": [
+     108
+    ]
+   },
+   "GebietNachDemFlaechenentwicklungsplanOstsee": {
+    "kataloge": [
+     107
+    ]
+   },
+   "Technologie": {
+    "kataloge": [
+     53
+    ]
+   },
+   "Hersteller": {
+    "kataloge": [
+     74
+    ]
+   },
+   "VorherigerNutzungsartenbereichDerFlaeche": {
+    "kataloge": [
+     205
+    ]
+   },
+   "UeberwiegendeNutzungsartDerFlaecheVorErrichtung": {
+    "kataloge": [
+     204
+    ]
+   }
+  },
+  "Lokationen": {
+   "Lokationtyp": {
+    "liste": "Lokationstypen"
+   }
+  },
+  "Marktakteure": {
+   "Personenart": {
+    "kataloge": [
+     27
+    ]
+   },
+   "Marktfunktion": {
+    "liste": "Marktfunktionen"
+   },
+   "Rechtsform": {
+    "kataloge": [
+     16
+    ]
+   },
+   "Land": {
+    "kataloge": [
+     6
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     14
+    ]
+   },
+   "Registergericht": {
+    "kataloge": [
+     93
+    ]
+   },
+   "RegisternummerPraefix": {
+    "kataloge": [
+     92
+    ]
+   },
+   "LandAnZustelladresse": {
+    "kataloge": [
+     6
+    ]
+   }
+  },
+  "Netzanschlusspunkte": {
+   "Lokationtyp": {
+    "liste": "Lokationstypen"
+   },
+   "Spannungsebene": {
+    "kataloge": [
+     15
+    ]
+   },
+   "RegelzoneNetzanschlusspunkt": {
+    "kataloge": [
+     65
+    ]
+   },
+   "Gasqualitaet": {
+    "kataloge": [
+     68
+    ]
+   }
+  },
+  "Netze": {
+   "Sparte": {
+    "kataloge": [
+     2
+    ]
+   },
+   "Bundesland": {
+    "kataloge": [
+     14
+    ],
+    "mehrere": true
+   },
+   "Marktgebiet": {
+    "kataloge": [
+     67
+    ]
+   }
+  }
+ },
+ "kataloge": [
+  {
+   "id": 1,
+   "name": "Energieträger",
+   "werte": {
+    "1": "andere Gase",
+    "2": "Biomasse",
+    "3": "Braunkohle",
+    "5": "Erdgas",
+    "6": "Geothermie",
+    "7": "Grubengas",
+    "8": "Kernenergie",
+    "9": "Klärschlamm",
+    "12": "Mineralölprodukte",
+    "13": "nicht biogener Abfall",
+    "14": "Solare Strahlungsenergie",
+    "15": "Solarthermie",
+    "16": "Speicher",
+    "17": "Steinkohle",
+    "18": "Wärme",
+    "19": "Wind",
+    "1539": "Wasser",
+    "2959": "Druck aus Gasleitungen",
+    "2960": "Druck aus Wasserleitungen"
+   }
+  },
+  {
+   "id": 2,
+   "name": "Sparte",
+   "werte": {
+    "20": "Strom",
+    "21": "Gas"
+   }
+  },
+  {
+   "id": 3,
+   "name": "Anlagenart",
+   "werte": {
+    "22": "Gasanlage",
+    "23": "Netzersatzanlage",
+    "24": "Stromspeicher ohne Wasserkraft",
+    "25": "Stromverbrauchsanlage",
+    "26": "Solaranlage",
+    "27": "Sonstige Anlage",
+    "28": "Verbrennungsanlage",
+    "29": "Wasserkraftanlage",
+    "30": "Windanlage",
+    "520": "Gasverbrauchsanlage"
+   }
+  },
+  {
+   "id": 4,
+   "name": "Betriebsstatus",
+   "werte": {
+    "31": "In Planung",
+    "35": "In Betrieb",
+    "37": "Vorübergehend stillgelegt",
+    "38": "Endgültig stillgelegt"
+   }
+  },
+  {
+   "id": 5,
+   "name": "Genehmigungsart",
+   "werte": {
+    "39": "nach BImSchG i.V.m 17. BImSchV",
+    "40": "Sonstige",
+    "41": "nach Baurecht",
+    "845": "nach BImSchG andere",
+    "846": "nach BImSchG i.V.m 4. BImSchV",
+    "847": "nach BImSchG i.V.m 1. BImSchV",
+    "848": "nach BImSchG i.V.m 13. BImSchV",
+    "2555": "nach Wasserhaushaltsgesetz",
+    "2556": "nach Windenergie-auf-See-Gesetz"
+   }
+  },
+  {
+   "id": 6,
+   "name": "Land",
+   "werte": {
+    "42": "Afghanistan",
+    "43": "Ägypten",
+    "45": "Albanien",
+    "46": "Algerien",
+    "48": "Amerikanisch-Samoa",
+    "49": "Andorra",
+    "50": "Angola",
+    "51": "Anguilla",
+    "53": "Antigua und Barbuda",
+    "54": "Äquatorialguinea",
+    "55": "Argentinien",
+    "56": "Armenien",
+    "57": "Aruba",
+    "58": "Aserbaidschan",
+    "59": "Äthiopien",
+    "60": "Australien",
+    "61": "Bahamas",
+    "62": "Bahrain",
+    "63": "Bangladesch",
+    "64": "Barbados",
+    "65": "Belarus",
+    "66": "Belgien",
+    "67": "Belize",
+    "68": "Benin",
+    "69": "Bermuda",
+    "70": "Bhutan",
+    "71": "Bolivien",
+    "72": "Bonaire, Saba und St. Eustatius",
+    "73": "Bosnien und Herzegowina",
+    "74": "Botsuana",
+    "76": "Brasilien",
+    "77": "Britische Jungferninseln",
+    "79": "Brunei Darussalam",
+    "80": "Bulgarien",
+    "81": "Burkina Faso",
+    "82": "Burundi",
+    "83": "Cabo Verde",
+    "84": "Deutschland",
+    "85": "China",
+    "86": "Cookinseln",
+    "87": "Costa Rica",
+    "88": "Côte D'Ivoire",
+    "89": "Curacao",
+    "90": "Dänemark",
+    "91": "Nepal",
+    "92": "Demokratische Republik Kongo",
+    "93": "Demokratische Volksrepublik Korea",
+    "94": "Chile",
+    "95": "Dominica",
+    "96": "Dominikanische Republik",
+    "97": "Dschibuti",
+    "98": "Ecuador",
+    "99": "El Salvador",
+    "100": "Eritrea",
+    "101": "Estland",
+    "102": "Falklandinseln",
+    "104": "Fidschi",
+    "105": "Finnland",
+    "106": "Frankreich",
+    "108": "Französisch-Guayana",
+    "109": "Französisch-Polynesien",
+    "110": "Gabun",
+    "111": "Gambia",
+    "112": "Georgien",
+    "113": "Ghana",
+    "114": "Gibraltar",
+    "115": "Grenada",
+    "116": "Griechenland",
+    "118": "Guadeloupe",
+    "120": "Guatemala",
+    "121": "Guyana",
+    "123": "Guinea",
+    "124": "Guinea-Bissau",
+    "125": "Haiti",
+    "128": "Honduras",
+    "129": "Hongkong",
+    "130": "Indien",
+    "131": "Indonesien",
+    "133": "Irak",
+    "134": "Iran",
+    "135": "Irland",
+    "136": "Island",
+    "137": "Israel",
+    "138": "Italien",
+    "139": "Jamaika",
+    "140": "Japan",
+    "141": "Jemen",
+    "143": "Jordanien",
+    "144": "Kaimaninseln",
+    "145": "Kambodscha",
+    "146": "Kamerun",
+    "147": "Kanada",
+    "148": "Kasachstan",
+    "149": "Katar",
+    "150": "Kenia",
+    "151": "Kirgisistan",
+    "152": "Kiribati",
+    "155": "Kolumbien",
+    "156": "Komoren",
+    "157": "Kosovo",
+    "158": "Kroatien",
+    "159": "Kuba",
+    "160": "Kuwait",
+    "161": "Laos",
+    "162": "Lesotho",
+    "163": "Lettland",
+    "164": "Libanon",
+    "165": "Liberia",
+    "166": "Libyen",
+    "167": "Liechtenstein",
+    "168": "Litauen",
+    "169": "Luxemburg",
+    "170": "Macau",
+    "171": "Madagaskar",
+    "172": "Malawi",
+    "173": "Malaysia",
+    "174": "Malediven",
+    "175": "Mali",
+    "176": "Malta",
+    "177": "Marokko",
+    "178": "Marshallinseln",
+    "179": "Martinique",
+    "180": "Mauretanien",
+    "181": "Mauritius",
+    "182": "Mayotte",
+    "183": "Nordmazedonien",
+    "184": "Mexiko",
+    "185": "Mikronesien",
+    "186": "Moldau",
+    "187": "Monaco",
+    "188": "Mongolei",
+    "189": "Montenegro",
+    "190": "Montserrat",
+    "191": "Mosambik",
+    "192": "Myanmar",
+    "193": "Namibia",
+    "194": "Nauru",
+    "195": "Neukaledonien",
+    "196": "Neuseeland",
+    "197": "Nicaragua",
+    "198": "Niederlande",
+    "199": "Niger",
+    "200": "Nigeria",
+    "203": "Norfolkinsel",
+    "204": "Norwegen",
+    "205": "Oman",
+    "206": "Österreich",
+    "207": "Pakistan",
+    "208": "Palau",
+    "209": "Panama",
+    "210": "Papua-Neuguinea",
+    "211": "Paraguay",
+    "212": "Peru",
+    "213": "Philippinen",
+    "214": "Pitcairninseln",
+    "215": "Polen",
+    "216": "Portugal",
+    "218": "Republik Kongo",
+    "219": "Republik Korea",
+    "220": "Réunion",
+    "221": "Ruanda",
+    "222": "Rumänien",
+    "223": "Russische Föderation",
+    "224": "Salomonen",
+    "225": "Sambia",
+    "226": "Samoa",
+    "227": "San Marino",
+    "228": "São Tomè und Principe",
+    "229": "Saudi-Arabien",
+    "230": "Schweden",
+    "231": "Schweiz",
+    "232": "Senegal",
+    "233": "Serbien",
+    "234": "Seychellen",
+    "235": "Sierra Leone",
+    "236": "Simbabwe",
+    "237": "Singapur",
+    "238": "Slowakei",
+    "239": "Slowenien",
+    "240": "Somalia",
+    "241": "Spanien",
+    "242": "Sri Lanka",
+    "243": "St. Barthélemy",
+    "244": "St. Helena, Ascension und Tristan da Cunha",
+    "245": "St. Kitts Und Nevis",
+    "246": "St. Lucia",
+    "247": "Saint-Martin",
+    "248": "Sint Maarten",
+    "249": "St. Pierre und Miquelon",
+    "250": "St. Vincent und die Grenadinen",
+    "251": "Südafrika",
+    "252": "Sudan",
+    "253": "Südgeorgien+Südl. Sandwichinseln",
+    "254": "Südsudan",
+    "255": "Suriname",
+    "257": "Eswatini",
+    "258": "Syrien",
+    "259": "Tadschikistan",
+    "261": "Tansania",
+    "262": "Thailand",
+    "263": "Timor-Leste",
+    "264": "Togo",
+    "266": "Tonga",
+    "267": "Trinidad und Tobago",
+    "268": "Tschad",
+    "269": "Tschechische Republik",
+    "270": "Tunesien",
+    "271": "Türkei",
+    "272": "Turkmenistan",
+    "273": "Turks- und Caicosinseln",
+    "274": "Tuvalu",
+    "275": "Uganda",
+    "276": "Ukraine",
+    "277": "Ungarn",
+    "278": "Uruguay",
+    "279": "Usbekistan",
+    "1273": "Vanuatu",
+    "1274": "Vatikanstadt",
+    "1275": "Venezuela",
+    "1276": "Vereinigte Arabische Emirate",
+    "1277": "Vereinigte Staaten von Amerika",
+    "1278": "Vereinigtes Königreich",
+    "1279": "Vietnam",
+    "1280": "Wallis und Futuna",
+    "1283": "Zentralafrikanische Republik",
+    "1284": "Zypern"
+   }
+  },
+  {
+   "id": 7,
+   "name": "Anrede",
+   "werte": {
+    "280": "Familie",
+    "2966": "Eheleute",
+    "2983": "Erbengemeinschaft",
+    "2984": "Andere Organisation mit Personenbezug",
+    "3251": "Natürliche Person",
+    "3252": "Lebensgemeinschaft"
+   }
+  },
+  {
+   "id": 14,
+   "name": "Bundesland",
+   "werte": {
+    "332": "Brandenburg",
+    "333": "Berlin",
+    "334": "Baden-Württemberg",
+    "335": "Bayern",
+    "336": "Bremen",
+    "337": "Hessen",
+    "338": "Hamburg",
+    "339": "Mecklenburg-Vorpommern",
+    "340": "Niedersachsen",
+    "341": "Nordrhein-Westfalen",
+    "342": "Rheinland-Pfalz",
+    "343": "Schleswig-Holstein",
+    "344": "Saarland",
+    "345": "Sachsen",
+    "346": "Sachsen-Anhalt",
+    "347": "Thüringen"
+   }
+  },
+  {
+   "id": 15,
+   "name": "Spannungsebene",
+   "werte": {
+    "348": "Höchstspannung",
+    "349": "Umspannebene Höchstspannung/Hochspannung",
+    "350": "Hochspannung",
+    "351": "Umspannebene Hochspannung/Mittelspannung",
+    "352": "Mittelspannung",
+    "353": "Umspannebene Mittelspannung/Niederspannung",
+    "354": "Niederspannung (= Hausanschluss/Haushaltsstrom)"
+   }
+  },
+  {
+   "id": 16,
+   "name": "Rechtsform",
+   "werte": {
+    "407": "a.s.",
+    "408": "AB",
+    "409": "AG",
+    "410": "AG & Co. KGaA",
+    "411": "Anstalt des öffentlichen Rechts",
+    "412": "ApS",
+    "413": "AS",
+    "414": "BV",
+    "415": "BVBA",
+    "416": "d.n.o.",
+    "423": "eG",
+    "424": "e.K.",
+    "425": "e.V.",
+    "426": "Eigenbetrieb",
+    "427": "Einzelunternehmen",
+    "428": "GbR",
+    "429": "GmbH",
+    "430": "GmbH & Co. KG",
+    "431": "GmbH & Co. KGaA",
+    "432": "GmbH & Co. oHG",
+    "433": "HB",
+    "434": "I/S",
+    "435": "InvAG",
+    "436": "k.s.",
+    "437": "KB",
+    "438": "KG",
+    "439": "KGaA",
+    "440": "Körperschaft des öffentlichen Rechts",
+    "441": "Ltd.",
+    "442": "N.V.",
+    "443": "oHG",
+    "444": "OY",
+    "445": "Partnergesellschaft",
+    "446": "plc",
+    "447": "S.A.",
+    "448": "S.p.A.",
+    "449": "s.r.l.",
+    "450": "s.r.o.",
+    "451": "SARL",
+    "452": "SE",
+    "453": "SLNE",
+    "454": "sp. z.o.o.",
+    "455": "Sp.k.",
+    "456": "SPRL",
+    "457": "Stiftung  des öffentlichen Rechts",
+    "458": "Stiftung des Privatrechts",
+    "459": "Teo",
+    "460": "UG (haftungsbeschränkt)",
+    "461": "UG (haftungsbeschränkt) & Co. KG",
+    "462": "UG (haftungsbeschränkt) & Co. oHG",
+    "463": "VOF",
+    "464": "VVaG",
+    "465": "Sonstige",
+    "466": "gGmbH",
+    "1001674": "SE ＆ Co. KG",
+    "1001685": "B.V.",
+    "1001686": "eGbR"
+   }
+  },
+  {
+   "id": 18,
+   "name": "MaStR-Zugangs-Status",
+   "werte": {
+    "467": "unvollständig",
+    "468": "ungeprüft",
+    "469": "aktiviert",
+    "470": "deaktiviert",
+    "471": "gelöscht"
+   }
+  },
+  {
+   "id": 19,
+   "name": "Systemstatus",
+   "werte": {
+    "472": "Aktiviert",
+    "473": "Deaktiviert",
+    "484": "Ungeprüft",
+    "490": "Unvollständig",
+    "572": "Gelöscht"
+   }
+  },
+  {
+   "id": 20,
+   "name": "Marktakteurstatus",
+   "werte": {
+    "485": "unvollständig",
+    "486": "ungeprüft",
+    "487": "aktiviert",
+    "488": "deaktiviert",
+    "489": "gelöscht",
+    "1676": "erfasst",
+    "2980": "irreversibel gelöscht"
+   }
+  },
+  {
+   "id": 21,
+   "name": "Solaranlage Nachgeführt",
+   "werte": {
+    "492": "1-Achsig",
+    "493": "2-Achsig"
+   }
+  },
+  {
+   "id": 22,
+   "name": "Solaranlaege Anlagentyp",
+   "werte": {
+    "494": "Freifläche",
+    "495": "Aufdach",
+    "496": "Sonstiges"
+   }
+  },
+  {
+   "id": 23,
+   "name": "Marktfunktionsstatus",
+   "werte": {
+    "497": "aktiv",
+    "498": "inaktiv"
+   }
+  },
+  {
+   "id": 25,
+   "name": "Stilllegungsart",
+   "werte": {
+    "500": "Vorübergehend",
+    "501": "Endgültig"
+   }
+  },
+  {
+   "id": 26,
+   "name": "Leistungsänderungsart",
+   "werte": {
+    "2397": "Inbetriebnahme",
+    "2398": "Veränderung"
+   }
+  },
+  {
+   "id": 27,
+   "name": "Personenart",
+   "werte": {
+    "517": "Organisation (Unternehmen, Personengesellschaft, juristische Person, Behörde, Verband)",
+    "518": "Natürliche Person oder Organisation mit Personenbezug (z. B. Eheleute, Erbengemeinschaft, GbR mit Personenbezug)"
+   }
+  },
+  {
+   "id": 28,
+   "name": "BrennstoffTechnologieNetzersatz",
+   "werte": {
+    "521": "Gas",
+    "522": "Diesel",
+    "523": "Batterie"
+   }
+  },
+  {
+   "id": 29,
+   "name": "StromspeicherOhneWasserkraft",
+   "werte": {
+    "524": "Batterie",
+    "525": "Druckluft",
+    "526": "Schwungrad",
+    "1537": "Pumpspeicher",
+    "3067": "Wasserstoffspeicher"
+   }
+  },
+  {
+   "id": 30,
+   "name": "TechnologieVerbrennungsanlagenMitGas",
+   "werte": {
+    "529": "Kondensationsmaschine-Gegendruckmaschine",
+    "530": "Entnahmekondensationsmaschine",
+    "531": "Gasturbinen ohne Abhitzekessel",
+    "532": "Gasturbinen mit Abhitzekessel",
+    "533": "Gasturbinen mit nachgeschalteter Dampfturbine",
+    "534": "Verbrennungsmotor",
+    "535": "Brennstoffzelle",
+    "536": "Stirlingmotor",
+    "537": "Dampfmotor",
+    "538": "ORC-Anlage",
+    "539": "Konsensationsmaschinen"
+   }
+  },
+  {
+   "id": 31,
+   "name": "TechnologieVerbrennungsanlagen",
+   "werte": {
+    "542": "Verbrennungsmotor",
+    "543": "Brennstoffzelle",
+    "544": "Stirlingmotor",
+    "545": "Dampfmotor",
+    "546": "ORC (Organic Rankine Cycle)-Anlage",
+    "833": "Gegendruckmaschine mit Entnahme",
+    "834": "Gegendruckmaschine ohne Entnahme",
+    "835": "Gasturbinen ohne Abhitzekessel",
+    "836": "Gasturbinen mit Abhitzekessel",
+    "837": "Gasturbinen mit nachgeschalteter Dampfturbine",
+    "838": "Kondensationsmaschine mit Entnahme",
+    "839": "Kondensationsmaschine ohne Entnahme",
+    "840": "Sonstige",
+    "1538": "Kalina-Cycle"
+   }
+  },
+  {
+   "id": 32,
+   "name": "Brennstoff",
+   "werte": {
+    "548": "Nicht biogener Müll",
+    "549": "Biogener Müll",
+    "550": "Braunkohle",
+    "551": "Deponiegas",
+    "552": "Erdgas",
+    "553": "Geothermie",
+    "554": "Grubengas",
+    "555": "Klärgas",
+    "556": "Mehrere Energieträger (nicht erneuerbar)",
+    "557": "Mineralölprodukte",
+    "558": "Solare Strahlungsenergie",
+    "559": "Sonstige",
+    "560": "Steinkohle",
+    "561": "Wasserstoff",
+    "841": "Raffineriegas",
+    "842": "Hochofen-/ und Kokereigas",
+    "843": "Keiner",
+    "844": "Kernenergie"
+   }
+  },
+  {
+   "id": 33,
+   "name": "Solarneigungswinkel",
+   "werte": {
+    "806": "90 Grad (vertikal)",
+    "807": "61 - 89 Grad",
+    "808": "41 - 60 Grad",
+    "809": "21 - 40 Grad",
+    "810": "5 - 20 Grad",
+    "811": "Nachgeführt",
+    "3179": "unter 5 Grad (horizontal)"
+   }
+  },
+  {
+   "id": 34,
+   "name": "Solarausrichtung",
+   "werte": {
+    "695": "Nord",
+    "696": "Nord-Ost",
+    "697": "Ost",
+    "698": "Süd-Ost",
+    "699": "Süd",
+    "700": "Süd-West",
+    "701": "West",
+    "702": "Nord-West",
+    "703": "nachgeführt",
+    "704": "Ost-West"
+   }
+  },
+  {
+   "id": 35,
+   "name": "Eigenerzeugung",
+   "werte": {
+    "568": "Eigenerzeugung mit Netzdurchleitung und räumlichen Zusammenhang",
+    "569": "Eigenerzeugung ohne Netzdurchleitung und ohne räumlichen Zusammenhang",
+    "570": "Eigenerzeugung ohne Netzdurchleitung"
+   }
+  },
+  {
+   "id": 36,
+   "name": "Prüfungsstatus",
+   "werte": {
+    "579": "ungeprüft",
+    "580": "geprüft",
+    "581": "In Prüfung (Anlagenbetreiber)",
+    "582": "In Klärung (Anlagenbetreiber)",
+    "600": "In Prüfung (Netzbetreiber)",
+    "601": "In Prüfung (Bundesnetzagentur)",
+    "602": "In Klärung (Netzbetreiber)",
+    "603": "In Klärung (Bundesnetzagentur)",
+    "2387": "unvollständig"
+   }
+  },
+  {
+   "id": 39,
+   "name": "Seelage",
+   "werte": {
+    "639": "Ostsee",
+    "640": "Nordsee"
+   }
+  },
+  {
+   "id": 40,
+   "name": "ErtüchtigungsmaßnahmeWasserkraft",
+   "werte": {
+    "792": "Austausch von Generatoren, Getrieben, Turbinen oder Laufrädern",
+    "793": "Erweiterung der Anlage durch Erhöhung des Ausbaudurchflusses und/oder der Fallhöhe",
+    "794": "Automatische Wasserstandsregelung",
+    "795": "Automatische Rechenreinigung",
+    "796": "Automatische Einsatzoptimierung bei Kraftwerken mit mehreren Turbinen",
+    "797": "Einsatz permanent erregter Generatoren",
+    "798": "Sonstige",
+    "1534": "Verbesserung der Zu- und Abströmung (Hydraulik-Turbinenzuströmung, Ober- und Unterwasserkanal)"
+   }
+  },
+  {
+   "id": 41,
+   "name": "FesteBiomasseEinsatzstoffe",
+   "werte": {
+    "641": "Altholz",
+    "642": "Industrierestholz",
+    "643": "Sägewerksnebenprodukte",
+    "644": "Waldrestholz",
+    "645": "Landschaftspflegeholz"
+   }
+  },
+  {
+   "id": 42,
+   "name": "FluessigeBiomasseEinsatzstoffe",
+   "werte": {
+    "646": "Pflanzenöl",
+    "647": "Palmöl"
+   }
+  },
+  {
+   "id": 43,
+   "name": "GasfoermigeBiomasseEinsatzstoffe",
+   "werte": {}
+  },
+  {
+   "id": 46,
+   "name": "Gasspeicherart",
+   "werte": {
+    "658": "Kavernenspeicher",
+    "659": "Porenspeicher",
+    "660": "Aquiferspeicher"
+   }
+  },
+  {
+   "id": 48,
+   "name": "Präqualleistung",
+   "werte": {
+    "670": "Sofort",
+    "671": "Schnell",
+    "672": "Temporär",
+    "673": "Befristet"
+   }
+  },
+  {
+   "id": 51,
+   "name": "Fernsteuerbarkeit",
+   "werte": {
+    "685": "durch Netzbetreiber",
+    "686": "durch Direktvermarkter",
+    "687": "durch Dritte"
+   }
+  },
+  {
+   "id": 52,
+   "name": "Einspeisungsart",
+   "werte": {
+    "688": "Volleinspeisung",
+    "689": "Teileinspeisung (einschließlich Eigenverbrauch)"
+   }
+  },
+  {
+   "id": 53,
+   "name": "Windanlagentechnologie",
+   "werte": {
+    "691": "Horizontalläufer",
+    "692": "Vertikalläufer",
+    "3102": "Flugwindenergieanlage"
+   }
+  },
+  {
+   "id": 54,
+   "name": "Genehmigungsauflagenart",
+   "werte": {}
+  },
+  {
+   "id": 55,
+   "name": "Systemkopplung",
+   "werte": {
+    "693": "AC gekoppeltes System",
+    "694": "DC gekoppeltes System"
+   }
+  },
+  {
+   "id": 56,
+   "name": "SolarFlächenMerkmale",
+   "werte": {
+    "709": "Konversionsfläche",
+    "710": "Randstreifen längs von Autobahnen oder Schienenwegen",
+    "711": "Fläche wird landwirtschaftlich genutzt",
+    "712": "Versiegelte Fläche",
+    "812": "Im Bebauungsplan vor 01.01.2010 als Gewerbe- oder Industriegebiet ausgewiesen",
+    "813": "Bebauungsplan vor 01.09.2003 und nicht geändert",
+    "815": "Eigentum des Bundes oder Besitz oder Verwaltung des Bundesamtes für Immobilienaufgaben",
+    "2965": "Einheit auf einer sonstigen baulichen Anlage",
+    "3057": "Fläche ist ein wiedervernässter Moorboden",
+    "3180": "Fläche wird als Parkplatz genutzt",
+    "3181": "Besondere Solaranlage: Die Anlage genügt den Anforderungen der maßgeblichen Festlegung der Bundesnetzagentur nach § 85c EEG",
+    "3182": "Planfeststellungsverfahren oder sonstiges Verfahren nach § 38 BauGB",
+    "3183": "Benachteiligtes Gebiet",
+    "3184": "Einheit an einer Lärmschutzwand",
+    "3185": "Einheit an einem Zaun",
+    "3186": "Kein zusätzliches Merkmal"
+   }
+  },
+  {
+   "id": 57,
+   "name": "SolarNutzungsbereich",
+   "werte": {
+    "713": "Haushalt",
+    "714": "Gewerbe, Handel und Dienstleistungen",
+    "715": "Industrie",
+    "716": "Landwirtschaft",
+    "717": "Öffentliches Gebäude",
+    "718": "Sonstige"
+   }
+  },
+  {
+   "id": 58,
+   "name": "Biomassart",
+   "werte": {
+    "719": "Flüssige Biomasse",
+    "720": "Feste Biomasse",
+    "721": "Gasförmige Biomasse"
+   }
+  },
+  {
+   "id": 59,
+   "name": "Verstromungsart",
+   "werte": {
+    "722": "Vor Ort verstromt",
+    "723": "Biomethan"
+   }
+  },
+  {
+   "id": 60,
+   "name": "BrennstoffBiomasse",
+   "werte": {}
+  },
+  {
+   "id": 61,
+   "name": "Zuflussart",
+   "werte": {
+    "724": "Flusskraftwerk",
+    "725": "Restwasserkraftwerk",
+    "726": "Ausleitungskraftwerk"
+   }
+  },
+  {
+   "id": 62,
+   "name": "Batterietechnologie",
+   "werte": {
+    "727": "Lithium-Batterie",
+    "728": "Blei-Batterie",
+    "729": "Redox-Flow-Batterie",
+    "730": "Hochtemperaturbatterie",
+    "731": "Nickel-Cadmium- / Nickel-Metallhydridbatterie",
+    "732": "Sonstige Batterie"
+   }
+  },
+  {
+   "id": 63,
+   "name": "Einsatzort",
+   "werte": {
+    "733": "Flughafen",
+    "734": "Krankenhaus",
+    "735": "Veranstaltungsgebäude",
+    "736": "Rechenzentrum",
+    "737": "Industrie",
+    "738": "Bahn",
+    "739": "Bank",
+    "740": "Hotel",
+    "741": "Hochhaus",
+    "742": "Kaufhaus",
+    "743": "Kraftwerk",
+    "744": "Kultur und Messe",
+    "745": "Mastbetrieb",
+    "746": "Militär, Polizei und Justiz",
+    "747": "Regierungsgebäude",
+    "748": "Wasser- und Klärwerk",
+    "749": "Wohngebäude",
+    "750": "Versicherung",
+    "751": "Verlagshaus",
+    "752": "Tunnel und Straßen",
+    "753": "Telekommunikationsbranche",
+    "754": "Sportstätte",
+    "755": "Sendeanstalt",
+    "1531": "Alten-/Pflegeheim",
+    "1532": "Bergbau",
+    "1533": "Logistikzentrum (z.B. Kühlhaus)",
+    "2399": "Haushalt",
+    "2400": "Sonstige"
+   }
+  },
+  {
+   "id": 64,
+   "name": "Bilanzierungsgebiet",
+   "werte": {}
+  },
+  {
+   "id": 65,
+   "name": "Regelzone",
+   "werte": {
+    "1000001": "50Hertz",
+    "1000010": "Amprion",
+    "1001564": "TenneT",
+    "1001572": "TransnetBW"
+   }
+  },
+  {
+   "id": 66,
+   "name": "Gasart",
+   "werte": {
+    "761": "Biomethan",
+    "762": "Erdgas",
+    "763": "Wasserstoff"
+   }
+  },
+  {
+   "id": 67,
+   "name": "Marktgebiet",
+   "werte": {
+    "1536": "Beide",
+    "1001666": "NetConnect Germany",
+    "1001667": "Trading Hub Europe"
+   }
+  },
+  {
+   "id": 68,
+   "name": "Gasqualität",
+   "werte": {
+    "766": "L-Gas",
+    "767": "H-Gas"
+   }
+  },
+  {
+   "id": 69,
+   "name": "Netzart",
+   "werte": {
+    "768": "Fernleitungsnetz",
+    "769": "Verteilernetz"
+   }
+  },
+  {
+   "id": 74,
+   "name": "WindHersteller",
+   "werte": {
+    "1571": "ABB Power-One Italy SpA",
+    "1572": "Adwen GmbH",
+    "1573": "Alpha projekt GmbH",
+    "1574": "ALPHACON GmbH",
+    "1575": "Amperax Energie GmbH",
+    "1576": "Anhui Hummer Dynamo Co.,Ltd.",
+    "1577": "AN-Maschinenbau- und Umweltschutzanlagen GmbH",
+    "1578": "AREVA GmbH",
+    "1579": "Autoflug GmbH",
+    "1580": "awinco Ingenieur GmbH & Co. KG",
+    "1581": "BARD Holding GmbH",
+    "1582": "BRAUN Windturbinen GmbH",
+    "1583": "BWE Service GmbH",
+    "1584": "DeWind GmbH",
+    "1585": "Easywind GmbH",
+    "1586": "ENERCON GmbH",
+    "1587": "eno energy GmbH",
+    "1588": "Eovent GmbH",
+    "1589": "ESPV-TEC GmbH & Co. KG",
+    "1590": "EUSAG AG",
+    "1591": "EVIAG AG",
+    "1592": "Frisia Windkraftanlagen Service GmbH",
+    "1593": "Fuhrländer AG",
+    "1594": "FuSystems SkyWind GmbH",
+    "1595": "FWT energy GmbH",
+    "1596": "Gamesa Corporación Tecnológica S.A.",
+    "1597": "GE Wind Energy GmbH",
+    "1598": "General Electric Deutschland Holding GmbH",
+    "1599": "Gödecke Energie- und Antriebstechnik GmbH",
+    "1600": "Hermann Brümmer Wind- und Wasserkraftanlagen KG",
+    "1601": "Heyde Windtechnik GmbH",
+    "1602": "Honeywell Windtronics",
+    "1603": "Husumer Dock und Reparatur GmbH & Co. KG",
+    "1604": "Hyden",
+    "1605": "InVentus Energie GmbH",
+    "1606": "JAMP GmbH",
+    "1607": "Jenny AG",
+    "1608": "K.D.-Stahl- und Maschinenbau GmbH",
+    "1609": "Kähler Maschinenbau GmbH",
+    "1610": "Kenersys Europe GmbH",
+    "1611": "Kessler Energy GmbH",
+    "1612": "Kleinwind GmbH",
+    "1613": "Krogmann GmbH & Co. KG",
+    "1614": "Lagerwey GmbH",
+    "1615": "Lely Aircon B.V. Niederlassung Leer",
+    "1616": "Levento power solutions GmbH & Co. KG",
+    "1617": "LN Glasfieber",
+    "1618": "Loosen Windkraft GmbH",
+    "1619": "LuvSide GmbH",
+    "1620": "LWS systems GmbH & Co. KG.",
+    "1621": "Mischtechnik Hoffmann & Partner GmbH",
+    "1622": "Mroz",
+    "1623": "myLEDsun",
+    "1624": "MyWind",
+    "1625": "NEG Micon Deutschland GmbH",
+    "1626": "Norddeutsche H-Rotoren GmbH & Co. KG",
+    "1627": "Nordex Energy GmbH",
+    "1628": "Nordex SE",
+    "1629": "Octopus Systems GmbH",
+    "1630": "Pfleiderer Deutschland GmbH",
+    "1631": "Pfleiderer Wind Energy GmbH",
+    "1632": "plenum gesellschaft für ganzheitlich nachhaltige entwicklung gmbh",
+    "1633": "PowerWind GmbH",
+    "1634": "PSW-Energiesysteme GmbH",
+    "1635": "QREON GmbH",
+    "1636": "RLE INTERNATIONAL Produktentwicklungsgesellschaft mit beschränkter Haftung",
+    "1637": "ROPATEC SRL",
+    "1638": "RS - Energietechnik GmbH",
+    "1639": "S & W ENERGIESYSTEME UG (haftungsbeschränkt)",
+    "1640": "SB Energy UK Ltd.",
+    "1641": "Schuler Aktiengesellschaft",
+    "1642": "Schütz GmbH & Co. KGaA",
+    "1643": "SeeBA Energiesysteme GmbH",
+    "1644": "SEEWIND Windenergiesysteme GmbH",
+    "1645": "Senvion Deutschland GmbH",
+    "1646": "Siemens Wind Power GmbH & Co. KG",
+    "1647": "SMA Solar Technology AG",
+    "1648": "SMG POLAND SP Z O O",
+    "1649": "SOLAR-WIND-TEAM GmbH",
+    "1650": "Stadtwerke Wedel GmbH",
+    "1651": "STM Montage GmbH",
+    "1652": "Südwind Borsig Energy GmbH",
+    "1653": "Svit Vitru",
+    "1654": "Tacke GmbH & Co. KG",
+    "1655": "TOZZI NORD S.R.L.",
+    "1656": "Uni Wind GmbH",
+    "1657": "VENSYS Energy AG",
+    "1658": "VENTEGO AG",
+    "1659": "VENTIS WIND SERVICE S.L",
+    "1660": "Vestas Deutschland GmbH",
+    "1661": "VWA-Deutschland GmbH Freude am Strom",
+    "1662": "VWT Power Ltd",
+    "1663": "Wenus Inventus",
+    "1664": "Werner Eberle GmbH",
+    "1665": "WES IBS GmbH",
+    "1666": "Wind Technik Nord GmbH",
+    "1667": "Wind+Wing Technologies",
+    "1668": "Windenergie GmbH",
+    "1669": "Windmanufactur GbR",
+    "1670": "windradshop",
+    "1671": "WindTec GmbH",
+    "1672": "Wittenbauer Technik & Consulting GmbH",
+    "1673": "Wolf Energy GmbH",
+    "1674": "WSD - Windsysteme",
+    "1675": "WTT GmbH",
+    "2554": "Sonstige",
+    "2872": "Dethloff & Lange GmbH",
+    "2873": "GE Renewable Germany GmbH",
+    "2874": "Home Energy International",
+    "2876": "Sonkyo Energy",
+    "2884": "Enron Wind GmbH",
+    "2885": "Jacobs Energie GmbH",
+    "2886": "bwu Brandenburgische Wind- und Umwelttechnologien GmbH",
+    "2887": "HSW Husumer Schiffswerft GmbH & Co. KG",
+    "2888": "REpower Systems SE",
+    "2889": "AN Windenergie GmbH",
+    "2890": "Bonus Energy A/S",
+    "2891": "Nordtank Energy Group",
+    "2892": "Wind World A/S",
+    "2893": "Ventis Energietechnik GmbH",
+    "2894": "Hanseatische AG",
+    "2895": "Procon Energiesysteme GmbH",
+    "2896": "Wincon West Wind A/S",
+    "2897": "Euroturbine B.V.",
+    "2898": "Aeolos Windkraftanlagen",
+    "2899": "Fortis Wind Energy",
+    "2900": "Nova-Wind GmbH",
+    "2901": "PreVent GmbH",
+    "2902": "SkyWind GmbH",
+    "2903": "Smart Power Electronics GmbH",
+    "2904": "Weinack Windenergie Anlagen GmbH",
+    "2905": "Qiangsheng Magnets Co.Ltd",
+    "2929": "MHI Vestas Offshore Wind",
+    "1001671": "AN Windanlagen GmbH",
+    "1001678": "E.A.Z. Wind GmbH",
+    "1001679": "Siemens Gamesa Renewable Energy GmbH & Co. KG",
+    "1001681": "MAX-wyn GmbH",
+    "1001682": "Nordex Germany GmbH",
+    "1001683": "Zentrum für Sonnenenergie- und Wasserstoff-Forschung Baden-Württemberg (ZSW)",
+    "1001684": "eno energy systems GmbH",
+    "1001687": "SkySails Power GmbH",
+    "1001688": "EnerKíte GmbH",
+    "1001689": "Kite Gen Research S.r.l.",
+    "1001690": "Joby Aviation, Inc.",
+    "1001691": "AIRCON GmbH ＆ Co. KG",
+    "1001692": "AN Bonus",
+    "1001693": "Brümmer",
+    "1001694": "Conergy Wind GmbH",
+    "1001695": "EU Energy GmbH",
+    "1001696": "GfE Gesellschaft für Energietechnik mbH",
+    "1001697": "GET Danwin",
+    "1001698": "Innovative Windpower AG",
+    "1001699": "Siemens AG",
+    "1001700": "UniEnergy GmbH",
+    "1001701": "windwise GmbH"
+   }
+  },
+  {
+   "id": 75,
+   "name": "WindTyp",
+   "werte": {}
+  },
+  {
+   "id": 76,
+   "name": "SolarLeistungsbegrenzung",
+   "werte": {
+    "802": "Nein",
+    "803": "Ja, auf 70%",
+    "804": "Ja, auf 60%",
+    "805": "Ja, auf 50%",
+    "1535": "Ja, sonstige"
+   }
+  },
+  {
+   "id": 77,
+   "name": "GasQuelle",
+   "werte": {
+    "816": "Biogas",
+    "817": "Deponiegas",
+    "818": "Klärgas"
+   }
+  },
+  {
+   "id": 78,
+   "name": "NetzersatzTechnologie",
+   "werte": {
+    "819": "Brennstoffbasiert",
+    "820": "Batterie",
+    "821": "Sonstiges"
+   }
+  },
+  {
+   "id": 79,
+   "name": "NetzersatzBetriebsart",
+   "werte": {
+    "822": "Reiner Inselbetrieb",
+    "823": "Netzparallelbetrieb"
+   }
+  },
+  {
+   "id": 80,
+   "name": "TechnologieGasErzeugung",
+   "werte": {
+    "824": "Förderung fossilen Erdgases",
+    "825": "Biomethan-Erzeugung",
+    "826": "Power-to-Gas (Wasserstoff)",
+    "827": "Power-to-Gas (Methan)",
+    "829": "Liquefied Natural Gas"
+   }
+  },
+  {
+   "id": 81,
+   "name": "SonstigeBrennstoff",
+   "werte": {
+    "830": "Geothermie",
+    "831": "Solarthermie",
+    "832": "Grubengas"
+   }
+  },
+  {
+   "id": 82,
+   "name": "Art der Solaranlage",
+   "werte": {
+    "852": "Freiflächensolaranlage",
+    "853": "Gebäudesolaranlage",
+    "2484": "Sonstige Solaranlage",
+    "2961": "Steckerfertige Solaranlage (sog. Balkonkraftwerk)"
+   }
+  },
+  {
+   "id": 83,
+   "name": "SonstigeTechnologie",
+   "werte": {
+    "854": "ORC-Anlage",
+    "855": "Kalina",
+    "856": "Sonstige",
+    "857": "Gegendruckmaschine mit Entnahme",
+    "858": "Gegendruckmaschine ohne Entnahme",
+    "859": "Gasturbinen ohne Abhitzekessel",
+    "860": "Gasturbinen mit Abhitzekessel",
+    "861": "Gasturbinen mit nachgeschalteter Dampfturbine",
+    "862": "Verbrennungsmotor",
+    "863": "Brennstoffzelle",
+    "864": "Stirlingmotor",
+    "865": "Dampfmotor",
+    "866": "Kondensationsmaschine mit Entnahme",
+    "867": "Kondensationsmaschine ohne Entnahme"
+   }
+  },
+  {
+   "id": 87,
+   "name": "Wind an Land oder auf See",
+   "werte": {
+    "888": "Windkraft an Land",
+    "889": "Windkraft auf See"
+   }
+  },
+  {
+   "id": 88,
+   "name": "Art der Wasserkraftanlage",
+   "werte": {
+    "890": "Laufwasseranlage",
+    "891": "Speicherwasseranlage",
+    "894": "Wasserkraftanlage in Trinkwassersystem",
+    "895": "Wasserkraftanlage in Brauchwassersystem",
+    "896": "Abwasserkraftanlage",
+    "897": "Meeresenergie"
+   }
+  },
+  {
+   "id": 90,
+   "name": "Referenzwert",
+   "werte": {
+    "991": "Hauptbrennstoff",
+    "992": "Weiterer Hauptbrennstoff",
+    "993": "Weitere Brennstoffe",
+    "994": "Technologie Geothermie",
+    "995": "Technologie Solarthermie Gase",
+    "996": "Genehmigung Verbrennung",
+    "997": "Genehmigung Biomasse",
+    "1562": "Brennstoff Biomasse",
+    "1563": "Energieträger Geo Gruben Solar Klärschlamm",
+    "1564": "Energieträger Verbrennung",
+    "1565": "Brennstoff Verbrennung"
+   }
+  },
+  {
+   "id": 91,
+   "name": "Titel",
+   "werte": {
+    "1000": "Dr.",
+    "1001": "Prof.",
+    "1002": "Prof. Dr."
+   }
+  },
+  {
+   "id": 92,
+   "name": "RegisterNummerPräfix",
+   "werte": {
+    "1003": "HRA",
+    "1004": "HRB",
+    "1005": "GnR",
+    "1006": "PR",
+    "1007": "VR",
+    "3101": "GsR"
+   }
+  },
+  {
+   "id": 93,
+   "name": "RegisterGericht",
+   "werte": {
+    "1008": "Freiburg im Breisgau",
+    "1009": "Mannheim",
+    "1010": "Stuttgart",
+    "1011": "Ulm",
+    "1012": "Amberg",
+    "1013": "Ansbach",
+    "1014": "Aschaffenburg",
+    "1015": "Augsburg",
+    "1016": "Bamberg",
+    "1017": "Bayreuth",
+    "1018": "Coburg",
+    "1019": "Deggendorf",
+    "1020": "Fürth",
+    "1021": "Hof",
+    "1022": "Ingolstadt",
+    "1023": "Kempten (Allgäu)",
+    "1024": "Landshut",
+    "1025": "Memmingen",
+    "1026": "München",
+    "1027": "Nürnberg",
+    "1028": "Passau",
+    "1029": "Regensburg",
+    "1030": "Schweinfurt",
+    "1031": "Straubing",
+    "1032": "Traunstein",
+    "1033": "Weiden in der Oberpfalz",
+    "1034": "Würzburg",
+    "1035": "Berlin (Charlottenburg)",
+    "1036": "Cottbus",
+    "1037": "Frankfurt/Oder",
+    "1038": "Neuruppin",
+    "1039": "Potsdam",
+    "1040": "Bremen",
+    "1041": "Hamburg",
+    "1042": "Bad Hersfeld",
+    "1043": "Bad Homburg vor der Höhe",
+    "1044": "Darmstadt",
+    "1045": "Eschwege",
+    "1046": "Frankfurt am Main",
+    "1047": "Friedberg (Hessen)",
+    "1048": "Fritzlar",
+    "1049": "Fulda",
+    "1050": "Gießen",
+    "1051": "Hanau",
+    "1052": "Kassel",
+    "1053": "Königstein",
+    "1054": "Korbach",
+    "1055": "Limburg",
+    "1056": "Marburg",
+    "1057": "Offenbach am Main",
+    "1058": "Wetzlar",
+    "1059": "Wiesbaden",
+    "1060": "Neubrandenburg",
+    "1061": "Rostock",
+    "1062": "Schwerin",
+    "1063": "Stralsund",
+    "1064": "Aurich",
+    "1065": "Braunschweig",
+    "1066": "Göttingen",
+    "1067": "Hannover",
+    "1068": "Hildesheim",
+    "1069": "Lüneburg",
+    "1070": "Oldenburg",
+    "1071": "Osnabrück",
+    "1072": "Stadthagen",
+    "1073": "Tostedt",
+    "1074": "Walsrode",
+    "1075": "Aachen",
+    "1076": "Arnsberg",
+    "1077": "Bad Oeynhausen",
+    "1078": "Bielefeld",
+    "1079": "Bochum",
+    "1080": "Bonn",
+    "1081": "Coesfeld",
+    "1082": "Dortmund",
+    "1083": "Düren",
+    "1084": "Düsseldorf",
+    "1085": "Duisburg",
+    "1086": "Essen",
+    "1087": "Gelsenkirchen",
+    "1088": "Gütersloh",
+    "1089": "Hagen",
+    "1090": "Hamm",
+    "1091": "Iserlohn",
+    "1092": "Kleve",
+    "1093": "Köln",
+    "1094": "Krefeld",
+    "1095": "Lemgo",
+    "1096": "Mönchengladbach",
+    "1097": "Münster",
+    "1098": "Neuss",
+    "1099": "Paderborn",
+    "1100": "Recklinghausen",
+    "1101": "Siegburg",
+    "1102": "Siegen",
+    "1103": "Steinfurt",
+    "1104": "Wuppertal",
+    "1105": "Bad Kreuznach",
+    "1106": "Kaiserslautern",
+    "1107": "Koblenz",
+    "1108": "Landau",
+    "1109": "Ludwigshafen am Rhein",
+    "1110": "Mainz",
+    "1111": "Montabaur",
+    "1112": "Wittlich",
+    "1113": "Zweibrücken",
+    "1114": "Saarbrücken",
+    "1115": "Chemnitz",
+    "1116": "Dresden",
+    "1117": "Leipzig",
+    "1118": "Stendal",
+    "1119": "Flensburg",
+    "1120": "Kiel",
+    "1121": "Lübeck",
+    "1122": "Pinneberg",
+    "1123": "Jena",
+    "1349": "Altenburg",
+    "1350": "Apolda",
+    "1351": "Arnstadt",
+    "1352": "Arnstadt Zweigstelle Ilmenau",
+    "1353": "Bad Salzungen",
+    "1354": "Eisenach",
+    "1355": "Erfurt",
+    "1356": "Gera",
+    "1357": "Gotha",
+    "1358": "Greiz",
+    "1359": "Heilbad Heiligenstadt",
+    "1360": "Hildburghausen",
+    "1361": "Homburg",
+    "1362": "Langenfeld",
+    "1363": "Lebach",
+    "1364": "Meiningen",
+    "1365": "Merzig",
+    "1366": "Mühlhausen",
+    "1367": "Neunkirchen",
+    "1368": "Nordhausen",
+    "1369": "Ottweiler",
+    "1370": "Pößneck",
+    "1371": "Pößneck Zweigstelle Bad Lobenstein",
+    "1372": "Rudolstadt",
+    "1373": "Rudolstadt Zweigstelle Saalfeld",
+    "1374": "Saarlouis",
+    "1375": "Sömmerda",
+    "1376": "Sondershausen",
+    "1377": "Sonneberg",
+    "1378": "St. Ingbert",
+    "1379": "St. Wendel",
+    "1380": "Stadtroda",
+    "1381": "Suhl",
+    "1382": "Völklingen",
+    "1383": "Weimar",
+    "2871": "Celle",
+    "2877": "Schleswig",
+    "2878": "Bernkastel-Kues",
+    "2879": "Reutlingen",
+    "2880": "Naumburg",
+    "1001670": "Böblingen",
+    "1001672": "Kitzingen",
+    "1001675": "Konstanz",
+    "1001676": "Baden Baden",
+    "1001677": "Verden",
+    "1001680": "Wesel"
+   }
+  },
+  {
+   "id": 94,
+   "name": "RegionEbene2",
+   "werte": {
+    "1124": "Stuttgart",
+    "1125": "Karlsruhe",
+    "1126": "Freiburg",
+    "1127": "Tübingen",
+    "1128": "Oberbayern",
+    "1129": "Niederbayern",
+    "1130": "Oberpfalz",
+    "1131": "Oberfranken",
+    "1132": "Mittelfranken",
+    "1133": "Unterfranken",
+    "1134": "Schwaben",
+    "1135": "Berlin",
+    "1136": "Brandenburg",
+    "1137": "Bremen",
+    "1138": "Hamburg",
+    "1139": "Darmstadt",
+    "1140": "Gießen",
+    "1141": "Kassel",
+    "1142": "Mecklenburg-Vorpommern",
+    "1143": "Braunschweig",
+    "1144": "Hannover",
+    "1145": "Lüneburg",
+    "1146": "Weser-Ems",
+    "1147": "Düsseldorf",
+    "1148": "Köln",
+    "1149": "Münster",
+    "1150": "Detmold",
+    "1151": "Arnsberg",
+    "1152": "Koblenz",
+    "1153": "Trier",
+    "1154": "Rheinhessen-Pfalz",
+    "1155": "Saarland",
+    "1156": "Dresden",
+    "1157": "Chemnitz",
+    "1158": "Leipzig",
+    "1159": "Sachsen-Anhalt",
+    "1160": "Schleswig-Holstein",
+    "1161": "Thüringen"
+   }
+  },
+  {
+   "id": 95,
+   "name": "NACEGruppeAbschnitt",
+   "werte": {
+    "1162": "Abschnitt A - Land- und Forstwirtschaft, Fischerei",
+    "1163": "Abschnitt B - Bergbau und Gewinnung von Steinen und Erden",
+    "1164": "Abschnitt C – Verarbeitendes Gewerbe",
+    "1165": "Abschnitt D – Energieversorgung",
+    "1166": "Abschnitt E – Wasserversorgung; Abwasser- und Abfallentsorgung und Beseitigung von Umweltverschmutzungen",
+    "1167": "Abschnitt F - Baugewerbe",
+    "1168": "Abschnitt G - Handel",
+    "1169": "Abschnitt H – Verkehr und Lagerei",
+    "1170": "Abschnitt I – Gastgewerbe",
+    "1171": "Abschnitt J – Verlagswesen, Rundfunk sowie Erstellung und Verbreitung von Medieninhalten",
+    "1172": "Abschnitt L – Erbringung von Finanz- und Versicherungsdienstleistungen",
+    "1173": "Abschnitt M – Grundstücks- und Wohnungswesen",
+    "1174": "Abschnitt N – Erbringung von wissenschaftlichen und technischen Dienstleistungen",
+    "1175": "Abschnitt O – Erbringung von sonstigen wirtschaftlichen Dienstleistungen",
+    "1176": "Abschnitt P – Öffentliche Verwaltung, Verteidigung; Sozialversicherung",
+    "1177": "Abschnitt Q – Erziehung und Unterricht",
+    "1178": "Abschnitt R – Gesundheits- und Sozialwesen",
+    "1179": "Abschnitt S – Kunst, Sport und Erholung",
+    "1180": "Abschnitt T – Erbringung von sonstigen Dienstleistungen",
+    "1181": "Abschnitt U – Private Haushalte mit Hauspersonal sowie Herstellung von Waren und Erbringung von Dienstleistungen durch private Haushalte für den Eigenbedarf ohne ausgeprägten Schwerpunkt",
+    "1182": "Abschnitt V – Exterritoriale Organisationen und Körperschaften",
+    "3125": "Abschnitt K -Telekommunikation, Softwareentwicklung, IT-Beratung und Erbringung sonstiger Dienstleistungen der Informationstechnologie und der Computerinfrastruktur"
+   }
+  },
+  {
+   "id": 96,
+   "name": "NACEGruppeAbteilung",
+   "werte": {
+    "1183": "Landwirtschaft, Jagd und damit verbundene Tätigkeiten",
+    "1184": "Forstwirtschaft und Holzeinschlag",
+    "1185": "Fischerei und Aquakultur",
+    "1186": "Kohlenbergbau",
+    "1187": "Gewinnung von Erdöl und Erdgas",
+    "1188": "Erzbergbau",
+    "1189": "Gewinnung von Steinen und Erden, sonstiger Bergbau",
+    "1190": "Erbringung von Dienstleistungen für den Bergbau und für die Gewinnung von Steinen und Erden",
+    "1191": "Herstellung von Nahrungs- und Futtermitteln",
+    "1192": "Getränkeherstellung",
+    "1193": "Tabakverarbeitung",
+    "1194": "Herstellung von Textilien",
+    "1195": "Herstellung von Bekleidung",
+    "1196": "Herstellung von Leder, Lederwaren und ähnlichen Produkten aus anderen Materialen",
+    "1197": "Herstellung von Holz-, Flecht-, Korb- und Korkwaren, ohne Möbel",
+    "1198": "Herstellung von Papier, Pappe und Waren daraus",
+    "1199": "Herstellung von Druckerzeugnissen; Vervielfältigung von bespielten Ton-, Bild- und Datenträgern",
+    "1200": "Kokerei und Mineralölverarbeitung",
+    "1201": "Herstellung von chemischen Erzeugnissen",
+    "1202": "Herstellung von pharmazeutischen Erzeugnissen",
+    "1203": "Herstellung von Gummi- und Kunststoffwaren",
+    "1204": "Herstellung von Glas und Glaswaren, Keramik, Verarbeitung von Steinen und Erden",
+    "1205": "Metallerzeugung und -bearbeitung",
+    "1206": "Herstellung von Metallerzeugnissen",
+    "1207": "Herstellung von Datenverarbeitungsgeräten, elektronischen und optischen Erzeugnissen",
+    "1208": "Herstellung von elektrischen Ausrüstungen",
+    "1209": "Maschinenbau a. n. g.",
+    "1210": "Herstellung von Kraftwagen und Kraftwagenteilen",
+    "1211": "Sonstiger Fahrzeugbau",
+    "1212": "Herstellung von Möbeln",
+    "1213": "Herstellung von sonstigen Waren",
+    "1214": "Reparatur, Instandhaltung und Installation von Maschinen und Ausrüstungen",
+    "1215": "Energieversorgung",
+    "1216": "Wasserversorgung",
+    "1217": "Abwasserentsorgung",
+    "1218": "Sammlung, Behandlung und Beseitigung von Abfällen",
+    "1219": "Beseitigung von Umweltverschmutzungen und sonstige Tätigkeiten in der Abfallbewirtschaftung",
+    "1220": "Hochbau",
+    "1221": "Tiefbau",
+    "1222": "Vorbereitende Baustellenarbeiten, Bauinstallation und sonstiges Ausbaugewerbe",
+    "1223": "Handel mit Kraftfahrzeugen; Instandhaltung und Reparatur von Kraftfahrzeugen",
+    "1224": "Großhandel",
+    "1225": "Einzelhandel",
+    "1226": "Landverkehr und Transport in Rohrfernleitungen",
+    "1227": "Schifffahrt",
+    "1228": "Luftfahrt",
+    "1229": "Lagerei sowie Erbringung von sonstigen Dienstleistungen für den Verkehr",
+    "1230": "Post-, Kurier- und Expressdienste",
+    "1231": "Beherbergung",
+    "1232": "Gastronomie",
+    "1233": "Verlagswesen",
+    "1234": "Herstellung, Verleih und Vertrieb von Filmen und Fernsehprogrammen; Kinos; Tonstudios und Verlegen von Musik",
+    "1235": "Rundfunkveranstalter, Nachrichtenagenturen und sonstige Verbreitung von Medieninhalten",
+    "1236": "Telekommunikation",
+    "1237": "Erbringung von Dienstleistungen der Informationstechnologie",
+    "1238": "Datenverarbeitung, Hosting und Erbringung sonstiger Informationsdienstleistungen",
+    "1239": "Erbringung von Finanzdienstleistungen",
+    "1240": "Versicherungen, Rückversicherungen und Pensionskassen, ohne Sozialversicherung",
+    "1241": "Mit Finanz- und Versicherungsdienstleistungen verbundene Tätigkeiten",
+    "1242": "Grundstücks- und Wohnungswesen",
+    "1243": "Rechts- und Steuerberatung, Wirtschaftsprüfung",
+    "1244": "Verwaltung und Führung von Unternehmen und Betrieben; Unternehmensberatung",
+    "1245": "Tätigkeiten von Architektur- und Ingenieurbüros; technische, physikalische und chemische Untersuchung",
+    "1246": "Forschung und Entwicklung",
+    "1247": "Werbung und Marktforschung sowie Public-Relations-Beratung",
+    "1248": "Sonstige wissenschaftliche und technische Tätigkeiten",
+    "1249": "Veterinärwesen",
+    "1250": "Vermietung und Leasing",
+    "1251": "Vermittlung und Überlassung von Arbeitskräften",
+    "1252": "Reisebüros, Reiseveranstalter und Erbringung sonstiger Reservierungsdienstleistungen",
+    "1253": "Wach- und Sicherheitsdienste sowie Detekteien",
+    "1254": "Gebäudebetreuung; Garten- und Landschaftsbau",
+    "1255": "Erbringung von wirtschaftlichen Dienstleistungen für Unternehmen und Privatpersonen",
+    "1256": "Öffentliche Verwaltung, Verteidigung; Sozialversicherung",
+    "1257": "Erziehung und Unterricht",
+    "1258": "Gesundheitswesen",
+    "1259": "Heime, ohne Erholungs- und Ferienheime",
+    "1260": "Sozialwesen, ohne Heime",
+    "1261": "Kunstschaffende Tätigkeiten und Tätigkeiten in der darstellenden Kunst",
+    "1262": "Bibliotheken, Archive, Museen, botanische und zoologische Gärten",
+    "1263": "Spiel-, Wett- und Lotteriewesen",
+    "1264": "Erbringung von Dienstleistungen des Sports, der Unterhaltung und der Erholung",
+    "1265": "Interessenvertretungen sowie kirchliche und sonstige religiöse Vereinigungen, ohne Sozialwesen und Sport",
+    "1266": "Reparatur und Instandhaltung von Datenverarbeitungsgeräten und Gebrauchsgütern sowie von Kraftwagen und Krafträdern",
+    "1267": "Erbringung von sonstigen überwiegend persönlichen Dienstleistungen",
+    "1268": "Private Haushalte mit Hauspersonal",
+    "1269": "Herstellung von Waren und Erbringung von Dienstleistungen durch private Haushalte für den Eigenbedarf ohne ausgeprägten Schwerpunkt",
+    "1270": "Exterritoriale Organisationen und Körperschaften"
+   }
+  },
+  {
+   "id": 100,
+   "name": "ArtAbschaltbareLast",
+   "werte": {
+    "1397": "Sofort",
+    "1398": "Schnell",
+    "1399": "Temporär befristet"
+   }
+  },
+  {
+   "id": 101,
+   "name": "BundeslaenderEinheiten",
+   "werte": {
+    "1400": "Brandenburg",
+    "1401": "Berlin",
+    "1402": "Baden-Württemberg",
+    "1403": "Bayern",
+    "1404": "Bremen",
+    "1405": "Hessen",
+    "1406": "Hamburg",
+    "1407": "Mecklenburg-Vorpommern",
+    "1408": "Niedersachsen",
+    "1409": "Nordrhein-Westfalen",
+    "1410": "Rheinland-Pfalz",
+    "1411": "Schleswig-Holstein",
+    "1412": "Saarland",
+    "1413": "Sachsen",
+    "1414": "Sachsen-Anhalt",
+    "1415": "Thüringen",
+    "1416": "Ausschließliche Wirtschaftszone"
+   }
+  },
+  {
+   "id": 102,
+   "name": "LaenderEinheiten",
+   "werte": {
+    "1434": "Deutschland",
+    "1435": "Dänemark",
+    "1436": "Niederlande",
+    "1437": "Belgien",
+    "1438": "Luxemburg",
+    "1439": "Frankreich",
+    "1440": "Schweiz",
+    "1441": "Österreich",
+    "1442": "Polen",
+    "1443": "Tschechische Republik"
+   }
+  },
+  {
+   "id": 103,
+   "name": "TechnologieKernkraft",
+   "werte": {
+    "1444": "Druckwasserreaktor",
+    "1445": "Siedewasserreaktor"
+   }
+  },
+  {
+   "id": 104,
+   "name": "TechnologiePumpspeicher",
+   "werte": {
+    "1446": "Pumpspeicheranlage mit natürlichem Zufluss",
+    "1447": "Pumpspeicheranlage ohne natürlichen Zufluss"
+   }
+  },
+  {
+   "id": 105,
+   "name": "Wechselrichter",
+   "werte": {
+    "1448": "Stromspeicher vorhanden - gemeinsamer Wechselrichter mit Solaranlage",
+    "1449": "Stromspeicher vorhanden - kein gemeinsamer Wechselrichter mit Solaranlage",
+    "1450": "Kein Stromspeicher vorhanden"
+   }
+  },
+  {
+   "id": 106,
+   "name": "BrennstoffLage",
+   "werte": {
+    "1451": "Windkraft an Land",
+    "1452": "Windkraft auf See",
+    "1453": "Bauliche Anlagen (Hausdach, Gebäude und Fassade)",
+    "1454": "Bauliche Anlagen (Sonstige)",
+    "1455": "Freifläche",
+    "1456": "Abfall, fest, rein biogen",
+    "1457": "Altholz",
+    "1458": "Blutmehl",
+    "1459": "Brennholz",
+    "1460": "Brennlauge",
+    "1461": "Feste biogene Stoffe",
+    "1462": "Holz",
+    "1463": "Holzhackschnitzel",
+    "1464": "Holzreste (z.B. Schreinereien)",
+    "1465": "Holzspäne, Sägemehl",
+    "1466": "Landschaftspflegeholz",
+    "1467": "Pellets (Holz)",
+    "1468": "Rauchspan",
+    "1469": "Restholz",
+    "1470": "Rinde",
+    "1471": "Schleifstaub, biogen",
+    "1472": "Schwarzlauge",
+    "1473": "Stroh, Strohpellets",
+    "1474": "Sulfitablauge",
+    "1475": "Tierfett",
+    "1476": "Tiermehl",
+    "1477": "Warmbrennstoffe (biogener Gewerbeabfall)",
+    "1478": "Abfall, flüssig, biogen",
+    "1479": "Biodiesel",
+    "1480": "Biomethanol",
+    "1481": "Flüssige biogene Stoffe",
+    "1482": "Harzöl",
+    "1483": "Iso-Hexan",
+    "1484": "Palmöl",
+    "1485": "Pflanzenöl",
+    "1486": "Terpentin",
+    "1487": "Biogas",
+    "1488": "Biomethan",
+    "1489": "Deponiegas",
+    "1490": "Klärgas",
+    "1491": "Abwasserkraftanlage",
+    "1492": "Laufwasseranlage",
+    "1493": "Meeresenergie",
+    "1494": "Speicherwasseranlage",
+    "1495": "Wasserkraftanlage in Brauchwassersystem",
+    "1496": "Wasserkraftanlage in Trinkwassersystem",
+    "1497": "Geothermie",
+    "1498": "Solarthermie",
+    "1499": "Klärschlamm",
+    "1500": "Grubengas",
+    "1501": "Kohlenwertstoffe aus Steinkohle",
+    "1502": "Steinkohlen",
+    "1503": "Steinkohlenbriketts",
+    "1504": "Steinkohlenkoks",
+    "1505": "Braunkohlenbriketts",
+    "1506": "Braunkohlenkoks",
+    "1507": "Hartbraunkohlen",
+    "1508": "Rohbraunkohlen",
+    "1509": "Staub- und Trockenkohle",
+    "1510": "Wirbelschichtkohle",
+    "1511": "Dieselkraftstoff",
+    "1512": "Heizöl, leicht",
+    "1513": "Heizöl, schwer",
+    "1514": "Flüssiggas",
+    "1515": "Petrolkoks",
+    "1516": "Raffineriegas",
+    "1517": "Andere Mineralölprodukte",
+    "1518": "Erdgas, Erdölgas",
+    "1519": "Grubengas",
+    "1520": "Hochofengas, Konvertergas",
+    "1521": "Kokereigas",
+    "1522": "Andere Gase",
+    "1523": "Sonstige hergestellte Gase",
+    "1524": "Industrieabfall",
+    "1525": "Abfall (Hausmüll, Siedl.abf.)",
+    "1526": "Dampf (zum Beispiel Prozesswärme)",
+    "1527": "Dampf (fremdbezogen)",
+    "1528": "Wärme",
+    "1529": "Kernenergie",
+    "1530": "Speicher"
+   }
+  },
+  {
+   "id": 107,
+   "name": "ClusterOstsee",
+   "werte": {
+    "1540": "O-1",
+    "1541": "O-2",
+    "1542": "O-3",
+    "1543": "O-4",
+    "1544": "O-5",
+    "2962": "kein Gebiet nach dem Flächenentwicklungsplan des BSH",
+    "2970": "O-6"
+   }
+  },
+  {
+   "id": 108,
+   "name": "ClusterNordsee",
+   "werte": {
+    "1546": "N-1",
+    "1547": "N-2",
+    "1548": "N-3",
+    "1549": "N-4",
+    "1550": "N-5",
+    "1551": "N-6",
+    "1552": "N-7",
+    "1553": "N-8",
+    "1554": "N-9",
+    "1555": "N-10",
+    "1556": "N-11",
+    "1557": "N-12",
+    "1558": "N-13",
+    "2963": "kein Gebiet nach dem Flächenentwicklungsplan des BSH"
+   }
+  },
+  {
+   "id": 131,
+   "name": "Standortangabe",
+   "werte": {
+    "2385": "Postalische Adresse",
+    "2386": "Über Flurdaten"
+   }
+  },
+  {
+   "id": 132,
+   "name": "Energieträger (GSGK)",
+   "werte": {
+    "2403": "Geothermie",
+    "2404": "Solarthermie",
+    "2405": "Klärschlamm",
+    "2406": "Grubengas",
+    "2957": "Druck aus Gasleitungen",
+    "2958": "Druck aus Wasserleitungen"
+   }
+  },
+  {
+   "id": 133,
+   "name": "Energieträger (Verbrennung)",
+   "werte": {
+    "2407": "Steinkohle",
+    "2408": "Braunkohle",
+    "2409": "Mineralölprodukte",
+    "2410": "Erdgas",
+    "2411": "andere Gase",
+    "2412": "nicht biogener Abfall",
+    "2413": "Wärme",
+    "3030": "Wasserstoff"
+   }
+  },
+  {
+   "id": 134,
+   "name": "Feste Biomasse",
+   "werte": {
+    "2414": "Feste biogene Stoffe und Abfälle (ohne Holz)",
+    "2415": "Altholz, Gebrauchtholz, Holz(sperr)müll",
+    "2416": "Tier- und Blutmehl",
+    "2417": "Brennholz",
+    "2418": "Brennlauge, Schwarzlauge, Sulfitablauge",
+    "2419": "Feste biogene Stoffe",
+    "2420": "Holz",
+    "2421": "Wald-Holzhackschnitzel, Wald-Scheitholz, -Kronenholz",
+    "2422": "Holzreste (z.B. aus Schreinereien, auch Spanholz)",
+    "2423": "Holzspäne, Sägemehl",
+    "2424": "Rinde und Landschaftspflegeholz",
+    "2425": "Holz-Pellets, Holz-Briketts",
+    "2426": "Rauchspan",
+    "2427": "Restholz",
+    "2428": "Rinde",
+    "2429": "Schleifstaub, biogen",
+    "2430": "Schwarzlauge",
+    "2431": "Stroh, Strohpellets",
+    "2432": "Sulfitablauge",
+    "2433": "Tierfett",
+    "2434": "Tiermehl",
+    "2435": "Warmbrennstoffe (biogener Gewerbeabfall)",
+    "3031": "Energiepflanzen zur Verbrennung (z.B. Kurzumtriebs-Holz)",
+    "3033": "Holzkohle",
+    "3034": "Wald-Stammholz, Rundholz"
+   }
+  },
+  {
+   "id": 135,
+   "name": "Flüssige Biomasse",
+   "werte": {
+    "2436": "Flüssige biogene Stoffe und Abfälle",
+    "2437": "Biodiesel",
+    "2438": "Biomethanol",
+    "2439": "Flüssige biogene Stoffe",
+    "2440": "Harzöl",
+    "2441": "Iso-Hexan",
+    "2442": "Palmöl u.a. Pflanzenöle",
+    "2443": "Pflanzenöl",
+    "2444": "Terpentin"
+   }
+  },
+  {
+   "id": 136,
+   "name": "Gasförmige Biomasse",
+   "werte": {
+    "2445": "Biogas",
+    "2446": "Biomethan (Bioerdgas)",
+    "2447": "Deponiegas",
+    "2448": "Klärgas",
+    "3032": "Holzgas (Gas Biomasse)"
+   }
+  },
+  {
+   "id": 138,
+   "name": "Verbrennung Steinkohle",
+   "werte": {
+    "2456": "Kohlenwertstoffe aus Steinkohle",
+    "2457": "Steinkohlen",
+    "2458": "Steinkohlenbriketts",
+    "2459": "Steinkohlenkoks"
+   }
+  },
+  {
+   "id": 139,
+   "name": "Verbrennung Braunkohle",
+   "werte": {
+    "2460": "Braunkohlenbriketts",
+    "2461": "Braunkohlenkoks",
+    "2462": "Hartbraunkohlen",
+    "2463": "Rohbraunkohlen",
+    "2464": "Staub- und Trockenkohle",
+    "2465": "Wirbelschichtkohle"
+   }
+  },
+  {
+   "id": 140,
+   "name": "Verbrennung Mineralölprodukte",
+   "werte": {
+    "2466": "Dieselkraftstoff",
+    "2467": "Heizöl, leicht",
+    "2468": "Heizöl, schwer",
+    "2469": "Flüssiggas",
+    "2470": "Petrolkoks",
+    "2471": "Raffineriegas",
+    "2472": "Andere Mineralölprodukte"
+   }
+  },
+  {
+   "id": 141,
+   "name": "Verbrennung Erdgas",
+   "werte": {
+    "2473": "Erdgas, Erdölgas"
+   }
+  },
+  {
+   "id": 142,
+   "name": "Verbrennung andere Gase",
+   "werte": {
+    "2474": "Grubengas",
+    "2475": "Hochofengas, Konvertergas",
+    "2476": "Kokereigas",
+    "2477": "Andere Gase",
+    "2478": "Sonstige hergestellte Gase"
+   }
+  },
+  {
+   "id": 143,
+   "name": "Verbrennung nicht biogener Abfall",
+   "werte": {
+    "2479": "Industrieabfall",
+    "2480": "Abfall (Hausmüll, Siedl.abf.)"
+   }
+  },
+  {
+   "id": 144,
+   "name": "Verbrennung Wärme",
+   "werte": {
+    "2481": "Dampf (zum Beispiel Prozesswärme)",
+    "2482": "Dampf (fremdbezogen)",
+    "2483": "Wärme"
+   }
+  },
+  {
+   "id": 145,
+   "name": "EnergieträgerArt",
+   "werte": {
+    "2485": "Geothermie",
+    "2486": "Verbrennung",
+    "2487": "Biomasse",
+    "2488": "Kernenergie",
+    "2489": "Solare Strahlungsenergie",
+    "2490": "Speicher",
+    "2491": "Wind",
+    "2492": "Wasser"
+   }
+  },
+  {
+   "id": 146,
+   "name": "Energieträger (Biomasse)",
+   "werte": {
+    "2493": "Biomasse"
+   }
+  },
+  {
+   "id": 147,
+   "name": "Energieträger (Kernenergie)",
+   "werte": {
+    "2494": "Kernenergie"
+   }
+  },
+  {
+   "id": 148,
+   "name": "Energieträger (Solare Strahlungsenergie)",
+   "werte": {
+    "2495": "Solare Strahlungsenergie"
+   }
+  },
+  {
+   "id": 149,
+   "name": "Energieträger (Speicher)",
+   "werte": {
+    "2496": "Speicher"
+   }
+  },
+  {
+   "id": 150,
+   "name": "Energieträger (Wind)",
+   "werte": {
+    "2497": "Wind"
+   }
+  },
+  {
+   "id": 151,
+   "name": "Energieträger (Wasser)",
+   "werte": {
+    "2498": "Wasser"
+   }
+  },
+  {
+   "id": 155,
+   "name": "Tätigkeitsstatus",
+   "werte": {
+    "2511": "Aktiv",
+    "2512": "Inaktiv"
+   }
+  },
+  {
+   "id": 156,
+   "name": "Grund der Löschung",
+   "werte": {
+    "2513": "Tätigkeitsende",
+    "2514": "Fehlerhafte Registrierung",
+    "3240": "Duplikat/Doppelte Registrierung"
+   }
+  },
+  {
+   "id": 159,
+   "name": "NACEGruppe",
+   "werte": {
+    "2568": "Anbau ein- und zweijähriger Pflanzen",
+    "2569": "Anbau mehrjähriger Pflanzen",
+    "2570": "Betrieb von Baumschulen, sowie Anbau von Pflanzen zu Vermehrungszwecken",
+    "2571": "Tierhaltung",
+    "2572": "Gemischte Landwirtschaft",
+    "2573": "Erbringung von landwirtschaftlichen Dienstleistungen und nach der Ernte anfallende Tätigkeiten",
+    "2574": "Jagd, Fallenstellerei und damit verbundene Tätigkeiten",
+    "2575": "Forstwirtschaft",
+    "2576": "Holzeinschlag",
+    "2577": "Sammeln von wild wachsenden Produkten, ohne Holz",
+    "2578": "Erbringung von Dienstleistungen für Forstwirtschaft und Holzeinschlag",
+    "2579": "Fischerei",
+    "2580": "Aquakultur",
+    "2581": "Steinkohlenbergbau",
+    "2582": "Braunkohlenbergbau",
+    "2583": "Gewinnung von Erdöl",
+    "2584": "Gewinnung von Erdgas",
+    "2585": "Eisenerzbergbau",
+    "2586": "NE-Metallerzbergbau",
+    "2587": "Gewinnung von Natursteinen, Kies, Sand, Ton und Kaolin",
+    "2588": "Sonstiger Bergbau; Gewinnung von Steinen und Erden a. n. g.",
+    "2589": "Erbringung von Dienstleistungen für die Gewinnung von Erdöl und Erdgas",
+    "2590": "Erbringung von Dienstleistungen für den sonstigen Bergbau und die Gewinnung von Steinen und Erden",
+    "2591": "Schlachten und Fleischverarbeitung",
+    "2592": "Fischverarbeitung",
+    "2593": "Obst- und Gemüseverarbeitung",
+    "2594": "Herstellung von pflanzlichen und tierischen Ölen und Fetten",
+    "2595": "Herstellung von Milcherzeugnissen und Speiseeis",
+    "2596": "Mahl- und Schälmühlen, Herstellung von Stärke und Stärkeerzeugnissen",
+    "2597": "Herstellung von Back- und Teigwaren",
+    "2598": "Herstellung von sonstigen Nahrungsmitteln",
+    "2599": "Herstellung von Futtermitteln",
+    "2600": "Getränkeherstellung",
+    "2601": "Tabakverarbeitung",
+    "2602": "Spinnstoffaufbereitung und Spinnerei",
+    "2603": "Weberei",
+    "2604": "Veredlung von Textilien und Bekleidung",
+    "2605": "Herstellung von sonstigen Textilwaren",
+    "2606": "Herstellung von Bekleidung und Bekleidungszubehör",
+    "2607": "Herstellung von Pelzwaren",
+    "2608": "Herstellung von Bekleidung aus gewirktem und gestricktem Stoff",
+    "2609": "Gerben, Färben, Zurichten von Leder und Fellen; Herstellung von Reisegepäck, Handtaschen, Sattlerwaren und Geschirren",
+    "2610": "Herstellung von Schuhen",
+    "2611": "Säge-, Hobel- und Holzimprägnierwerke; Bearbeitung und Veredlung von Holz",
+    "2612": "Herstellung von sonstigen Holz-, Kork-, Flecht- und Korbwaren",
+    "2613": "Herstellung von Holz- und Zellstoff, Papier, Karton und Pappe",
+    "2614": "Herstellung von Waren aus Papier, Karton und Pappe",
+    "2615": "Herstellung von Druckerzeugnissen",
+    "2616": "Vervielfältigung von bespielten Ton-, Bild- und Datenträgern",
+    "2617": "Kokerei",
+    "2618": "Herstellung von Mineralölerzeugnissen und von fossilen Brennstoffen",
+    "2619": "Herstellung von chemischen Grundstoffen, Düngemitteln und Stickstoffverbindungen, Kunststoffen in Primärformen und synthetischem Kautschuk in Primärformen",
+    "2620": "Herstellung von Schädlingsbekämpfungs-, Pflanzenschutz- und Desinfektionsmitteln",
+    "2621": "Herstellung von Anstrichmitteln, Druckfarben und Kitten",
+    "2622": "Herstellung von Wasch-, Reinigungs- und Poliermitteln",
+    "2623": "Herstellung von sonstigen chemischen Erzeugnissen",
+    "2624": "Herstellung von Chemiefasern",
+    "2625": "Herstellung von pharmazeutischen Grundstoffen",
+    "2626": "Herstellung von pharmazeutischen Spezialitäten und sonstigen pharmazeutischen Erzeugnissen",
+    "2627": "Herstellung von Gummiwaren",
+    "2628": "Herstellung von Kunststoffwaren",
+    "2629": "Herstellung von Glas und Glaswaren",
+    "2630": "Herstellung von feuerfesten keramischen Werkstoffen und Waren",
+    "2631": "Herstellung von keramischen Baumaterialien",
+    "2632": "Herstellung von sonstigen Porzellan- und keramischen Erzeugnissen",
+    "2633": "Herstellung von Zement, Kalk und gebranntem Gips",
+    "2634": "Herstellung von Erzeugnissen aus Beton, Zement und Gips",
+    "2635": "Be- und Verarbeitung von Naturwerksteinen und Natursteinen",
+    "2636": "Herstellung von Schleifkörpern und Schleifmitteln auf Unterlage sowie sonstigen Erzeugnissen aus nichtmetallischen Mineralien a. n. g.",
+    "2637": "Erzeugung von Roheisen, Stahl und Ferrolegierungen",
+    "2638": "Herstellung von Stahlrohren, Rohrform-, Rohrverschluss- und Rohrverbindungsstücken aus Stahl",
+    "2639": "Sonstige erste Bearbeitung von Eisen und Stahl",
+    "2640": "Erzeugung und erste Bearbeitung von NE-Metallen",
+    "2641": "Gießereien",
+    "2642": "Stahl- und Leichtmetallbau",
+    "2643": "Herstellung von Metalltanks und -behältern",
+    "2644": "Herstellung von Dampfkesseln (ohne Zentralheizungskessel)",
+    "2645": "Herstellung von Waffen und Munition",
+    "2646": "Herstellung von Schmiede-, Press-, Zieh- und Stanzteilen und pulvermetallurgischen Erzeugnissen",
+    "2647": "Oberflächenveredlung und Wärmebehandlung; Metallbearbeitung",
+    "2648": "Herstellung von Schneidwaren, Werkzeugen, Schlössern und Beschlägen aus unedlen Metallen",
+    "2649": "Herstellung von sonstigen Metallwaren",
+    "2650": "Herstellung von elektronischen Bauelementen und Leiterplatten",
+    "2651": "Herstellung von Datenverarbeitungsgeräten und peripheren Geräten",
+    "2652": "Herstellung von Geräten und Einrichtungen der Telekommunikationstechnik",
+    "2653": "Herstellung von Geräten der Unterhaltungselektronik",
+    "2654": "Herstellung von Mess- und Kontrollinstrumenten sowie Uhren",
+    "2655": "Herstellung von Bestrahlungs- und Elektrotherapiegeräten und elektromedizinischen Geräten",
+    "2656": "Herstellung von optischen und fotografischen Instrumenten und Geräten sowie von magnetischen und optischen Datenträgern",
+    "2657": "Herstellung von magnetischen und optischen Datenträgern",
+    "2658": "Herstellung von Elektromotoren, Generatoren, Transformatoren, Elektrizitätsverteilungs- und -schalteinrichtungen",
+    "2659": "Herstellung von Batterien und Akkumulatoren",
+    "2660": "Herstellung von Kabeln und elektrischem Installationsmaterial",
+    "2661": "Herstellung von Lampen und Leuchten",
+    "2662": "Herstellung von Haushaltsgeräten",
+    "2663": "Herstellung von sonstigen elektrischen Ausrüstungen und Geräten",
+    "2664": "Herstellung von nicht wirtschaftszweigspezifischen Maschinen",
+    "2665": "Herstellung von sonstigen nicht wirtschaftszweigspezifischen Maschinen",
+    "2666": "Herstellung von land- und forstwirtschaftlichen Maschinen",
+    "2667": "Herstellung von Werkzeugmaschinen",
+    "2668": "Herstellung von Maschinen für sonstige bestimmte Wirtschaftszweige",
+    "2669": "Herstellung von Kraftwagen und Kraftwagenmotoren",
+    "2670": "Herstellung von Karosserien, Aufbauten und Anhängern",
+    "2671": "Herstellung von Teilen und Zubehör für Kraftwagen",
+    "2672": "Schiff- und Bootsbau",
+    "2673": "Schienenfahrzeugbau",
+    "2674": "Luft- und Raumfahrzeugbau",
+    "2675": "Herstellung von militärischen Kampffahrzeugen",
+    "2676": "Herstellung von Beförderungsmitteln",
+    "2677": "Herstellung von Möbeln",
+    "2678": "Herstellung von Münzen, Schmuck und ähnlichen Erzeugnissen",
+    "2679": "Herstellung von Musikinstrumenten",
+    "2680": "Herstellung von Sportgeräten",
+    "2681": "Herstellung von Spielwaren",
+    "2682": "Herstellung von medizinischen und zahnmedizinischen Apparaten und Materialien",
+    "2683": "Herstellung von Erzeugnissen a. n. g.",
+    "2684": "Reparatur und Instandhaltung von Metallerzeugnissen, Maschinen und Ausrüstungen",
+    "2685": "Installation von Industriemaschinen und -ausrüstungen",
+    "2686": "Elektrizitätsversorgung",
+    "2687": "Gasversorgung",
+    "2688": "Wärme- und Kälteversorgung",
+    "2689": "Wasserversorgung",
+    "2690": "Abwasserentsorgung",
+    "2691": "Sammlung von Abfällen",
+    "2692": "Verwertung von Abfällen",
+    "2693": "Abfallbeseitigung ohne Verwertung",
+    "2694": "Beseitigung von Umweltverschmutzungen und sonstige Tätigkeiten in der Abfallbewirtschaftung",
+    "2695": "Erschließung von Grundstücken; Bauträger",
+    "2696": "Bau von Gebäuden",
+    "2697": "Bau von Straßen und Bahnverkehrsstrecken",
+    "2698": "Bau von Versorgungseinrichtungen",
+    "2699": "Sonstiger Tiefbau",
+    "2700": "Abbrucharbeiten und vorbereitende Baustellenarbeiten",
+    "2701": "Bauinstallation",
+    "2702": "Sonstiger Ausbau",
+    "2703": "Sonstige spezialisierte Bautätigkeiten",
+    "2704": "Handel mit Kraftwagen",
+    "2705": "Instandhaltung und Reparatur von Kraftwagen",
+    "2706": "Handel mit Kraftwagenteilen und -zubehör",
+    "2707": "Handel mit Krafträdern, Kraftradteilen und -zubehör; Instandhaltung und Reparatur von Krafträdern",
+    "2708": "Handelsvermittlung",
+    "2709": "Großhandel mit landwirtschaftlichen Grundstoffen und lebenden Tieren",
+    "2710": "Großhandel mit Nahrungs- und Genussmitteln, Getränken und Tabakwaren",
+    "2711": "Großhandel mit Gebrauchs- und Verbrauchsgütern",
+    "2712": "Großhandel mit Geräten der Informations- und Kommunikationstechnik",
+    "2713": "Großhandel mit sonstigen Maschinen, Ausrüstungen und Zubehör",
+    "2714": "Sonstiger Großhandel",
+    "2715": "Großhandel ohne ausgeprägten Schwerpunkt",
+    "2716": "Einzelhandel mit Waren verschiedener Art",
+    "2717": "Einzelhandel mit Nahrungs- und Genussmitteln, Getränken und Tabakwaren",
+    "2718": "Einzelhandel mit Motorenkraftstoffen",
+    "2719": "Einzelhandel mit Geräten der Informations- und Kommunikationstechnik",
+    "2720": "Einzelhandel mit sonstigen Haushaltsgeräten, Textilien, Heimwerker- und Einrichtungsbedarf",
+    "2721": "Einzelhandel mit Verlagsprodukten, Sportausrüstungen und Spielwaren",
+    "2722": "Einzelhandel mit sonstigen Gütern, ohne Kraftwagen und Krafträder",
+    "2723": "Einzelhandel mit Kraftwagen, Krafträdern, deren Teilen und Zubehör",
+    "2724": "Vermittlungstätigkeiten für den Einzelhandel",
+    "2725": "Personenbeförderung im Schienenverkehr",
+    "2726": "Güterbeförderung im Schienenverkehr",
+    "2727": "Sonstige Personenbeförderung im Landverkehr",
+    "2728": "Güterbeförderung im Straßenverkehr, Umzugstransporte",
+    "2729": "Transport in Rohrfernleitungen",
+    "2730": "Personenbeförderung in der Hochsee- und Küstenschifffahrt",
+    "2731": "Güterbeförderung in der Hochsee- und Küstenschifffahrt",
+    "2732": "Personenbeförderung in der Binnenschifffahrt",
+    "2733": "Güterbeförderung in der Binnenschifffahrt",
+    "2734": "Personenbeförderung in der Luftfahrt",
+    "2735": "Güterbeförderung in der Luftfahrt und Raumtransport",
+    "2736": "Lagerei",
+    "2737": "Erbringung von sonstigen Dienstleistungen für den Verkehr",
+    "2738": "Postdienste von Universaldienstleistungsanbietern",
+    "2739": "Sonstige Post-, Kurier- und Expressdienste",
+    "2740": "Hotels, Gasthöfe und Pensionen",
+    "2741": "Ferienunterkünfte und ähnliche Beherbergungsstätten",
+    "2742": "Campingplätze",
+    "2743": "Sonstige Beherbergungsstätten",
+    "2744": "Restaurants, Gaststätten, Imbissstuben, Cafés, Eissalons u. Ä.",
+    "2745": "Caterer und Erbringung sonstiger Verpflegungsdienstleistungen",
+    "2746": "Ausschank von Getränken",
+    "2747": "Verlegen von Büchern und Zeitschriften; sonstiges Verlagswesen, ohne Software",
+    "2748": "Verlegen von Software",
+    "2749": "Herstellung von Filmen und Fernsehprogrammen, deren Verleih und Vertrieb; Kinos",
+    "2750": "Tonstudios; Herstellung von Hörfunkbeiträgen; Verlegen von bespielten Tonträgern und Musikalien",
+    "2751": "Hörfunkveranstalter und Verbreitung von Audioinhalten",
+    "2752": "Fernsehveranstalter und Verbreitung von Videoinhalten",
+    "2753": "Leitungsgebundene, drahtlose und satellitengestützte Telekommunikation",
+    "2754": "Wiederverkaufs- und Vermittlungstätigkeiten für die Telekommunikation",
+    "2755": "Satellitentelekommunikation",
+    "2756": "Sonstige Telekommunikation",
+    "2757": "Erbringung von Dienstleistungen der Informationstechnologie",
+    "2758": "Datenverarbeitung, Hosting und damit verbundene Tätigkeiten",
+    "2759": "Web-Suchportale und Erbringung von sonstigen Informationsdienstleistungen",
+    "2760": "Zentralbanken und Kreditinstitute",
+    "2761": "Beteiligungsgesellschaften und Finanzierungs-Conduits",
+    "2762": "Treuhand- und sonstige Fonds u. Ä. Finanzinstitutionen",
+    "2763": "Sonstige Finanzierungsinstitutionen",
+    "2764": "Versicherungen",
+    "2765": "Rückversicherungen",
+    "2766": "Pensionskassen und Pensionsfonds",
+    "2767": "Mit Finanzdienstleistungen verbundene Tätigkeiten",
+    "2768": "Mit Versicherungsdienstleistungen und Pensionskassen verbundene Tätigkeiten",
+    "2769": "Fondsmanagement",
+    "2770": "Kauf und Verkauf von eigenen Grundstücken, Gebäuden und Wohnungen sowie Erschließung von Grundstücken",
+    "2771": "Vermietung, Verpachtung von eigenen oder geleasten Grundstücken, Gebäuden und Wohnungen",
+    "2772": "Vermittlung und Verwaltung von Grundstücken, Gebäuden und Wohnungen für Dritte",
+    "2773": "Rechtsberatung",
+    "2774": "Wirtschaftsprüfung und Steuerberatung; Buchführung",
+    "2775": "Verwaltung und Führung von Unternehmen und Betrieben",
+    "2776": "Unternehmensberatung",
+    "2777": "Tätigkeiten von Architektur- und Ingenieurbüros",
+    "2778": "Technische, physikalische und chemische Untersuchung",
+    "2779": "Forschung und Entwicklung im Bereich Natur-, Ingenieur-, Agrarwissenschaften und Medizin",
+    "2780": "Forschung und Entwicklung im Bereich Rechts-, Wirtschafts- und Sozialwissenschaften sowie im Bereich Sprach-, Kultur- und Kunstwissenschaften",
+    "2781": "Werbung",
+    "2782": "Markt- und Meinungsforschung",
+    "2783": "Ateliers für Textil-, Schmuck-, Grafik- u. Ä. Design",
+    "2784": "Fotografie und Fotolabors",
+    "2785": "Übersetzen und Dolmetschen",
+    "2786": "Sonstige wissenschaftliche und technische Tätigkeiten a. n. g.",
+    "2787": "Veterinärwesen",
+    "2788": "Vermietung von Kraftwagen",
+    "2789": "Vermietung von Gebrauchsgütern",
+    "2790": "Vermietung von Maschinen, Geräten und sonstigen beweglichen Sachen",
+    "2791": "Leasing von nichtfinanziellen immateriellen Vermögensgütern ohne Copyrights",
+    "2792": "Vermittlung von Arbeitskräften",
+    "2793": "Überlassung von Arbeitskräften und sonstige Personaldienstleistungen",
+    "2794": "Sonstige Überlassung von Arbeitskräften",
+    "2795": "Reisebüros und Reiseveranstalter",
+    "2796": "Erbringung sonstiger Reservierungsdienstleistungen",
+    "2797": "Private Wach- und Sicherheitsdienste",
+    "2798": "Sicherheitsdienste mithilfe von Überwachungs- und Alarmsystemen",
+    "2799": "Detekteien",
+    "2800": "Hausmeisterdienste",
+    "2801": "Reinigung von Gebäuden, Straßen und Verkehrsmitteln",
+    "2802": "Garten- und Landschaftsbau sowie Erbringung von sonstigen gärtnerischen Dienstleistungen",
+    "2803": "Sekretariats- und Schreibdienste, Copy-Shops",
+    "2804": "Call Center",
+    "2805": "Messe-, Kongress- und Business-Event-Veranstalter",
+    "2806": "Erbringung wirtschaftlicher Dienstleistungen für Unternehmen und Privatpersonen a. n. g.",
+    "2807": "Öffentliche Verwaltung",
+    "2808": "Auswärtige Angelegenheiten, Verteidigung, Rechtspflege/Justiz, öffentliche Sicherheit und Ordnung",
+    "2809": "Sozialversicherung",
+    "2810": "Kindergärten und Vorschulen",
+    "2811": "Grundschulen/Volksschulen",
+    "2812": "Weiterführende Schulen und postsekundärer, nicht tertiärer Unterricht",
+    "2813": "Tertiärer und post-sekundärer, nicht tertiärer Unterricht",
+    "2814": "Sonstiger Unterricht",
+    "2815": "Erbringung von Dienstleistungen für den Unterricht",
+    "2816": "Krankenhäuser",
+    "2817": "Arzt- und Zahnarztpraxen",
+    "2818": "Sonstiges Gesundheitswesen",
+    "2819": "Pflegeheime",
+    "2820": "Stationäre Einrichtungen zur psychosozialen Betreuung, Suchtbekämpfung",
+    "2821": "Seniorenwohnheime und Wohnheime für Menschen mit Behinderung",
+    "2822": "Sonstige Heime, ohne Erholungs- und Ferienheime, und Tätigkeiten für stationäre Betreuung",
+    "2823": "Soziale Betreuung von älterern Menschen und von Menschen mit Behinderung",
+    "2824": "Sonstiges Sozialwesen, ohne Heime",
+    "2825": "Kreative, künstlerische und unterhaltende Tätigkeiten",
+    "2826": "Bibliotheken, Archive, Museen, botanische und zoologische Gärten",
+    "2827": "Spiel-, Wett- und Lotteriewesen",
+    "2828": "Erbringung von Dienstleistungen des Sports",
+    "2829": "Erbringung von sonstigen Dienstleistungen der Unterhaltung und der Erholung",
+    "2830": "Wirtschafts- und Arbeitgeberverbände, Berufsorganisationen",
+    "2831": "Arbeitnehmervereinigungen",
+    "2832": "Kirchliche Vereinigungen; politische Parteien sowie sonstige Interessenvertretungen und Vereinigungen",
+    "2833": "Reparatur und Instandhaltung von Datenverarbeitungs- und Telekommunikationsgeräten",
+    "2834": "Reparatur und Instandhaltung von Gebrauchsgütern",
+    "2835": "Erbringung von sonstigen überwiegend persönlichen Dienstleistungen",
+    "2836": "Private Haushalte mit Hauspersonal",
+    "2837": "Herstellung von Waren durch private Haushalte für den Eigenbedarf ohne ausgeprägten Schwerpunkt",
+    "2838": "Erbringungen von Dienstleistungen durch private Haushalte für den Eigenbedarf ohne ausgeprägten Schwerpunkt",
+    "2839": "Exterritoriale Organisationen und Körperschaften",
+    "3126": "Erbringung von Dienstleistungen für Fischerei und Aquakultur",
+    "3127": "Tätigkeiten von Strom- und Erdgasmaklerinnen und -maklern",
+    "3128": "Hochbau",
+    "3129": "Spezialisierte Bautätigkeiten im Hochbau",
+    "3130": "Spezialisierte Bautätigkeiten im Tiefbau",
+    "3131": "Vermittlungstätigkeiten für spezialisierte Bautätigkeiten",
+    "3132": "Großhandel mit Kraftwagen, Krafträdern, deren Teilen und Zubehör",
+    "3133": "Vermittlungstätigkeiten für den Verkehr",
+    "3134": "Vermittlungstätigkeiten für Post-, Kurier und Expressdienstleistungen",
+    "3135": "Vermittlungstätigkeiten für Beherbergungsdienstleistungen",
+    "3136": "Vermittlungstätigkeiten für gastronomische Dienstleistungen",
+    "3137": "Nachrichtenagenturen und sonstige Verbreitung von Medieninhalten",
+    "3138": "Programmierungstätigkeiten",
+    "3139": "Erbringung von Dienstleistungen der IT-Beratung sowie des Betriebs von Datenverarbeitungseinrichtungen",
+    "3140": "Erbringung von sonstigen Dienstleistungen der Informationstechnologie",
+    "3141": "Public-Relations-Beratung",
+    "3142": "Vermittlungstätigkeiten für die Vermietung und das Leasing von beweglichen Sachen und nichtfinanziellen immateriellen Vermögenswerten",
+    "3143": "Wach- und Sicherheitsdienste sowie Detekteien",
+    "3144": "Vermittlungstätigkeiten für die Erbringung von wirtschaftlichen Dienstleistungen für Unternehmen und Privatpersonen a. n. g.",
+    "3145": "Tertiärer Unterricht",
+    "3146": "Erbringung von Dienstleistungen für Erziehung und Unterricht",
+    "3147": "Kunstschaffende Tätigkeiten",
+    "3148": "Darstellende Kunst",
+    "3149": "Erbringung von Dienstleistungen für kunstschaffende und darstellende Künste",
+    "3150": "Bibliotheken und Archive",
+    "3151": "Museen, Sammlungen, historische Stätten und Denkmäler",
+    "3152": "Konservierung, Restaurierung und sonstige unterstützende Tätigkeiten für das kulturelle Erbe",
+    "3153": "Botanische und zoologische Gärten sowie Naturparks",
+    "3154": "Reparatur und Instandhaltung von Kraftwagen und Krafträdern",
+    "3155": "Vermittlungstätigkeiten für die Reparatur und Instandhaltung von Datenverarbeitungsgeräten und Gebrauchsgütern sowie von Kraftwagen und Krafträdern",
+    "3156": "Wäscherei und chemische Reinigung",
+    "3157": "Frisör- und Kosmetiksalons, Day Spas u. Ä",
+    "3158": "Bestattungswesen",
+    "3159": "Vermittlungstätigkeiten für überwiegend persönliche Dienstleistungen",
+    "3160": "Erbringung von sonstigen überwiegend persönlichen Dienstleistungen"
+   }
+  },
+  {
+   "id": 163,
+   "name": "SystemStatus EEG",
+   "werte": {
+    "2850": "Aktiviert",
+    "2851": "Gelöscht"
+   }
+  },
+  {
+   "id": 164,
+   "name": "SystemStatus KWK",
+   "werte": {
+    "2852": "Aktiviert",
+    "2853": "Gelöscht"
+   }
+  },
+  {
+   "id": 165,
+   "name": "SystemStatus Speicher",
+   "werte": {
+    "2854": "Aktiviert",
+    "2855": "Gelöscht"
+   }
+  },
+  {
+   "id": 166,
+   "name": "SystemStatus Genehmigung",
+   "werte": {
+    "2856": "Aktiviert",
+    "2857": "Gelöscht"
+   }
+  },
+  {
+   "id": 171,
+   "name": "Pumpspeichertechnologie",
+   "werte": {
+    "2920": "Pumpspeicheranlage ohne natürlichen Zufluss",
+    "2921": "Pumpspeicheranlage mit natürlichem Zufluss"
+   }
+  },
+  {
+   "id": 175,
+   "name": "NBPStatusFilter",
+   "werte": {
+    "2954": "Geprüft",
+    "2955": "In Prüfung",
+    "3075": "Nicht vorgesehen"
+   }
+  },
+  {
+   "id": 187,
+   "name": "Verbrennung Wasserstoff",
+   "werte": {
+    "3035": "Wasserstoff"
+   }
+  },
+  {
+   "id": 194,
+   "name": "Reserveart",
+   "werte": {
+    "3078": "Nein",
+    "3079": "Ja, Kapazitätsreserve",
+    "3080": "Ja, Netzreserve"
+   }
+  },
+  {
+   "id": 195,
+   "name": "Grund der Zuordnungsänderung",
+   "werte": {
+    "3085": "Standortänderung",
+    "3086": "Übertragung von Einheiten"
+   }
+  },
+  {
+   "id": 198,
+   "name": "GesamtdatenexportInfo",
+   "werte": {
+    "3106": ""
+   }
+  },
+  {
+   "id": 199,
+   "name": "PersistierungLetzteAktualisierung",
+   "werte": {
+    "3107": "26.09.2026",
+    "3108": "26.09.2026",
+    "3109": "26.09.2026",
+    "3110": "26.09.2026"
+   }
+  },
+  {
+   "id": 201,
+   "name": "Technologie (Flugwind)",
+   "werte": {
+    "3163": "Flexibler Drachen (Softkite)",
+    "3164": "Starrflügler (Fixed Wing)",
+    "3165": "Hybrid",
+    "3166": "Sonstige"
+   }
+  },
+  {
+   "id": 203,
+   "name": "Solaranlagen-Kategorie",
+   "werte": {
+    "3176": "Steckerfertige Solaranlage (sog. Balkonkraftwerk)",
+    "3177": "Gebäudesolaranlage",
+    "3178": "Andere Solaranlage"
+   }
+  },
+  {
+   "id": 204,
+   "name": "Vorherige Nutzungsartengruppe",
+   "werte": {
+    "3187": "Landwirtschaft - Ackerland",
+    "3188": "Landwirtschaft - Grünland",
+    "3189": "Landwirtschaft - Gartenbauland",
+    "3190": "Landwirtschaft - Rebfläche",
+    "3191": "Landwirtschaft - Obst- und Nussplantage",
+    "3192": "Landwirtschaft - Weihnachtsbaumkultur",
+    "3193": "Landwirtschaft - Kurzumtriebsplantage",
+    "3194": "Landwirtschaft - Brachland",
+    "3196": "Gehölz",
+    "3197": "Heide",
+    "3198": "Moor",
+    "3199": "Sumpf",
+    "3200": "Unland / Vegetationslose Fläche",
+    "3201": "Wohnbaufläche",
+    "3202": "Industrie- und Gewerbefläche",
+    "3203": "Halde",
+    "3204": "Bergbaubetrieb",
+    "3205": "Tagebau, Grube, Steinbruch",
+    "3206": "Fläche gemischter Nutzung",
+    "3207": "Fläche besonderer funktionaler Prägung",
+    "3208": "Sport-, Freizeit- und Erholungsfläche",
+    "3209": "Friedhof",
+    "3210": "Straßenverkehr",
+    "3211": "Weg",
+    "3212": "Platz",
+    "3213": "Bahnverkehr",
+    "3214": "Flugverkehr",
+    "3215": "Schiffsverkehr",
+    "3216": "Fließgewässer",
+    "3217": "Hafenbecken",
+    "3218": "Stehendes Gewässer",
+    "3219": "Meer",
+    "3245": "Wald - Laubholz",
+    "3246": "Wald - Nadelholz",
+    "3247": "Wald - Laub- und Nadelholz",
+    "3248": "Wald - Dauerhaft unbestockt",
+    "3249": "Landwirtschaft - Baumschule"
+   }
+  },
+  {
+   "id": 205,
+   "name": "Vorheriger Nutzungsartenbereich der Fläche",
+   "werte": {
+    "3220": "Vegetation",
+    "3221": "Siedlung",
+    "3222": "Verkehr",
+    "3223": "Gewässer"
+   }
+  },
+  {
+   "id": 208,
+   "name": "Löschgründe Einheit",
+   "werte": {
+    "3234": "Duplikat/Doppelte Registrierung",
+    "3235": "Versehentliche Registrierung /Testregistrierung",
+    "3236": "Anlagenzusammenfassung/-aufteilung",
+    "3237": "Einheit wird nicht in Betrieb genommen",
+    "3238": "Mit falschem Einheitentyp registriert",
+    "3239": "Keine Registrierungspflicht"
+   }
+  },
+  {
+   "id": 209,
+   "name": "PersistierteEinheitenInfo",
+   "werte": {
+    "3253": "PersistierteEinheitenInfo Testinfo"
+   }
+  },
+  {
+   "id": 210,
+   "name": "PersistierteEinheitenInMeinemNetzInfo",
+   "werte": {
+    "3254": "PersistierteEinheitenInMeinemNetzInfo Testinfo"
+   }
+  }
+ ],
+ "listen": {
+  "Einheitentypen": {
+   "1": "Solareinheit",
+   "2": "Windeinheit",
+   "3": "Biomasse",
+   "4": "Wasser",
+   "5": "Geothermie",
+   "6": "Verbrennung",
+   "7": "Kernenergie",
+   "8": "Stromspeichereinheit",
+   "9": "Stromverbrauchseinheit",
+   "10": "Gasverbrauchseinheit",
+   "11": "Gaserzeugungseinheit",
+   "12": "Gasspeichereinheit",
+   "13": "Stromerzeugungseinheit"
+  },
+  "Lokationstypen": {
+   "1": "Stromerzeugungslokation",
+   "2": "Stromverbrauchslokation",
+   "3": "Gaserzeugungslokation",
+   "4": "Gasverbrauchslokation"
+  },
+  "Marktfunktionen": {
+   "1": "Stromnetzbetreiber",
+   "2": "Anlagenbetreiber",
+   "3": "Akteur im Strommarkt",
+   "4": "Organisierter Marktplatz",
+   "5": "Behörde, Verband, Institution",
+   "6": "Sonstiger Marktakteur",
+   "7": "Bundesnetzagentur",
+   "8": "Gasnetzbetreiber",
+   "9": "Akteur im Gasmarkt",
+   "10": "Supportpartner"
+  },
+  "Marktrollen": {
+   "1": "Übertragungsnetzbetreiber",
+   "2": "Anschlussnetzbetreiber",
+   "3": "Bilanzkreisverantwortlicher",
+   "4": "Bilanzkoordinator",
+   "5": "Messstellenbetreiber",
+   "6": "Fernleitungsnetzbetreiber (Gas)",
+   "7": "Marktgebietsverantwortlicher",
+   "8": "Anschlussnetzbetreiber",
+   "18": "Stromlieferant, Direktvermarkter, Stromgroßhändler",
+   "20": "Bilanzkreisverantwortlicher",
+   "21": "Messstellenbetreiber",
+   "22": "Bilanzkreisverantwortlicher",
+   "23": "Betreiber einer Buchungsplattform für grenzüberschreitende Stromnetzkapazitäten",
+   "24": "Börse",
+   "25": "OTC-Plattform",
+   "26": "Betreiber einer Buchungsplattform für Gasspeicher",
+   "27": "Behörde",
+   "28": "energiewirtschaftlicher Verband",
+   "29": "energiewirtschaftliche Institution",
+   "30": "Dienstleister",
+   "31": "Sonstige Marktrolle",
+   "32": "Messstellenbetreiber",
+   "33": "Messstellenbetreiber",
+   "35": "Transportkunde",
+   "37": "Betreiber einer Buchungsplattform für Gaskapazitäten"
+  }
+ }
+}

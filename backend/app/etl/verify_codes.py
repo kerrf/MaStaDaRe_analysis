@@ -1,9 +1,9 @@
 """
 Check app/codes.py against the live MaStR API.
 
-The bulk export stores catalog fields as numeric codes, the SOAP API returns the decoded values.
-For every code found in the database this script picks a few units carrying it, fetches them from
-the API and compares: code in the export <-> value in the API.
+The bulk export stores catalog fields as numeric codes, the SOAP API returns enum values instead, the raw tables hold
+the codes' texts (codes.KATALOG). For every text found in the database this script picks a few units carrying it,
+fetches them from the API and compares: its code <-> the value in the API, the catalogs codes.encode translates by.
 
     cd backend
     uv run python -m app.etl.verify_codes                    # report for solar
@@ -68,12 +68,12 @@ def cached_details(api: MastrApi, method: str, ids: list[str]) -> dict[str, dict
 
 
 def sample_units(table: str, column: str, multi: bool) -> list[tuple[str, str]]:
-    """(code, unit) pairs: up to SAMPLES_PER_CODE units per code, least recently updated first."""
+    """(cell, unit) pairs: up to SAMPLES_PER_CODE units per text (or code) of the column, least recently updated first."""
     col = f'"{column}"'
     order = '"DatumLetzteAktualisierung", "EinheitMastrNummer"'  # unique order -> same sample on every run
     if multi:  # prefer units with as few codes as possible, they are easiest to match
-        code, source = "trim(c)", f"{table}, unnest(string_to_array({col}, ',')) AS c"
-        order = f"cardinality(string_to_array({col}, ',')), {order}"
+        code, source = "trim(c)", f"{table}, unnest(string_to_array({col}, '{codes.SEPARATOR}')) AS c"
+        order = f"cardinality(string_to_array({col}, '{codes.SEPARATOR}')), {order}"
     else:
         code, source = f"{col}::text", table
     sql = f"""
@@ -109,12 +109,26 @@ def load_rows(table: str, ids: set[str], columns: list[str]) -> dict[str, dict]:
 # -------------------------------------------------------------------------------------- analysis
 
 
-def to_code(raw) -> int:
-    return int(float(raw))
+def codes_by_text(spec: codes.CodeSpec) -> dict[str, dict[str, int]]:
+    """column -> {text: code}: the codes of the column's catalog, by their texts in the tables."""
+    return {
+        column: {spec.text_of(column, code) or str(code): code for code in catalog}
+        for column, catalog in spec.columns.items()
+    }
 
 
-def split_codes(raw) -> list[int]:
-    return [to_code(c) for c in str(raw).split(",") if c.strip()]
+def to_code(raw, by_text: dict[str, int]) -> int:
+    """A cell's code: by its text, or the code itself (a table from before the texts, or one without a text)."""
+    cell = str(raw).strip()
+    return by_text[cell] if cell in by_text else int(float(cell))
+
+
+def split_codes(raw, by_text: dict[str, int]) -> list[int]:
+    cell = str(raw)
+    parts = (
+        cell.split(codes.SEPARATOR) if codes.SEPARATOR.strip() in cell or not cell[:1].isdigit() else cell.split(",")
+    )
+    return [to_code(part, by_text) for part in parts if part.strip()]
 
 
 def resolve_multi(observations: list[tuple[list[int], set[str]]]) -> dict[int, str]:
@@ -138,6 +152,7 @@ def analyse(spec: codes.CodeSpec, rows: dict[str, dict], answers: dict[str, dict
     untrusted_obs = defaultdict(lambda: defaultdict(Counter))
     multi_obs = defaultdict(list)
     bool_pairs = defaultdict(Counter)
+    by_text = codes_by_text(spec)
 
     for nr, row in rows.items():
         api = answers.get(nr)
@@ -153,10 +168,10 @@ def analyse(spec: codes.CodeSpec, rows: dict[str, dict], answers: dict[str, dict
                 value = value["Wert"]
             if column in spec.multi:
                 if trusted:
-                    multi_obs[column].append((split_codes(raw), set(value or [])))
+                    multi_obs[column].append((split_codes(raw, by_text[column]), set(value or [])))
             else:
                 target = trusted_obs if trusted else untrusted_obs
-                target[column][to_code(raw)][value] += 1
+                target[column][to_code(raw, by_text[column])][value] += 1
         for column in spec.booleans:
             if trusted and row[column] is not None:
                 bool_pairs[column][(row[column], api.get(spec.api_name(column)))] += 1
@@ -190,12 +205,9 @@ def report(target: str, suggest: bool) -> int:
     print(
         f"\n{target}: {len(ids)} representative units, {sum(a is None for a in answers.values())} not found in the API\n"
     )
+    by_text = codes_by_text(spec)
     for column, catalog in spec.columns.items():
-        codes_in_db = sorted(
-            {to_code(c) for c, _ in samples[column]}
-            if column not in spec.multi
-            else {int(c) for c, _ in samples[column]}
-        )
+        codes_in_db = sorted({to_code(c, by_text[column]) for c, _ in samples[column]})
         print(f"{column}")
         for code in codes_in_db:
             expected = catalog.get(code)

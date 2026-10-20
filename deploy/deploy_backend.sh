@@ -6,8 +6,12 @@
 #   1. pull the image of the commit from ghcr.io (the pipeline logged the server in for this run),
 #   2. note the way back: the commit and the image running now (deploy/rollback_backend.sh uses them),
 #   3. the repo files on the server (compose.yml, Caddyfile, deploy/) to the commit,
-#   4. build the views the new version needs, with its image (app/etl/transform.py: new views, and those whose SQL
-#      changed; the old version keeps answering meanwhile). Fails: the files go back, the old version keeps running,
+#   4. with the new version's image: turn the codes in the raw tables into their texts where they still hold codes
+#      (app/etl/decode_codes.py: once, afterwards it finds nothing to do; the nightly update of the old version would
+#      write codes, so its timer stays off until the new version is live), then build the views the new version needs
+#      (app/etl/transform.py: new views, and those whose SQL changed; the old version keeps answering meanwhile), then
+#      drop the tables with codes the switch put aside,
+#      Fails: the files go back, the old version keeps running,
 #   5. start the new image and wait until the backend answers /health (compose.yml), else go back,
 #   6. set up the nightly update (deploy/mastr-update.service and .timer), so it can't be missing.
 # The data stays as it is: it comes with the nightly update (and deploy/push_db.sh for a new bulk export).
@@ -88,10 +92,39 @@ main() {
     die "the nightly update is running. Run the pipeline again when it's done (Actions → Pipeline → Run workflow)"
   fi
   git reset --quiet --hard "$SHA"
+  # The codes of the raw tables as texts. Exit 0: there were none (the timer goes on again), 3: done, the timer stays off
+  # until the new version is live, as the old version's nightly update writes codes (install_nightly_update)
+  local timer_off=0 decoded=0
+  if [[ $EUID == 0 ]] && systemctl is-active --quiet mastr-update.timer 2> /dev/null; then
+    systemctl stop mastr-update.timer
+    timer_off=1
+  fi
+  BACKEND_IMAGE="$IMAGE:$SHA" docker compose run --rm --no-deps backend python -m app.etl.decode_codes < /dev/null || decoded=$?
+  case $decoded in
+    0) if ((timer_off)); then systemctl start mastr-update.timer; fi ;;
+    3) info "codes turned into texts: the nightly update stays off until ${SHA:0:7} is live" ;;
+    4)
+      if ((timer_off)); then systemctl start mastr-update.timer; fi
+      git reset --quiet --hard refs/deploy/previous
+      die "the views of ${SHA:0:7} read tables the server doesn't have yet (see above), nothing changed: put them on the server first (./deploy/push_raw_tables.sh, DEPLOY.md section 12), then run the pipeline again"
+      ;;
+    *)
+      git reset --quiet --hard refs/deploy/previous
+      die "turning the codes into texts failed (see above). The old version keeps running; the nightly update stays off (its old version would write codes): run the pipeline again"
+      ;;
+  esac
   # With the new image and its SQL; the old backend keeps answering from the old views until each new one is ready
   if ! BACKEND_IMAGE="$IMAGE:$SHA" docker compose run --rm --no-deps backend python -m app.etl.transform < /dev/null; then
     git reset --quiet --hard refs/deploy/previous
+    if ((decoded == 3)); then
+      info "the nightly update stays off: the tables have texts, the old version would write codes into them"
+    fi
     die "building the views failed (see above). The previous version keeps running; views built before the failure are new already (views only grow, it works with them)"
+  fi
+  # The tables the switch put aside (raw.*__codes), now that no view reads them
+  if ((decoded == 3)); then
+    BACKEND_IMAGE="$IMAGE:$SHA" docker compose run --rm --no-deps backend python -m app.etl.decode_codes < /dev/null ||
+      info "the old tables raw.*__codes stay for now: the next deploy drops them"
   fi
 
   step "Switching to ${SHA:0:7}"

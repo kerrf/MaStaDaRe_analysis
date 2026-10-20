@@ -27,7 +27,7 @@ battery_plants AS (
     SELECT u."SpeMastrNummer", max(p."NutzbareSpeicherkapazitaet") AS capacity, sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'  -- Batterie
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 batteries AS (
@@ -42,8 +42,8 @@ batteries AS (
         min(u."Inbetriebnahmedatum") AS first_on
     FROM raw.storage_units u
     LEFT JOIN battery_plants b USING ("SpeMastrNummer")
-    WHERE u."Technologie" = '524'
-      AND u."EinheitBetriebsstatus" = '35'
+    WHERE u."Technologie" = 'Batterie'
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'
       AND u."LokationMaStRNummer" IS NOT NULL
     GROUP BY 1
 ),
@@ -52,15 +52,15 @@ solar_at_batteries AS (
     SELECT s."LokationMaStRNummer" AS lokation, sum(s."Bruttoleistung") AS power
     FROM raw.solar_units s
     JOIN batteries b ON b.lokation = s."LokationMaStRNummer"
-    WHERE s."EinheitBetriebsstatus" = '35'
-      AND s."Land" = '84'
+    WHERE s."EinheitBetriebsstatus" = 'In Betrieb'
+      AND s."Land" = 'Deutschland'
     GROUP BY 1
 ),
 pv AS (
     -- Solar units in operation in Germany, with their share of the battery at their Lokation (if any).
     -- Anlagenart as in aggregate_pv_by_region_power.sql.
     SELECT
-        CASE WHEN s."ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN s."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         c.size_class,
         c.label AS size_label,
         CAST(EXTRACT(YEAR FROM s."Inbetriebnahmedatum") AS INTEGER) AS year,
@@ -76,8 +76,8 @@ pv AS (
     JOIN classes c ON s."Bruttoleistung" > c.above AND s."Bruttoleistung" <= c.up_to
     LEFT JOIN batteries b ON b.lokation = s."LokationMaStRNummer"
     LEFT JOIN solar_at_batteries a ON a.lokation = s."LokationMaStRNummer"
-    WHERE s."EinheitBetriebsstatus" = '35'
-      AND s."Land" = '84'
+    WHERE s."EinheitBetriebsstatus" = 'In Betrieb'
+      AND s."Land" = 'Deutschland'
 )
 SELECT
     pv.anlagenart,
@@ -110,14 +110,14 @@ WITH battery_plants AS (
     SELECT u."SpeMastrNummer", max(p."NutzbareSpeicherkapazitaet") AS capacity, sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 solar_lokationen AS (
     -- Every Lokation with a solar unit in operation
     SELECT DISTINCT "LokationMaStRNummer" AS lokation
     FROM raw.solar_units
-    WHERE "EinheitBetriebsstatus" = '35'
+    WHERE "EinheitBetriebsstatus" = 'In Betrieb'
       AND "LokationMaStRNummer" IS NOT NULL
 ),
 batteries AS (
@@ -138,9 +138,9 @@ batteries AS (
     CROSS JOIN LATERAL (
         SELECT COALESCE(b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12, FALSE) AS plausible
     ) check_
-    WHERE u."Technologie" = '524'
-      AND u."EinheitBetriebsstatus" = '35'
-      AND u."Land" = '84'
+    WHERE u."Technologie" = 'Batterie'
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'
+      AND u."Land" = 'Deutschland'
 )
 SELECT
     b.size_class,

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import useRobots from '../lib/useRobots';
@@ -31,8 +31,13 @@ const IMPLAUSIBLE = [
   ['ohne Speicheranlage oder Kapazität', '64', '–'],
 ];
 
-// The technologies, each with its findings (sub-sections); one without any yet says so
+// The catalogs of the export with the columns that use them (backend/app/etl/katalog.py writes it into public/)
+const KATALOG_JSON = '/daten/mastr-katalogwerte.json';
+
+// What holds for the whole register, then the technologies, each with its findings (sub-sections); one without any yet
+// says so
 const CATEGORIES = [
+  { id: 'allgemein', label: 'Allgemein', topics: [{ id: 'codes', label: 'Zahlen statt Text' }] },
   {
     id: 'solar',
     label: 'Solar',
@@ -46,6 +51,16 @@ const CATEGORIES = [
   },
   { id: 'wind', label: 'Wind', topics: [] },
   { id: 'wasserkraft', label: 'Wasserkraft', topics: [] },
+  { id: 'biomasse', label: 'Biomasse', topics: [{ id: 'biomasse-einheiten', label: 'Einheiten, EEG- und KWK-Anlagen' }] },
+  { id: 'geothermie', label: 'Geothermie & Grubengas', topics: [{ id: 'geothermie-tabelle', label: 'Sechs Energieträger in einer Tabelle' }] },
+  {
+    id: 'kwk',
+    label: 'KWK',
+    topics: [
+      { id: 'kwk-ort', label: 'Anlagen ohne Ort' },
+      { id: 'kwk-waerme', label: 'Wärme' },
+    ],
+  },
   {
     id: 'batteriespeicher',
     label: 'Batteriespeicher',
@@ -55,6 +70,7 @@ const CATEGORIES = [
     ],
   },
   { id: 'pumpspeicher', label: 'Pumpspeicher', topics: [{ id: 'pumpspeicher-maschinen', label: 'Maschinen statt Kraftwerke' }] },
+  { id: 'sonstige-speicher', label: 'Sonstige Speicher', topics: [{ id: 'sonstige-kapazitaet', label: 'Kapazität' }] },
   { id: 'gas', label: 'Gas', topics: [] },
 ];
 
@@ -108,7 +124,39 @@ export default function DatenqualitaetPage() {
         </nav>
 
         <article className="prose info-article quality">
-          <p className="quality__stand">Alle Zahlen: Einheiten in Betrieb in Deutschland, Datenstand 4. Oktober 2026.</p>
+          <p className="quality__stand">
+            Alle Zahlen: Einheiten in Betrieb in Deutschland, Datenstand 4. Oktober 2026 (Biomasse, Geothermie, KWK und
+            sonstige Speicher: Gesamtdatenexport vom 26. September 2026).
+          </p>
+
+          <section id="allgemein">
+            <h2>Allgemein</h2>
+
+            <section id="codes">
+              <h3>Zahlen statt Text</h3>
+              <ul>
+                <li>Der Gesamtdatenexport führt viele Felder als Zahl: Betriebsstatus 35, Art der Solaranlage 853, Hersteller 1586.</li>
+                <li>
+                  Was eine Zahl bedeutet, steht in Katalogwerte.xml (1.737 Werte in 123 Katalogen) – welche Spalte welchen Katalog nutzt,
+                  steht nirgends.
+                </li>
+                <li>
+                  Der Webdienst des Registers (SOAP-API) liefert statt der Zahl ihre Bedeutung („InBetrieb“). Dieselben Einheiten aus
+                  Export und Webdienst nebeneinander zeigen, welche Zahl was heißt – Spalte für Spalte, 135 Spalten in 21 Dateien.
+                </li>
+                <li>
+                  Drei Spalten zählen nach eigenen Dateien: Lokationstyp, Marktfunktion und EEG-Anlagentyp. Dieselbe Zahl heißt dort
+                  etwas anderes – 8 ist im Katalog „Kernenergie“, als EEG-Anlagentyp „Stromspeichereinheit“.
+                </li>
+                <li>Umgang: Die Datenbank führt den Text statt der Zahl („In Betrieb“ statt 35) – auch für alles, was der nächtliche Abgleich holt.</li>
+              </ul>
+              <p>
+                <a className="btn btn--secondary" href={KATALOG_JSON} download>
+                  <Download size={14} aria-hidden="true" /> Alle Kataloge mit ihren Spalten (JSON, 90 KB)
+                </a>
+              </p>
+            </section>
+          </section>
 
           <section id="solar">
             <h2>Solar</h2>
@@ -226,6 +274,68 @@ export default function DatenqualitaetPage() {
             <NotYet />
           </section>
 
+          <section id="biomasse">
+            <h2>Biomasse</h2>
+
+            <section id="biomasse-einheiten">
+              <h3>Einheiten, EEG- und KWK-Anlagen</h3>
+              <ul>
+                <li>21.703 Einheiten mit 9,1 GW: Biogas 20.430 (7,2 GW), feste Biomasse 801 (1,8 GW), flüssige 472 (75 MW).</li>
+                <li>Das EEG zählt Anlagen: 14.294 mit 9,05 GW – eine Biogasanlage hat oft mehrere Motoren, jeder eine Einheit.</li>
+                <li>19.299 Einheiten (8,3 GW) gehören zu einer KWK-Anlage: Strom und Wärme zugleich.</li>
+                <li>Umgang: Karte und Zubau zählen Einheiten; 11 Einheiten (53 MW) nur mit Bundesland zählen für das Land.</li>
+              </ul>
+            </section>
+          </section>
+
+          <section id="geothermie">
+            <h2>Geothermie &amp; Grubengas</h2>
+
+            <section id="geothermie-tabelle">
+              <h3>Sechs Energieträger in einer Tabelle</h3>
+              <ul>
+                <li>
+                  Das Register führt sie zusammen (EinheitenGeothermieGrubengasDruckentspannung): Grubengas 115 Einheiten (140 MW), Druck
+                  aus Gasleitungen 49 (100 MW), Geothermie 12 (62 MW), Klärschlamm 45 (49 MW), Druck aus Wasserleitungen 16 (4 MW),
+                  Solarthermie 1.
+                </li>
+                <li>Umgang: eine Technologie mit Filter je Energieträger; Gas- und Wasserleitungen zusammen als Druckentspannung.</li>
+                <li>16 Einheiten (97 MW) nur mit Bundesland – sie zählen für das Land.</li>
+              </ul>
+            </section>
+          </section>
+
+          <section id="kwk">
+            <h2>KWK</h2>
+
+            <section id="kwk-ort">
+              <h3>Anlagen ohne Ort</h3>
+              <ul>
+                <li>80.790 KWK-Anlagen in Betrieb, 41,2 GW elektrisch – darunter 14.534 Mikro-KWK bis 2 kW in Häusern.</li>
+                <li>Eine KWK-Anlage hat keinen Standort, nur ihre Einheiten (Biomasse, Verbrennung, Grubengas).</li>
+                <li>Umgang: Ort und Energieträger der größten Einheit.</li>
+                <li>
+                  342 Anlagen mit 26,5 GW – fast zwei Drittel der Leistung – stehen nur mit ihrem Bundesland im Register: die großen
+                  Heizkraftwerke. Auf Kreisebene zeigt die Karte vor allem kleine KWK.
+                </li>
+              </ul>
+            </section>
+
+            <section id="kwk-waerme">
+              <h3>Wärme</h3>
+              <ul>
+                <li>
+                  61 Anlagen mit mehr als dem 1.000-Fachen ihrer elektrischen Leistung als Wärme, zusammen 18,6 GW – etwa 620 kW
+                  elektrisch und 4,4 GW thermisch: vermutlich kWh im Jahr statt kW.
+                </li>
+                <li>
+                  Umgang: Wärme nur bis zum 50-Fachen der elektrischen Leistung (Mikro-KWK mit Spitzenkessel reichen bis dahin). 128
+                  Anlagen zählen ohne Wärme; es bleiben 74,4 GW thermisch.
+                </li>
+              </ul>
+            </section>
+          </section>
+
           <section id="batteriespeicher">
             <h2>Batteriespeicher</h2>
 
@@ -296,6 +406,25 @@ export default function DatenqualitaetPage() {
                 <li>Umgang: Maschinen am selben Standort oder in derselben Speicheranlage = ein Kraftwerk.</li>
                 <li>Ergebnis: 75 Maschinen → 22 Kraftwerke in Deutschland, dazu 10 in Österreich und Luxemburg.</li>
                 <li>Winzige Einträge bis 33 kW (Pergola, Wärmepumpe, Heimspeicher) zählen nicht.</li>
+              </ul>
+            </section>
+          </section>
+
+          <section id="sonstige-speicher">
+            <h2>Sonstige Speicher</h2>
+
+            <section id="sonstige-kapazitaet">
+              <h3>Kapazität</h3>
+              <ul>
+                <li>391 Wasserstoffspeicher, 96 Druckluft- und 14 Schwungradspeicher in Betrieb, zusammen rund 4 MW.</li>
+                <li>
+                  Wasserstoff meist im Haus (z. B. 1,5 kW, 1.500 kWh): rechnerisch 1.000 Stunden bis voll – plausibel, ein Speicher über
+                  den Winter.
+                </li>
+                <li>
+                  Der Druckluftspeicher Huntorf (Turbine 321 MW) steht mit 1 kW und 1.680 MWh im Register, nur mit seinem Bundesland.
+                </li>
+                <li>Umgang: Kapazität wie registriert, ohne die Prüfregeln der Batteriespeicher.</li>
               </ul>
             </section>
           </section>

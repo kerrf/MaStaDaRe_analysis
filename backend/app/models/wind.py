@@ -4,17 +4,30 @@ from sqlalchemy.orm import Session
 from app.db.database import Base
 
 # The manufacturers as the Anlagen page groups them: the companies a brand went to (NEG Micon to Vestas, REpower to
-# Senvion, Bonus and AN Windenergie to Siemens Gamesa, Tacke to GE), the rest "Sonstige". Codes: app.codes.HERSTELLER.
+# Senvion, Bonus and AN Windenergie to Siemens Gamesa, Tacke to GE), the rest "Sonstige". By their names in the register
+# (codes.KATALOG: WindHersteller).
 HERSTELLER_GRUPPEN = {
-    "Enercon": (1586,),
-    "Vestas": (1660, 2929, 1625),
-    "Nordex": (1627, 1628, 1001682),
-    "Siemens Gamesa": (1646, 1001679, 1596, 2890, 1001692, 2889),
-    "Senvion": (1645, 2888),
-    "GE": (1597, 1598, 2873, 1654),
+    "Enercon": ("ENERCON GmbH",),
+    "Vestas": ("Vestas Deutschland GmbH", "MHI Vestas Offshore Wind", "NEG Micon Deutschland GmbH"),
+    "Nordex": ("Nordex Energy GmbH", "Nordex SE", "Nordex Germany GmbH"),
+    "Siemens Gamesa": (
+        "Siemens Wind Power GmbH & Co. KG",
+        "Siemens Gamesa Renewable Energy GmbH & Co. KG",
+        "Gamesa Corporación Tecnológica S.A.",
+        "Bonus Energy A/S",
+        "AN Bonus",
+        "AN Windenergie GmbH",
+    ),
+    "Senvion": ("Senvion Deutschland GmbH", "REpower Systems SE"),
+    "GE": (
+        "GE Wind Energy GmbH",
+        "General Electric Deutschland Holding GmbH",
+        "GE Renewable Germany GmbH",
+        "Tacke GmbH & Co. KG",
+    ),
 }
 SONSTIGE = "Sonstige"
-GROUP_OF = {code: index for index, codes in enumerate(HERSTELLER_GRUPPEN.values()) for code in codes}
+GROUP_OF = {name: index for index, names in enumerate(HERSTELLER_GRUPPEN.values()) for name in names}
 
 STATUS = ("in_betrieb", "geplant", "stillgelegt")
 LAGE = ("an_land", "auf_see")
@@ -44,7 +57,7 @@ class WindTurbine(Base):
     ags = Column(String)  # Gemeindeschlüssel, offshore: none
     lon = Column(Float)
     lat = Column(Float)
-    hersteller = Column(Integer)
+    hersteller = Column(String)  # its name in the register
 
     @classmethod
     def columns(cls, db: Session) -> dict:

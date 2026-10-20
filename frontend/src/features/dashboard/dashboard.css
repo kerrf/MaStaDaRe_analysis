@@ -446,7 +446,7 @@
 /* One card: title and export, the settings in a band, the map and beside it the rail with the Rangliste and analyses,
    as high as the map, and one footer. --map-height sets both. */
 .map-workspace {
-  --map-height: clamp(500px, 72vh, 780px);
+  --map-height: clamp(600px, 86vh, 936px);
 }
 
 .map-workspace__body {
@@ -1031,32 +1031,10 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
-.map-hint {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 950;
-  padding: 10px 16px;
-  border-radius: var(--radius-pill);
-  background: rgba(16, 24, 40, 0.8);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.96);
-  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
-}
-
-.map-hint.is-visible {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
 /* ------------------------------------------------- Technology and filters */
 /* What a page shows (SelectionBar): a band of settings, framed on its own on top of a page, the top band of the map
-   card. Its first row: the technologies in one box, the chosen one filled in the topic's colour, then the chosen one's
-   filters, each in its box; further rows below a line (the map's toolbar, the wind turbines). */
+   card. Its first row: the technologies in one box, the chosen one filled in the topic's colour; below a line the chosen
+   one's filters, each in its box; further rows below another line (the map's toolbar). */
 .selection-bar {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

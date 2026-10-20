@@ -44,6 +44,45 @@ def wind_lage(
     return tuple(lage or get_args(Lage))
 
 
+# The kinds of the technologies whose views have one row per kind (models.regions.KindRegionStats), ?art=…
+BiomasseArt = Literal["gasfoermig", "fest", "fluessig"]
+GeothermieArt = Literal["geothermie", "grubengas", "klaerschlamm", "druckentspannung", "solarthermie"]
+SpeicherArt = Literal["druckluft", "schwungrad", "wasserstoff"]
+KwkTraeger = Literal["erdgas", "biomasse", "kohle", "sonstige"]
+
+
+def biomasse_arten(
+    art: Annotated[list[BiomasseArt] | None, Query(description="gasfoermig, fest and/or fluessig; default all")] = None,
+) -> tuple[str, ...]:
+    return tuple(art or get_args(BiomasseArt))
+
+
+def geothermie_arten(
+    art: Annotated[
+        list[GeothermieArt] | None,
+        Query(description="geothermie, grubengas, klaerschlamm, druckentspannung and/or solarthermie; default all"),
+    ] = None,
+) -> tuple[str, ...]:
+    return tuple(art or get_args(GeothermieArt))
+
+
+def speicher_arten(
+    art: Annotated[
+        list[SpeicherArt] | None, Query(description="druckluft, schwungrad and/or wasserstoff; default all")
+    ] = None,
+) -> tuple[str, ...]:
+    return tuple(art or get_args(SpeicherArt))
+
+
+def kwk_traeger(
+    energietraeger: Annotated[
+        list[KwkTraeger] | None,
+        Query(description="erdgas (with the other gases and hydrogen), biomasse, kohle and/or sonstige; default all"),
+    ] = None,
+) -> tuple[str, ...]:
+    return tuple(energietraeger or get_args(KwkTraeger))
+
+
 Spannungsebene = Literal["hoechstspannung", "hochspannung", "mittelspannung", "niederspannung"]
 
 

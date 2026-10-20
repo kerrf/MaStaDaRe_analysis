@@ -8,33 +8,34 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_orientation;
 -- Per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql; the API sums the chosen ones), with
 -- Brutto (Bruttoleistung) and Netto (Nettonennleistung) power.
 CREATE MATERIALIZED VIEW mrt.solar_orientation AS
-WITH orientations (code, orientation, label, sort) AS (
+WITH orientations (mastr, orientation, label, sort) AS (
+    -- The register's Hauptausrichtung (codes.KATALOG: Solarausrichtung)
     VALUES
-        ('695', 'nord', 'Nord', 1),
-        ('696', 'nordost', 'Nordost', 2),
-        ('697', 'ost', 'Ost', 3),
-        ('698', 'suedost', 'Südost', 4),
-        ('699', 'sued', 'Süd', 5),
-        ('700', 'suedwest', 'Südwest', 6),
-        ('701', 'west', 'West', 7),
-        ('702', 'nordwest', 'Nordwest', 8),
-        ('704', 'ost_west', 'Ost-West', 9),
-        ('703', 'nachgefuehrt', 'Nachgeführt', 10),
+        ('Nord', 'nord', 'Nord', 1),
+        ('Nord-Ost', 'nordost', 'Nordost', 2),
+        ('Ost', 'ost', 'Ost', 3),
+        ('Süd-Ost', 'suedost', 'Südost', 4),
+        ('Süd', 'sued', 'Süd', 5),
+        ('Süd-West', 'suedwest', 'Südwest', 6),
+        ('West', 'west', 'West', 7),
+        ('Nord-West', 'nordwest', 'Nordwest', 8),
+        ('Ost-West', 'ost_west', 'Ost-West', 9),
+        ('nachgeführt', 'nachgefuehrt', 'Nachgeführt', 10),
         -- No orientation in the register: mostly Balkonkraftwerke, whose simplified registration doesn't ask for it
         (NULL, 'unbekannt', 'Unbekannt', 11)
 ),
 units AS (
-    -- Installed units (InBetrieb) in Germany, like the region rollups
+    -- Installed units ("In Betrieb") in Germany, like the region rollups
     SELECT
         COALESCE(o.orientation, 'unbekannt') AS orientation,
-        CASE WHEN u."ArtDerSolaranlage" = '852' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
         u."Gemeindeschluessel" AS ags,
         u."Bruttoleistung" AS power,
         u."Nettonennleistung" AS power_net
     FROM raw.solar_units u
-    LEFT JOIN orientations o ON o.code = u."Hauptausrichtung"
-    WHERE u."EinheitBetriebsstatus" = '35'
-      AND u."Land" = '84'
+    LEFT JOIN orientations o ON o.mastr = u."Hauptausrichtung"
+    WHERE u."EinheitBetriebsstatus" = 'In Betrieb'
+      AND u."Land" = 'Deutschland'
 ),
 counts AS (
     -- Per orientation for Deutschland, every Land, Kreis and Gemeinde in one pass

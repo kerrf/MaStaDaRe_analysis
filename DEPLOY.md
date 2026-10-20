@@ -225,6 +225,38 @@ already; views only grow, so it works with them).
 - Locally the same, after changing a file: `cd backend`, then
   `uv run python -m app.etl.transform` (no arguments).
 
+### Texts instead of codes in the raw tables (once)
+
+The bulk export writes catalog fields as numbers (`EinheitBetriebsstatus` 35,
+`ArtDerSolaranlage` 853); the raw tables hold their texts instead ("In
+Betrieb", "Gebäudesolaranlage"), from the export's `Katalogwerte.xml`, copied
+into `backend/app/codes.py` (`KATALOG`, written by `app/etl/katalog.py`).
+`db_migrate` loads tables with the texts, the nightly update writes texts, and
+the views compare texts.
+
+A database whose tables still hold codes (the server's, until the first deploy
+of this) gets them once: before building the views, the deploy runs
+`app/etl/decode_codes.py` with the new image. It writes each table with codes
+once anew with the texts (`raw.<table>__texts`, with its key and indexes), then
+swaps it in a short transaction; the old one waits aside as `raw.<table>__codes`
+and the old views keep reading it, so the website keeps answering. Then
+`transform.py` builds every view anew (their SQL changed), and a second run of
+`decode_codes.py` drops the old tables. Later deploys: it finds nothing to do (a
+few seconds per table to look).
+
+- While it runs, and until the new version is live, the nightly timer is off:
+  the old version's update would write codes into the tables again. The deploy
+  switches it on at its end. A deploy that fails on the way leaves it off: run
+  the pipeline again (it carries on where it stopped).
+- Disk: until the old tables go, one more copy of the tables with codes (`df -h`
+  on the server against the size of the schema `raw`).
+- The views that no file builds any more (`mrt.solar_arten_regions`,
+  `mrt.solar_units_bundesland_agg`, if the server still has them) keep the old
+  table they read: drop them by hand, the next deploy drops the table.
+- No way back past this version: one that reads codes would build empty views.
+  `deploy/rollback_backend.sh` still goes back to it, but switches the nightly
+  update off; fix forward instead.
+
 ### Once: secrets (GitHub → repo → Settings → Secrets and variables → Actions)
 
 | Secret | Value |
@@ -346,15 +378,18 @@ run from the MaStR API and upserts it into `raw.solar_units`,
 plants of changed or plant-less storage units into `raw.storage_plants` (the
 capacity lives there). Likewise the gas producers and gas storages
 (`raw.gas_producer_units`, `raw.gas_storage_units`, `raw.gas_storage_plants`),
-and the Netzanschlüsse: the units of the other technologies
-(`raw.biomass_units`, `raw.combustion_units`, `raw.nuclear_units`,
-`raw.geothermal_units`), the Netzanschlusspunkte (`raw.grid_connection_points`,
-from one list call with all their fields, 2,000 per call) and the grid
-operators (`raw.grid_operators`: those changed, and those a point names that the
-table doesn't have yet). Each table only as soon as it exists (it comes from the
-bulk export, section 12; until then the update skips it with a warning). A systemd
-timer runs it every night at 1:00 German time, in a one-off container of the
-backend image.
+the units of the other technologies (`raw.biomass_units`,
+`raw.combustion_units`, `raw.nuclear_units`, `raw.geothermal_units`) with their
+EEG and KWK plants (`raw.biomass_eeg_plants`, `raw.geothermal_eeg_plants`,
+`raw.kwk_plants`), and the Netzanschlüsse: the Netzanschlusspunkte
+(`raw.grid_connection_points`, from one list call with all their fields, 2,000
+per call) and the grid operators (`raw.grid_operators`: those changed, and those
+a point names that the table doesn't have yet). It writes what the API answers
+as the export would have it, with the texts of its codes ("In Betrieb", see
+"Texts instead of codes" in section 10). Each table only as soon as it exists
+(it comes from the bulk export, section 12; until then the update skips it with
+a warning). A systemd timer runs it every night at 1:00 German time, in a
+one-off container of the backend image.
 
 It lists what changed (cheap: 2,000 units per call) and fetches only the units
 that are new or really changed, solar first and new units before changed ones,
@@ -448,27 +483,34 @@ the server: about 1.3 × the database plus the dump, next to the live database.
 Afterwards the nightly update fetches every change since the state of the
 pushed database, the Datenstand follows with its next complete run.
 
-### Only the tables of the Netzanschlüsse
+### Only the tables that came later
 
-The Netzanschlusspunkte, the grid operators and the units of the other
-technologies (biomass, combustion, nuclear, geothermal), which place the
-Netzanschlusspunkte, have to come from the bulk export once: the API can't list
-millions of points. From then on the nightly update keeps them current.
-`backend/app/etl/export_tables.py` (its `TABLES`) reloads them locally from the
-newest daily export; `deploy/push_raw_tables.sh` puts just these tables on the
-server, without touching the rest of its database:
+The tables that came after the first bulk export have to come from it once: the
+Netzanschlusspunkte (the API can't list millions of points), the grid operators,
+the units of the other technologies (biomass, combustion, nuclear, geothermal)
+and their EEG and KWK plants (`raw.biomass_eeg_plants`,
+`raw.geothermal_eeg_plants`, `raw.kwk_plants`). From then on the nightly update
+keeps them current. Locally they come from an export: `db_migrate.py` loads the
+tables the database doesn't have yet from the unzipped export on disk (its
+`EXPORT_DIR`), `export_tables.py` reloads all of them (its `TABLES`) from the
+newest daily export. `deploy/push_raw_tables.sh` then puts those of them on the
+server that it **doesn't have yet**, without touching the rest of its database
+(the tables it has are newer than the local ones: the nightly update keeps
+them):
 
 ```bash
-cd backend && uv run python -m app.etl.export_tables   # local: download (~3.2 GB) and load, ~30 min
-./deploy/push_raw_tables.sh                            # to the server
+cd backend && uv run python -m app.etl.db_migrate      # local: the missing tables from the export on disk
+cd backend && uv run python -m app.etl.export_tables   # or: all of them from the newest export (~3.2 GB), ~30 min
+./deploy/push_raw_tables.sh                            # to the server: the tables it lacks
 ```
 
-1. **Load (local):** downloads the newest export into `backend/data/raw`
-   (skipped if that zip is there already), unpacks only these tables' files,
-   replaces each table in one transaction (the views built on it stay), notes
-   the export in the table's comment, recomputes the views that read them and
-   deletes the unpacked files.
-2. **Push:** the same checks as `push_db.sh`; dumps these tables with their row
+1. **Load (local):** `export_tables.py` downloads the newest export into
+   `backend/data/raw` (skipped if that zip is there already), unpacks only these
+   tables' files, replaces each table in one transaction (the views built on it
+   stay), notes the export in the table's comment, recomputes the views that
+   read them and deletes the unpacked files. Both load the texts of the codes.
+2. **Push:** the same checks as `push_db.sh`, asks the server which tables it
+   lacks (nothing to do: it says so and stops); dumps those with their row
    counts, uploads (`rsync --partial`, sha256 check), and on the server
    (`deploy/raw_tables_on_server.sh`) restores them into schema `raw_next`
    next to the live tables, checks the row counts and replaces the live ones in

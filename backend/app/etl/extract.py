@@ -107,12 +107,19 @@ class _ChunkWriter:
             self._start_chunk()
 
 
-def to_chunks(xml_file: Path, keep: Callable[[dict], bool] | None = None) -> list[Chunk]:
-    """One export file as CSV chunks, ready for COPY. keep: which units to take (default: all)."""
+def to_chunks(
+    xml_file: Path,
+    keep: Callable[[dict], bool] | None = None,
+    convert: Callable[[dict], dict] | None = None,
+) -> list[Chunk]:
+    """One export file as CSV chunks, ready for COPY. keep: which units to take (default: all); convert: what to do with
+    each one before (e.g. codes.to_texts)."""
     writer = _ChunkWriter()
     for unit in read_units(xml_file):
         if keep and not keep(unit):
             continue
+        if convert:
+            unit = convert(unit)
         for field in TIMESTAMPS:
             if field in unit:
                 unit[field] = unit[field][:MICROSECONDS]
@@ -121,23 +128,26 @@ def to_chunks(xml_file: Path, keep: Callable[[dict], bool] | None = None) -> lis
 
 
 def parse_files(
-    xml_files: list[Path], keep: Callable[[dict], bool] | None = None
+    xml_files: list[Path],
+    keep: Callable[[dict], bool] | None = None,
+    convert: Callable[[dict], dict] | None = None,
 ) -> Iterator[tuple[Path, list[Chunk]]]:
     """Parse the files in parallel and yield (file, chunks) as soon as each one is done.
 
     Twice as many files as workers are in flight: every worker finds its next file waiting, and memory stays
     bounded even if the consumer is the slow part.
     The worker processes start fresh ("forkserver") instead of copying the caller, who holds an open database connection.
-    keep: which units to take (default: all), a function at module level, so the workers can import it.
+    keep: which units to take (default: all), a function at module level, so the workers can import it; convert: what to
+    do with each unit before it is written (the same, or a functools.partial of one).
     """
     remaining = iter(xml_files)
     with ProcessPoolExecutor(WORKERS, mp_context=multiprocessing.get_context("forkserver")) as pool:
-        running = {pool.submit(to_chunks, file, keep): file for file in islice(remaining, 2 * WORKERS)}
+        running = {pool.submit(to_chunks, file, keep, convert): file for file in islice(remaining, 2 * WORKERS)}
         while running:
             done, _ = wait(running, return_when=FIRST_COMPLETED)
             for future in done:
                 xml_file = running.pop(future)
                 next_file = next(remaining, None)
                 if next_file:
-                    running[pool.submit(to_chunks, next_file, keep)] = next_file
+                    running[pool.submit(to_chunks, next_file, keep, convert)] = next_file
                 yield xml_file, future.result()

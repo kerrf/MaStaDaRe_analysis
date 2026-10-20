@@ -30,14 +30,6 @@ export const PERIODS = [
   { id: 'geplant', label: 'In Planung', test: () => true, color: '#13371b' },
 ];
 
-// The manufacturers' groups, in the API's order (categorical, validated; "Sonstige" last)
-export const HERSTELLER_COLORS = ['#2a6496', '#e28316', '#8453d6', '#5ea66b', '#c0365b', '#b8901a', '#0f9fc4'];
-
-export const COLOR_MODES = [
-  { id: 'zeit', label: 'Jahr' },
-  { id: 'hersteller', label: 'Hersteller' },
-];
-
 // A Gemeindeschlüssel as the API sends it (a number, the leading zero left off) under a scope key ("DE", 2, 5 or 8
 // digits)
 const inScope = (scopeKey) => {
@@ -51,10 +43,10 @@ const inScope = (scopeKey) => {
 /**
  * The turbines of the area (scopeKey), of the chosen Lagen (["an_land", "auf_see"], null: both) and statuses. Returns
  * { status, data, rows, groups }: rows are the indexes of the turbines shown; data the columns (Float64Arrays where
- * numeric, null as NaN); groups the period or manufacturer of each turbine (index into PERIODS or HERSTELLER_COLORS)
- * and the legend of the colour mode.
+ * numeric, null as NaN); groups the period of each turbine (index into PERIODS) and their
+ * legend.
  */
-export function useTurbines({ scopeKey, lagen, statuses, colorMode = 'zeit', enabled = true }) {
+export function useTurbines({ scopeKey, lagen, statuses, enabled = true }) {
   const json = useJson(enabled ? TURBINES_URL : null);
 
   const data = useMemo(() => {
@@ -102,19 +94,13 @@ export function useTurbines({ scopeKey, lagen, statuses, colorMode = 'zeit', ena
     const planned = data.statusNames.indexOf('geplant');
     const group = new Uint8Array(data.n);
     for (let i = 0; i < data.n; i += 1) {
-      if (colorMode === 'hersteller') group[i] = data.hersteller[i];
-      else {
-        const isPlanned = data.status[i] === planned;
-        const year = data.jahr[i];
-        group[i] = isPlanned ? PERIODS.length - 1 : PERIODS.findIndex((p) => p.test(Number.isNaN(year) ? 2025 : year, isPlanned));
-      }
+      const isPlanned = data.status[i] === planned;
+      const year = data.jahr[i];
+      group[i] = isPlanned ? PERIODS.length - 1 : PERIODS.findIndex((p) => p.test(Number.isNaN(year) ? 2025 : year, isPlanned));
     }
-    const legend =
-      colorMode === 'hersteller'
-        ? data.herstellerNames.map((label, i) => ({ id: label, label, color: HERSTELLER_COLORS[i] }))
-        : PERIODS.map(({ id, label, color }) => ({ id, label, color }));
+    const legend = PERIODS.map(({ id, label, color }) => ({ id, label, color }));
     return { group, legend, colors: legend.map((l) => l.color) };
-  }, [data, colorMode]);
+  }, [data]);
 
   return { status: json.status, retry: json.retry, data, rows, groups };
 }

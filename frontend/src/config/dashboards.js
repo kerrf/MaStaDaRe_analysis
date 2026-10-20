@@ -6,6 +6,7 @@ import {
   Construction,
   Cylinder,
   Droplets,
+  Factory,
   Flame,
   Gauge,
   Layers,
@@ -13,6 +14,7 @@ import {
   Mountain,
   Package,
   Sun,
+  Thermometer,
   Timer,
   TrendingUp,
   Trophy,
@@ -72,11 +74,12 @@ export function scopeAnalysesOf(technology) {
   ].filter(Boolean);
 }
 
-// A Kennzahl of the map is a quantity in a basis: Leistung or Kapazität, absolut, je km² or je Einwohner (the
-// continuous map: as a density). The toolbar chooses them in two rows (MapToolbar.jsx), the same for every technology;
-// the URL keeps the metric's id (?kennzahl=…).
+// A Kennzahl of the map is a quantity in a basis: Leistung, Wärme (KWK), Kapazität or Anzahl, absolut, je km² or je
+// Einwohner (the continuous map: as a density). The toolbar chooses them in two rows (MapToolbar.jsx), the same for every
+// technology, each with the quantities its metrics have; the URL keeps the metric's id (?kennzahl=…).
 export const QUANTITIES = [
   { id: 'leistung', label: 'Leistung' },
+  { id: 'waerme', label: 'Wärme' },
   { id: 'kapazitaet', label: 'Kapazität' },
   { id: 'anzahl', label: 'Anzahl' },
 ];
@@ -134,6 +137,11 @@ const PV_SPEICHER = {
 export const SOLAR_SIZES_NOTE =
   'Einheiten am selben Netzanschluss (Lokation im MaStR) zählen als eine Anlage, auch mit verschiedenen Betreibern – ' +
   'etwa Solarparks, die in Teilen registriert sind. Balkonkraftwerke bis 2 kWp zählen einzeln.';
+
+// Below the maps of the technologies whose large plants the register publishes with their Land only
+const LAND_ONLY_NOTE =
+  'Große Kraftwerke sind im Register nur mit ihrem Bundesland veröffentlicht: Sie zählen für das Land, nicht für ' +
+  'einen Kreis oder eine Gemeinde.';
 
 export const ERZEUGER = {
   id: 'erzeuger',
@@ -266,7 +274,38 @@ export const ERZEUGER = {
         targets: { wind_an_land: ['wind_an_land'], wind_auf_see: ['wind_auf_see'] },
       },
     },
-    { id: 'biomasse', label: 'Biomasse', icon: Leaf },
+    {
+      id: 'biomasse',
+      label: 'Biomasse',
+      icon: Leaf,
+      statsPath: '/biomass/dashboard-stats',
+      sizesPath: '/biomass/size-distribution',
+      granularities: REGION_LEVELS,
+      // Biogas (with Biomethan, Klär- and Deponiegas), solid and liquid biomass: passed as ?art=… (no param = all, the
+      // API sums them)
+      subtypes: {
+        param: 'art',
+        label: 'Biomasseart',
+        options: [
+          { id: 'gasfoermig', label: 'Biogas' },
+          { id: 'fest', label: 'Fest' },
+          { id: 'fluessig', label: 'Flüssig' },
+        ],
+      },
+      // Überblick: per Biomasseart from the monthly series of the Zubau, no target
+      overview: {
+        title: 'Biogas, fest oder flüssig',
+        name: ['Biomasseanlage', 'Biomasseanlagen'],
+        parts: [
+          { id: 'biomasse_gasfoermig', series: 'biomasse_gasfoermig', label: 'Biogas', hint: 'mit Klär- und Deponiegas', color: 'var(--series-biogas)' },
+          { id: 'biomasse_fest', series: 'biomasse_fest', label: 'Feste Biomasse', hint: 'Holz, Stroh', color: 'var(--series-biomasse-fest)' },
+          { id: 'biomasse_fluessig', series: 'biomasse_fluessig', label: 'Flüssige Biomasse', hint: 'Pflanzenöl', color: 'var(--series-biomasse-fluessig)' },
+        ],
+        total: ['biomasse'],
+        planned: ['biomasse'],
+      },
+      note: LAND_ONLY_NOTE,
+    },
     {
       id: 'wasserkraft',
       label: 'Wasserkraft',
@@ -281,6 +320,118 @@ export const ERZEUGER = {
         total: ['wasserkraft'],
         planned: ['wasserkraft'],
       },
+    },
+    // The units of the register's EinheitenGeothermieGrubengasDruckentspannung: Geothermie, Grubengas from coal mines,
+    // Klärschlamm, turbines in gas and water pipelines (Druckentspannung) and Solarthermie
+    {
+      id: 'geothermie',
+      label: 'Geothermie & Grubengas',
+      icon: Thermometer,
+      statsPath: '/geothermal/dashboard-stats',
+      sizesPath: '/geothermal/size-distribution',
+      granularities: REGION_LEVELS,
+      subtypes: {
+        param: 'art',
+        label: 'Energieträger',
+        options: [
+          { id: 'geothermie', label: 'Geothermie' },
+          { id: 'grubengas', label: 'Grubengas' },
+          { id: 'klaerschlamm', label: 'Klärschlamm' },
+          { id: 'druckentspannung', label: 'Druckentspannung' },
+          { id: 'solarthermie', label: 'Solarthermie' },
+        ],
+      },
+      overview: {
+        title: 'Erdwärme, Grubengas, Klärschlamm, Druck',
+        name: ['Anlage', 'Anlagen'],
+        parts: [
+          { id: 'geothermie', series: 'geothermie', label: 'Geothermie', hint: 'Erdwärme', color: 'var(--series-geothermie)' },
+          { id: 'grubengas', series: 'grubengas', label: 'Grubengas', hint: 'aus Kohlegruben', color: 'var(--series-grubengas)' },
+          { id: 'klaerschlamm', series: 'klaerschlamm', label: 'Klärschlamm', color: 'var(--series-klaerschlamm)' },
+          {
+            id: 'druckentspannung',
+            series: 'druckentspannung',
+            label: 'Druckentspannung',
+            hint: 'Turbinen in Gas- und Wasserleitungen',
+            color: 'var(--series-druckentspannung)',
+          },
+          { id: 'solarthermie', series: 'solarthermie', label: 'Solarthermie', color: 'var(--series-solarthermie)' },
+        ],
+        total: ['geothermie_grubengas'],
+        planned: ['geothermie_grubengas'],
+      },
+      note: LAND_ONLY_NOTE,
+    },
+    // KWK plants (Kraft-Wärme-Kopplung): power and heat at once. Their units are biomass and combustion units, so they
+    // overlap with Biomasse; the plant counts by the fuel of its largest unit.
+    {
+      id: 'kwk',
+      label: 'KWK',
+      icon: Factory,
+      statsPath: '/kwk/dashboard-stats',
+      sizesPath: '/kwk/size-distribution',
+      granularities: REGION_LEVELS,
+      subtypes: {
+        param: 'energietraeger',
+        label: 'Energieträger',
+        options: [
+          { id: 'erdgas', label: 'Erdgas' },
+          { id: 'biomasse', label: 'Biomasse' },
+          { id: 'kohle', label: 'Kohle' },
+          { id: 'sonstige', label: 'Sonstige' },
+        ],
+      },
+      // The electrical power like the other Erzeuger, the heat (thermische Nutzleistung) as a Kennzahl of its own
+      metrics: [
+        { id: 'total_power', quantity: 'leistung', basis: 'absolut', legend: 'Elektrische Leistung', unit: 'MW', digits: 1 },
+        { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Elektrische Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+        {
+          id: 'relative_population_power',
+          quantity: 'leistung',
+          basis: 'einwohner',
+          legend: 'Elektrische Leistung je Einwohner',
+          unit: 'kW/Einw.',
+          digits: 2,
+        },
+        { id: 'total_heat', quantity: 'waerme', basis: 'absolut', legend: 'Thermische Leistung', unit: 'MW', digits: 1 },
+        { id: 'relative_area_heat', quantity: 'waerme', basis: 'flaeche', legend: 'Thermische Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+        {
+          id: 'relative_population_heat',
+          quantity: 'waerme',
+          basis: 'einwohner',
+          legend: 'Thermische Leistung je Einwohner',
+          unit: 'kW/Einw.',
+          digits: 2,
+        },
+      ],
+      tooltipRows: [
+        { key: 'total_units', label: 'KWK-Anlagen', digits: 0 },
+        { key: 'total_power', label: 'elektrisch', unit: 'MW', digits: 1 },
+        { key: 'total_heat', label: 'thermisch', unit: 'MW', digits: 1 },
+        { key: 'relative_population_power', label: 'el. je Einwohner', unit: 'kW', digits: 2 },
+      ],
+      kpis: [
+        { id: 'units', kind: 'sum', field: 'total_units', label: 'KWK-Anlagen', icon: Factory },
+        { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Elektrische Leistung', icon: Zap },
+        { id: 'heat', kind: 'sum', field: 'total_heat', format: 'power', label: 'Thermische Leistung', icon: Flame },
+        { id: 'growth', kind: 'sum', field: 'added_12m_power', format: 'power', label: 'Zubau (12 Monate)', icon: TrendingUp },
+      ],
+      overview: {
+        title: 'Erdgas, Biomasse, Kohle',
+        name: ['KWK-Anlage', 'KWK-Anlagen'],
+        parts: [
+          { id: 'kwk_erdgas', series: 'kwk_erdgas', label: 'Erdgas', hint: 'mit anderen Gasen, Wasserstoff', color: 'var(--series-kwk-erdgas)' },
+          { id: 'kwk_biomasse', series: 'kwk_biomasse', label: 'Biomasse', hint: 'vor allem Biogas', color: 'var(--series-kwk-biomasse)' },
+          { id: 'kwk_kohle', series: 'kwk_kohle', label: 'Kohle', hint: 'Stein- und Braunkohle', color: 'var(--series-kwk-kohle)' },
+          { id: 'kwk_sonstige', series: 'kwk_sonstige', label: 'Sonstige', hint: 'Öl, Abfall, Wärme, Grubengas', color: 'var(--series-kwk-sonstige)' },
+        ],
+        total: ['kwk'],
+      },
+      note:
+        'KWK-Anlagen erzeugen Strom und Wärme zugleich. Ihre Einheiten sind Biomasse- und Verbrennungseinheiten, sie ' +
+        'überschneiden sich also mit Biomasse; eine Anlage zählt mit dem Energieträger ihrer größten Einheit, an ' +
+        'deren Ort. Die thermische Leistung nur, wo sie plausibel ist: höchstens das 50-Fache der elektrischen. ' +
+        LAND_ONLY_NOTE,
     },
   ],
   // heat: what the continuous map shows of an absolute Kennzahl – its density, the measure of its points (default power),
@@ -335,8 +486,10 @@ export const ERZEUGER = {
           },
           { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)' },
           { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)' },
-          // Off at first: next to solar and wind hardly visible
+          // Off at first: next to solar and wind hardly visible. Not KWK: its units are biomass and combustion units.
+          { id: 'biomasse', label: 'Biomasse', color: 'var(--series-biomasse)', hidden: true },
           { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
+          { id: 'geothermie_grubengas', label: 'Geothermie & Grubengas', color: 'var(--series-geothermie)', hidden: true },
         ],
       },
     },
@@ -347,7 +500,10 @@ export const ERZEUGER = {
         { id: 'solar_freiflaeche', label: 'Solar Freifläche', color: 'var(--series-solar-freiflaeche)' },
         { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)', hidden: true },
         { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)', hidden: true },
+        { id: 'biomasse', label: 'Biomasse', color: 'var(--series-biomasse)', hidden: true },
         { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
+        { id: 'geothermie_grubengas', label: 'Geothermie & Grubengas', color: 'var(--series-geothermie)', hidden: true },
+        { id: 'kwk', label: 'KWK-Anlagen', color: 'var(--series-kwk)', hidden: true },
       ],
       { stacked: true },
     ),
@@ -382,7 +538,9 @@ export const ERZEUGER = {
           },
           { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)' },
           { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)' },
+          { id: 'biomasse', label: 'Biomasse', color: 'var(--series-biomasse)', hidden: true },
           { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)', hidden: true },
+          { id: 'geothermie_grubengas', label: 'Geothermie & Grubengas', color: 'var(--series-geothermie)', hidden: true },
         ],
         note:
           'Einheiten „in Planung“ im Marktstammdatenregister, nach dem geplanten Inbetriebnahmedatum, wie es die Betreiber ' +
@@ -395,7 +553,10 @@ export const ERZEUGER = {
     delayOf([
       { id: 'solar', label: 'Solar', color: 'var(--series-solar)' },
       { id: 'wind', label: 'Wind', color: 'var(--series-wind-land)' },
+      { id: 'biomasse', label: 'Biomasse', color: 'var(--series-biomasse)' },
       { id: 'wasserkraft', label: 'Wasserkraft', color: 'var(--series-wasserkraft)' },
+      { id: 'geothermie_grubengas', label: 'Geothermie & Grubengas', color: 'var(--series-geothermie)' },
+      { id: 'kwk', label: 'KWK-Anlagen', color: 'var(--series-kwk)' },
     ]),
     // In the scope, for the active technology (its sizesPath); a placeholder for technologies without one
     {
@@ -418,7 +579,9 @@ export const SPEICHER = {
   id: 'speicher',
   basePath: '/speicher',
   title: 'Speicher',
-  description: 'Kapazität und Leistung von Batterie- und Pumpspeichern – vom Heimspeicher bis zum Großspeicher.',
+  description:
+    'Kapazität und Leistung von Batterie-, Pump- und sonstigen Speichern – vom Heimspeicher bis zum Großspeicher, von ' +
+    'Druckluft bis Wasserstoff.',
   ramp: RAMPS.blue,
   defaultGranularity: 'bundesland',
   technologies: [
@@ -548,7 +711,60 @@ export const SPEICHER = {
         { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', scopedLabel: 'Anteil an Deutschland', icon: Trophy },
       ],
     },
-    { id: 'sonstige', label: 'Sonstige', icon: Package },
+    // The storages that are neither batteries nor pumped storage: few and small, most of them hydrogen storages in houses
+    {
+      id: 'sonstige',
+      label: 'Sonstige',
+      icon: Package,
+      statsPath: '/other-storage/dashboard-stats',
+      granularities: REGION_LEVELS,
+      // Druckluft, Schwungrad, Wasserstoff: passed as ?art=… (no param = all, the API sums them)
+      subtypes: {
+        param: 'art',
+        label: 'Speichertechnologie',
+        options: [
+          { id: 'druckluft', label: 'Druckluft' },
+          { id: 'schwungrad', label: 'Schwungrad' },
+          { id: 'wasserstoff', label: 'Wasserstoff' },
+        ],
+      },
+      // Überblick: by their capacity like the batteries, their power beside it
+      overview: {
+        title: 'Druckluft, Schwungrad oder Wasserstoff',
+        measure: { format: 'capacity', label: 'Speicherkapazität' },
+        also: { format: 'power', label: 'Leistung' },
+        units: ['Speicher', 'Speicher'],
+        name: ['Speicher', 'Speicher', 'kein solcher Speicher'],
+        parts: [
+          {
+            id: 'wasserstoffspeicher',
+            series: 'wasserstoffspeicher',
+            also: 'wasserstoffspeicher_leistung',
+            label: 'Wasserstoff',
+            hint: 'mit Rückverstromung',
+            color: 'var(--series-wasserstoffspeicher)',
+          },
+          {
+            id: 'druckluftspeicher',
+            series: 'druckluftspeicher',
+            also: 'druckluftspeicher_leistung',
+            label: 'Druckluft',
+            color: 'var(--series-druckluft)',
+          },
+          {
+            id: 'schwungradspeicher',
+            series: 'schwungradspeicher',
+            also: 'schwungradspeicher_leistung',
+            label: 'Schwungrad',
+            color: 'var(--series-schwungrad)',
+          },
+        ],
+        total: ['wasserstoffspeicher', 'druckluftspeicher', 'schwungradspeicher'],
+      },
+      note:
+        'Die Kapazität wie registriert, ohne Plausibilitätsprüfung: Ein Wasserstoffspeicher hält Strom für Wochen. Der ' +
+        'Druckluftspeicher Huntorf ist mit 1 kW und 1,7 GWh registriert und nur mit seinem Bundesland veröffentlicht.',
+    },
   ],
   // Power, like the Erzeuger, and the usable capacity (only batteries with a plausible one, aggregate_bat_by_region_power.sql)
   metrics: [
@@ -632,14 +848,11 @@ export const SPEICHER = {
       of([
         { id: 'batterie', label: 'Batteriespeicher', color: 'var(--series-gewerbespeicher)' },
         { id: 'pumpspeicher', label: 'Pumpspeicher', color: 'var(--series-grossspeicher)' },
+        { id: 'speicher_sonstige', label: 'Sonstige Speicher', color: 'var(--series-wasserstoffspeicher)' },
       ]),
     ),
     // Batteries at solar units: how many solar units have one, and how much capacity per kW of solar
     PV_SPEICHER,
-  ],
-  todos: [
-    'Pumpspeicher und Sonstige: eigene Rollups analog aggregate_bat_by_region_power.sql (Technologie 1537 bzw. 525/526/3067).',
-    'Achtung: aggregate_bat_by_bundesland.sql droppt und überschreibt mrt.solar_units_bundesland_agg (die alte Solar-View) – wird nicht mehr gebraucht.',
   ],
 };
 
@@ -804,15 +1017,15 @@ export const GAS = {
 };
 
 // The Spannungsebenen of the Netzanschlüsse, each with the transformation below it (aggregate_netzanschluesse.sql): the
-// filter of the map (?spannung=…), and the Netzebenen 1–7 of the analyses by their code in the MaStR
+// filter of the map (?spannung=…), and the Netzebenen 1–7 of the analyses (/netz/ebenen: netzebene)
 export const NETZEBENEN = [
-  { code: '348', ebene: 'hoechstspannung', label: 'Höchstspannung', ne: 1 },
-  { code: '349', ebene: 'hoechstspannung', label: 'Umspannung Höchst-/Hochspannung', ne: 2 },
-  { code: '350', ebene: 'hochspannung', label: 'Hochspannung', ne: 3 },
-  { code: '351', ebene: 'hochspannung', label: 'Umspannung Hoch-/Mittelspannung', ne: 4 },
-  { code: '352', ebene: 'mittelspannung', label: 'Mittelspannung', ne: 5 },
-  { code: '353', ebene: 'mittelspannung', label: 'Umspannung Mittel-/Niederspannung', ne: 6 },
-  { code: '354', ebene: 'niederspannung', label: 'Niederspannung', ne: 7 },
+  { ne: 1, ebene: 'hoechstspannung', label: 'Höchstspannung' },
+  { ne: 2, ebene: 'hoechstspannung', label: 'Umspannung Höchst-/Hochspannung' },
+  { ne: 3, ebene: 'hochspannung', label: 'Hochspannung' },
+  { ne: 4, ebene: 'hochspannung', label: 'Umspannung Hoch-/Mittelspannung' },
+  { ne: 5, ebene: 'mittelspannung', label: 'Mittelspannung' },
+  { ne: 6, ebene: 'mittelspannung', label: 'Umspannung Mittel-/Niederspannung' },
+  { ne: 7, ebene: 'niederspannung', label: 'Niederspannung' },
 ];
 
 // The technologies of the units at the Netzanschlusspunkte, in the API's names (/netz/ebenen: technologien)

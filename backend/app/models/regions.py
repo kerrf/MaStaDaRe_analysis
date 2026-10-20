@@ -1,6 +1,7 @@
 from typing import Literal
 
-from sqlalchemy import Column, Float, Integer, String
+from sqlalchemy import Column, Float, Integer, String, func
+from sqlalchemy.orm import Session
 
 from app.models.solar import Base
 
@@ -32,6 +33,30 @@ class RegionStats:
             "landkreis": (cls.landkreis.isnot(None), cls.gemeinde.is_(None)),
             "gemeinde": (cls.gemeinde.isnot(None),),
         }[level]
+
+
+class KindRegionStats(RegionStats):
+    """Region stats with one row per kind of the technology (art): every row carries its region's whole area and
+    population, so the API sums the chosen kinds, the values per km² and per inhabitant too. Plants published with their
+    Land only are in the Land's row alone (no Landkreis or Gemeinde of their own)."""
+
+    art = Column(String, primary_key=True)
+
+    @classmethod
+    def summed(cls, db: Session, level: RegionLevel, arten: tuple[str, ...], measures: tuple[str, ...]) -> list[dict]:
+        """The rows of one level for the chosen kinds, summed per region: total_units and the measures."""
+        keys = (cls.bundesland, cls.landkreis, cls.gemeinde)
+        rows = (
+            db.query(
+                *keys,
+                func.sum(cls.total_units).label("total_units"),
+                *(func.sum(getattr(cls, name)).label(name) for name in measures),
+            )
+            .filter(cls.art.in_(arten), *cls.at_level(level))
+            .group_by(*keys)
+            .all()
+        )
+        return [row._asdict() for row in rows]
 
 
 class Gemeinde(Base):
@@ -67,6 +92,46 @@ class WindRegionStats(RegionStats, Base):
 class WaterRegionStats(RegionStats, Base):
     __tablename__ = "water_region_stats"
     __table_args__ = {"schema": "mrt"}
+
+
+class BiomassRegionStats(KindRegionStats, Base):
+    """Per Biomasseart: gasfoermig, fest, fluessig (etl/queries/aggregate_biomass_by_region_power.sql)."""
+
+    __tablename__ = "biomass_region_stats"
+    __table_args__ = {"schema": "mrt"}
+
+
+class GeothermalRegionStats(KindRegionStats, Base):
+    """The units of raw.geothermal_units per Energieträger: geothermie, grubengas, klaerschlamm, druckentspannung,
+    solarthermie (etl/queries/aggregate_geothermal_by_region_power.sql)."""
+
+    __tablename__ = "geothermal_region_stats"
+    __table_args__ = {"schema": "mrt"}
+
+
+class KwkRegionStats(KindRegionStats, Base):
+    """The KWK plants per Energieträger of their largest unit: erdgas, biomasse, kohle, sonstige; total_units counts
+    plants, total_power is their electrical power (etl/queries/aggregate_kwk_by_region_power.sql)."""
+
+    __tablename__ = "kwk_region_stats"
+    __table_args__ = {"schema": "mrt"}
+
+    total_heat = Column(Float)  # thermal power, MW
+    relative_area_heat = Column(Float)  # kW per km²
+    relative_population_heat = Column(Float)  # kW per inhabitant
+
+
+class OtherStorageRegionStats(KindRegionStats, Base):
+    """The storages that are neither batteries nor pumped storage, per Technologie: druckluft, schwungrad, wasserstoff
+    (etl/queries/aggregate_other_storage_by_region_power.sql)."""
+
+    __tablename__ = "other_storage_region_stats"
+    __table_args__ = {"schema": "mrt"}
+
+    total_capacity = Column(Float)  # MWh, as registered
+    relative_area_capacity = Column(Float)  # kWh per km²
+    relative_population_capacity = Column(Float)  # kWh per inhabitant
+    added_12m_capacity = Column(Float)  # MWh
 
 
 class BatteryRegionStats(RegionStats, Base):

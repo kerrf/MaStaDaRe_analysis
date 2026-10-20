@@ -8,17 +8,17 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.battery_kinds;
 -- power). Only the kinds that occur in a region. Like mrt.battery_size_distribution, only units with a plausible
 -- capacity (battery-charts.de: more than 0.3 kWh and 0.3 kW, full in 6 minutes to 12 hours).
 CREATE MATERIALIZED VIEW mrt.battery_kinds AS
-WITH kinds (kind, code, category, sort, label) AS (
-    -- The register's codes (app/codes.py: BATTERIETECHNOLOGIE, AC_DC_KOPPELUNG); without one: 'unbekannt'
+WITH kinds (kind, mastr, category, sort, label) AS (
+    -- The register's texts (codes.KATALOG: Batterietechnologie, Systemkopplung); without one: 'unbekannt'
     VALUES
-        ('technologie', '727', 'lithium', 1, 'Lithium'),
-        ('technologie', '728', 'blei', 2, 'Blei'),
-        ('technologie', '729', 'redox_flow', 3, 'Redox-Flow'),
-        ('technologie', '730', 'hochtemperatur', 4, 'Hochtemperatur'),
-        ('technologie', '731', 'nickel', 5, 'Nickel-Cadmium/-Metallhydrid'),
-        ('technologie', '732', 'sonstige', 6, 'Sonstige'),
-        ('kopplung', '693', 'ac', 1, 'AC-gekoppelt'),
-        ('kopplung', '694', 'dc', 2, 'DC-gekoppelt')
+        ('technologie', 'Lithium-Batterie', 'lithium', 1, 'Lithium'),
+        ('technologie', 'Blei-Batterie', 'blei', 2, 'Blei'),
+        ('technologie', 'Redox-Flow-Batterie', 'redox_flow', 3, 'Redox-Flow'),
+        ('technologie', 'Hochtemperaturbatterie', 'hochtemperatur', 4, 'Hochtemperatur'),
+        ('technologie', 'Nickel-Cadmium- / Nickel-Metallhydridbatterie', 'nickel', 5, 'Nickel-Cadmium/-Metallhydrid'),
+        ('technologie', 'Sonstige Batterie', 'sonstige', 6, 'Sonstige'),
+        ('kopplung', 'AC gekoppeltes System', 'ac', 1, 'AC-gekoppelt'),
+        ('kopplung', 'DC gekoppeltes System', 'dc', 2, 'DC-gekoppelt')
 ),
 battery_plants AS (
     SELECT
@@ -27,15 +27,15 @@ battery_plants AS (
         sum(u."Bruttoleistung") AS power
     FROM raw.storage_units u
     JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
-    WHERE u."Technologie" = '524'  -- Batterie
+    WHERE u."Technologie" = 'Batterie'
     GROUP BY u."SpeMastrNummer"
 ),
 units AS (
-    -- Battery units in operation (InBetrieb) in Germany, each once per kind
+    -- Battery units in operation ("In Betrieb") in Germany, each once per kind
     SELECT
         u."Gemeindeschluessel" AS ags,
         k.kind,
-        k.code,
+        k.mastr,
         u."Bruttoleistung" AS power,
         b.capacity * u."Bruttoleistung" / b.power AS capacity
     FROM raw.storage_units u
@@ -43,10 +43,10 @@ units AS (
     CROSS JOIN LATERAL (VALUES
         ('technologie', u."Batterietechnologie"),
         ('kopplung', u."AcDcKoppelung")
-    ) AS k(kind, code)
-    WHERE u."Technologie" = '524'
-      AND u."EinheitBetriebsstatus" = '35'
-      AND u."Land" = '84'
+    ) AS k(kind, mastr)
+    WHERE u."Technologie" = 'Batterie'
+      AND u."EinheitBetriebsstatus" = 'In Betrieb'
+      AND u."Land" = 'Deutschland'
       AND u."Gemeindeschluessel" IS NOT NULL
       AND b.capacity > 0.3
       AND b.power > 0.3
@@ -67,7 +67,7 @@ counts AS (
         sum(u.power) AS total_power,
         sum(u.capacity) AS total_capacity
     FROM units u
-    LEFT JOIN kinds k ON k.kind = u.kind AND k.code = u.code
+    LEFT JOIN kinds k ON k.kind = u.kind AND k.mastr = u.mastr
     GROUP BY GROUPING SETS (
         (u.kind, COALESCE(k.category, 'unbekannt')),
         (u.kind, COALESCE(k.category, 'unbekannt'), LEFT(u.ags, 2)),
