@@ -78,7 +78,8 @@ export default function Dashboard({ config, view }) {
   // search engines
   const context = [view !== 'karte' && page.label, showScope && state.scopeName].filter(Boolean).join(' · ');
   return (
-    <div className="dashboard" data-topic={config.id}>
+    // MOCK-UP: the map page uses the screen's width up to 1920 px (sidebar.css), the others stay at 1440 px
+    <div className={`dashboard${view === 'karte' ? ' dashboard--wide' : ''}`} data-topic={config.id}>
       <header className="dashboard-header">
         <div className="container dashboard-header__inner">
           <div className="dashboard-header__text">
