@@ -11,6 +11,7 @@ from app.routers import (
     biomass,
     gas,
     geothermal,
+    karte,
     kwk,
     meta,
     netz,
@@ -41,6 +42,7 @@ app.include_router(pumped_storage.router)
 app.include_router(other_storage.router)
 app.include_router(gas.router)
 app.include_router(zubau.router)
+app.include_router(karte.router)
 app.include_router(netz.router)
 app.include_router(regions.router)
 app.include_router(meta.router)

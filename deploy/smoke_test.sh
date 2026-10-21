@@ -43,6 +43,8 @@ ROUTES=(
   "/kwk/dashboard-stats?level=bundesland"
   /kwk/size-distribution
   "/other-storage/dashboard-stats?level=bundesland"
+  # The map in time (mrt.karte_zeit)
+  "/karte/solar?level=bundesland&kennzahl=zubau&jahr=2024"
   "/zubau/zeitverlauf?yearly=true&technology=biomasse&technology=geothermie_grubengas&technology=kwk&technology=wasserstoffspeicher"
   "/battery/dashboard-stats?level=bundesland"
   # The Anlagen pages of Speicher and Gas: size classes and kinds (the pies)

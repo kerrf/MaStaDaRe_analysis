@@ -25,6 +25,7 @@ import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
 import { useUrlChoice } from './useDashboardState';
+import { WERTE, karteUrl, latestOf, legendOf, periodOf, periodParam } from './mapTime';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -79,16 +80,24 @@ function MapOverlay({ state, technology, onRetry }) {
 export default function MapView({ config, state }) {
   const datenstand = useDatenstand();
   const { region, kreisAgs, kreise, kreisOptions, kreisFeature, scopeName, parentName, technology, subtypes, leistung } = state;
-  const { selectionQuery, selectionNote, setParam, selectScope, exitScope } = state;
+  const { selectionQuery, selectionNote, setParam, setParams, selectScope, exitScope } = state;
   const { searchParams } = state;
 
   // Some technologies show their plants as icons at their location instead of shaded areas (Pumpspeicher, Gas). They rank
   // as plants within the scope, keyed by their Gemeindeschlüssel.
   const isSites = Boolean(technology.plantsPath);
   const plantsLevel = isSites ? { id: 'standorte', label: technology.site.label, featureKey: 'ags' } : null;
+  // The map in time (mapTime.js), for the technologies that have it: the Kennzahl (?wert=) and the period (?zeit=). It
+  // replaces the map of today once either is chosen, on the Länder, Kreise and Gemeinden only.
+  const latest = latestOf(datenstand);
+  const hasTime = Boolean(technology.zeit) && !isSites;
+  const wert = hasTime && WERTE.some((w) => w.id === searchParams.get('wert')) ? searchParams.get('wert') : 'bestand';
+  const period = periodOf(searchParams.get('zeit'), latest);
+  const timeMode = hasTime && (wert !== 'bestand' || period.explicit);
   const defaultGranularity = GRANULARITIES.find((g) => g.id === config.defaultGranularity);
   const requested = GRANULARITIES.find((g) => g.id === searchParams.get('ebene'));
-  const granularity = requested && isAvailable(requested, technology) ? requested : defaultGranularity;
+  const granularity =
+    requested && isAvailable(requested, technology) && !(timeMode && !AGS_LENGTH[requested.id]) ? requested : defaultGranularity;
   const isHeatmap = granularity.kind === 'heatmap';
   // The continuous map spreads absolute values (power, capacity) only, as their density: per km² and per inhabitant have
   // no place there
@@ -109,7 +118,13 @@ export default function MapView({ config, state }) {
   const withData = hasData(technology);
   const states = useTopology(STATES_TOPOLOGY);
   const shapes = useTopology(withData && !isSites ? areaGranularity.topology : STATES_TOPOLOGY);
-  const mapStats = useStats(isSites ? null : statsUrl(technology.statsPath, areaGranularity.apiLevel, selectionQuery));
+  const mapStats = useStats(
+    isSites
+      ? null
+      : timeMode
+        ? karteUrl(technology, areaGranularity.apiLevel, wert, period, selectionQuery)
+        : statsUrl(technology.statsPath, areaGranularity.apiLevel, selectionQuery),
+  );
   const kpiStats = useStats(isSites ? null : statsUrl(technology.statsPath, 'bundesland', selectionQuery));
   const kreisStats = useStats(kreisAgs && !isSites ? statsUrl(technology.statsPath, LANDKREIS.apiLevel, selectionQuery) : null);
   const plants = useStats(isSites ? `${API_BASE_URL}${technology.plantsPath}` : null);
@@ -340,7 +355,9 @@ export default function MapView({ config, state }) {
   const scopeLabel = scopeName;
   // Solar values say which power they are; the map title points to the footnote that explains it, at the Leistung's
   // switch above (SelectionBar)
-  const metricLegend = leistung ? `${metric.legend} · ${leistung.label}` : metric.legend;
+  // In time: what the period means for it ("Installierte Leistung Ende 2024", "Zubau im Mai 2024 – Leistung")
+  const legend = hasTime ? legendOf(metric.legend, wert, period, latest) : metric.legend;
+  const metricLegend = leistung ? `${legend} · ${leistung.label}` : legend;
   const mapTitle = isSites ? 'Standorte' : isHeatmap ? (leistung ? `${metric.heat.legend} · ${leistung.label}` : metric.heat.legend) : metricLegend;
   const leistungNote = technology.leistung?.note;
   // The technology's remark (e.g. where offshore wind lies): with the page's other remarks at its bottom
@@ -424,6 +441,25 @@ export default function MapView({ config, state }) {
             }}
             smoothing={smoothingId}
             onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
+            time={
+              hasTime
+                ? {
+                    wert,
+                    active: timeMode,
+                    period,
+                    latest,
+                    // Another Kennzahl than the Bestand leaves a resolution the map in time hasn't (PLZ, continuous)
+                    onWert: (id) => {
+                      trackEvent('Kartenansicht', { einstellung: 'wert', wert: id });
+                      setParams({ wert: id === 'bestand' ? null : id, ...(id !== 'bestand' && !AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
+                    },
+                    onPeriod: (next) => {
+                      trackEvent('Kartenansicht', { einstellung: 'zeit', wert: periodParam(next) });
+                      setParams({ zeit: periodParam(next), ...(!AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
+                    },
+                  }
+                : null
+            }
           />
         </SelectionBar>
 

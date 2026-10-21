@@ -74,9 +74,11 @@ export function scopeAnalysesOf(technology) {
   ].filter(Boolean);
 }
 
-// A Kennzahl of the map is a quantity in a basis: Leistung, Wärme (KWK), Kapazität or Anzahl, absolut, je km² or je
-// Einwohner (the continuous map: as a density). The toolbar chooses them in two rows (MapToolbar.jsx), the same for every
-// technology, each with the quantities its metrics have; the URL keeps the metric's id (?kennzahl=…).
+// A metric of the map is a quantity in a basis: Leistung, Wärme (KWK), Kapazität or Anzahl, absolut, je km² or je
+// Einwohner (the continuous map: as a density). The toolbar chooses them in two boxes, Messgröße and Bezug
+// (MapToolbar.jsx), the same for every technology, each with the quantities its metrics have; the URL keeps the metric's
+// id (?kennzahl=…). Before them, for the technologies with `zeit`, the Kennzahl of the map in time: Bestand, Zubau,
+// Stilllegungen, In Planung (features/dashboard/mapTime.js).
 export const QUANTITIES = [
   { id: 'leistung', label: 'Leistung' },
   { id: 'waerme', label: 'Wärme' },
@@ -156,6 +158,9 @@ export const ERZEUGER = {
       label: 'Solar',
       icon: Sun,
       statsPath: '/solar/dashboard-stats',
+      // The map in time: Bestand, Zubau, Stilllegungen per year or month and what is planned (/karte/<zeit>,
+      // features/dashboard/mapTime.js)
+      zeit: 'solar',
       // The points of the continuous map (mrt.heatmap_points): plants at their coordinates, small ones per postcode
       heatmapPath: '/solar/heatmap',
       // Units and power per size class, for the "Verteilung nach Anlagengröße" (mrt.size_distribution), and its footnote
@@ -247,6 +252,7 @@ export const ERZEUGER = {
       label: 'Wind',
       icon: Wind,
       statsPath: '/wind/dashboard-stats',
+      zeit: 'wind',
       sizesPath: '/wind/size-distribution',
       heatmapPath: '/wind/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
@@ -279,6 +285,7 @@ export const ERZEUGER = {
       label: 'Biomasse',
       icon: Leaf,
       statsPath: '/biomass/dashboard-stats',
+      zeit: 'biomass',
       sizesPath: '/biomass/size-distribution',
       granularities: REGION_LEVELS,
       // Biogas (with Biomethan, Klär- and Deponiegas), solid and liquid biomass: passed as ?art=… (no param = all, the
@@ -311,6 +318,7 @@ export const ERZEUGER = {
       label: 'Wasserkraft',
       icon: Droplets,
       statsPath: '/water/dashboard-stats',
+      zeit: 'water',
       sizesPath: '/water/size-distribution',
       granularities: REGION_LEVELS,
       // Überblick: from the monthly series of the Zubau, no parts, no target
@@ -328,6 +336,7 @@ export const ERZEUGER = {
       label: 'Geothermie & Grubengas',
       icon: Thermometer,
       statsPath: '/geothermal/dashboard-stats',
+      zeit: 'geothermal',
       sizesPath: '/geothermal/size-distribution',
       granularities: REGION_LEVELS,
       subtypes: {
@@ -369,6 +378,7 @@ export const ERZEUGER = {
       label: 'KWK',
       icon: Factory,
       statsPath: '/kwk/dashboard-stats',
+      zeit: 'kwk',
       sizesPath: '/kwk/size-distribution',
       granularities: REGION_LEVELS,
       subtypes: {
@@ -590,6 +600,7 @@ export const SPEICHER = {
       label: 'Batteriespeicher',
       icon: BatteryCharging,
       statsPath: '/battery/dashboard-stats',
+      zeit: 'battery',
       heatmapPath: '/battery/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
       // Überblick: the batteries by their capacity (MWh), their power beside it (also: each class's series of power);
@@ -717,6 +728,7 @@ export const SPEICHER = {
       label: 'Sonstige',
       icon: Package,
       statsPath: '/other-storage/dashboard-stats',
+      zeit: 'other_storage',
       granularities: REGION_LEVELS,
       // Druckluft, Schwungrad, Wasserstoff: passed as ?art=… (no param = all, the API sums them)
       subtypes: {

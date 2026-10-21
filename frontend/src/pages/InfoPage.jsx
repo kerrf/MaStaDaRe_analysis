@@ -206,6 +206,25 @@ export default function InfoPage() {
                 <strong>Je Einwohner:</strong> Leistung in kW je Einwohner – macht dicht und dünn besiedelte Regionen vergleichbar.
               </li>
             </ul>
+            <h3>Karte im Zeitverlauf</h3>
+            <ul>
+              <li>
+                <strong>Bestand:</strong> die installierte Leistung am Ende des gewählten Jahres oder Monats – alle Anlagen, die bis dahin in
+                Betrieb gingen und noch nicht endgültig stillgelegt waren (vorübergehend stillgelegte zählen mit). Ohne gewählten Zeitraum
+                zeigt die Karte den heutigen Stand: die Anlagen in Betrieb.
+              </li>
+              <li>
+                <strong>Zubau:</strong> was im gewählten Jahr oder Monat in Betrieb ging. <strong>Stilllegungen:</strong> was darin
+                endgültig stillgelegt wurde.
+              </li>
+              <li>
+                <strong>In Planung:</strong> alle Anlagen, die heute als „in Planung“ registriert sind – ohne Zeitraum.
+              </li>
+              <li>
+                Den Zeitverlauf gibt es für Bundesländer, Landkreise und Gemeinden, nicht für Postleitzahlen und die Heatmap. Die
+                Kennzahlen über der Karte zeigen immer den heutigen Stand.
+              </li>
+            </ul>
             <h3>Farbskala &amp; Legende</h3>
             <p>
               Die Karten verwenden eine einfarbige Skala von hell (wenig) nach dunkel (viel). Bei vielen kleinen Gebieten wird die Skala beim

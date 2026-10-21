@@ -73,7 +73,9 @@ parameters, so the timeline can read solar's choice while wind is active (`selec
 | path `…/:land` | Selected Bundesland (ISO code, e.g. `by`) – zooms in and masks the rest of Germany |
 | path `…/:land/:kreis` | Selected Landkreis of that Land (5-digit key, e.g. `by/09175`) – zooms in further |
 | `?technologie=` | Technology id, default = first in `technologies` |
-| `?kennzahl=` | Metric id, default = first in `metrics`; the toolbar chooses it in two steps, Kennzahl (its `quantity`) and Bezug (its `basis`) |
+| `?kennzahl=` | Metric id, default = first in `metrics`; the toolbar chooses it in two steps, Messgröße (its `quantity`) and Bezug (its `basis`) |
+| `?wert=` | The map in time: `zubau`, `stilllegung` or `geplant`; default the Bestand |
+| `?zeit=` | Its period: a year (`2024`) or a month (`2024-05`); default the Datenstand's year, and without `?wert=` the map of today |
 | `?ebene=` | Resolution id from `GRANULARITIES`, default = `defaultGranularity` |
 | `?anlagenart=gebaeude` | Solar sub-selection (comma separated). No parameter = all options |
 | `?lage=an_land` | Wind: an Land or auf See. No parameter = both |
@@ -398,8 +400,8 @@ a date that has passed means planned but never reported in operation, mostly sma
 ### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
 
 The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, how the
-map shows the technology chosen above the card in a band below it (Kennzahl, Bezug, resolution or smoothing, in a
-row, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+map shows the technology chosen above the card in a band below it (Kennzahl, Messgröße, Bezug, resolution or smoothing,
+and the Zeitraum on the right, in a row, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
 analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
@@ -546,11 +548,30 @@ below, they fade out. The legend shows the scale, the smoothing in km and the va
 Only the absolute Kennzahlen have a `heat` entry (`config/dashboards.js`): per km² and per inhabitant aren't offered
 there, the Bezug reads „Dichte“.
 
-The Kennzahl of the map is chosen in two rows, the same for every dashboard (`MapToolbar.jsx`): Kennzahl – Leistung,
+The metric of the map is chosen in two boxes, the same for every dashboard (`MapToolbar.jsx`): Messgröße – Leistung,
 Kapazität or Anzahl (`QUANTITIES`; Anzahl: the Netzanschlusspunkte) – then Bezug – Absolut, je km², je Einwohner
 (`BASES`). Each metric names its `quantity` and
-`basis`; a row with a single choice still shows (Erzeuger: Leistung; plants: Absolut), and a new Kennzahl keeps the
+`basis`; a box with a single choice still shows (Erzeuger: Leistung; plants: Absolut), and a new Messgröße keeps the
 Bezug where it has one. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
+
+### The map in time (`mapTime.js`, `/karte/<zeit>`)
+
+A technology with `zeit` (the region technologies of Erzeuger and Speicher, not the sites) has a box Kennzahl before
+the Messgröße: Bestand, Zubau, Stilllegungen, In Planung (`WERTE`), and on the row's right the Zeitraum: Jahr or Monat,
+a year from 2000 to the Datenstand's, a month of it (up to the Datenstand's month). The map then reads
+`/karte/<zeit>?level=&kennzahl=&jahr=&monat=` with the technology's selection (backend `routers/karte.py`, the view
+`mrt.karte_zeit`), under the same field names as the dashboard-stats, so the metrics, tooltip and Rangliste stay:
+
+| Kennzahl | The map shows | Title (`legendOf`) |
+| --- | --- | --- |
+| Bestand | what stood at the end of the year or month (in operation and vorübergehend stillgelegt) | „Installierte Leistung Ende 2024“, „… Ende Mai 2024“; the running year or month: „…, Stand Oktober 2026“ |
+| Zubau | what went into operation in it | „Zubau im Jahr 2024 – Leistung“, „Zubau im Mai 2024 – …“ |
+| Stilllegungen | what was shut down for good in it | „Stilllegungen im Jahr 2024 – Leistung“ |
+| In Planung | what is in planning today, no period (the Zeitraum box says so) | „In Planung – Leistung“ |
+
+Without `?wert=` and `?zeit=` the map is the one of today (the dashboard-stats: units in operation), as before. The map
+in time has the Länder, Kreise and Gemeinden only: choosing it leaves a PLZ level or the continuous map, which the list
+of resolutions then marks „nur heutiger Bestand“. The KPIs above the map stay those of today.
 
 ## Map export
 
