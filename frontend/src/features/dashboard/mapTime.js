@@ -63,7 +63,7 @@ export function legendOf(metricLegend, wert, period, latest) {
 
 /**
  * What the period means for the Kennzahl, short, below the Zeitraum:
- *   Bestand      "Bestand bis Ende 2024", "… bis Ende Juni 2024"; the running year or month: "Bestand bis Oktober 2026"
+ *   Bestand      "Bestand im Jahr 2024", "Bestand im Juni 2024"; the running year or month: "Bestand im Oktober 2026"
  *   Zubau        "Zubau im Jahr 2024", "Zubau im Juni 2024"; the running year: "Zubau im Jahr 2026 (bis Oktober)"
  *   Stilllegung  "Stilllegungen im Jahr 2024", "Stilllegungen im Juni 2024", likewise
  *   In Planung   "Alle Anlagen, die heute in Planung sind"
@@ -71,9 +71,9 @@ export function legendOf(metricLegend, wert, period, latest) {
 export function periodNote(wert, period, latest) {
   if (wert === 'geplant') return 'Alle Anlagen, die heute in Planung sind';
   const running = isRunning(period, latest);
-  if (wert === 'bestand') return running ? `Bestand bis ${MONTHS[latest.monat - 1]} ${latest.jahr}` : `Bestand bis Ende ${periodLabel(period)}`;
-  const word = wert === 'zubau' ? 'Zubau' : 'Stilllegungen';
   const within = period.monat ? `im ${periodLabel(period)}` : `im Jahr ${period.jahr}`;
+  if (wert === 'bestand') return running ? `Bestand im ${MONTHS[latest.monat - 1]} ${latest.jahr}` : `Bestand ${within}`;
+  const word = wert === 'zubau' ? 'Zubau' : 'Stilllegungen';
   return `${word} ${within}${running && !period.monat ? ` (bis ${MONTHS[latest.monat - 1]})` : ''}`;
 }
 
