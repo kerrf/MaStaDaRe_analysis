@@ -120,8 +120,8 @@ subtypes: { param: 'anlagenart', label: 'Anlagenart', options: [{ id: 'gebaeude'
 leistung: { param: 'leistung', label: 'Leistung', options: [{ id: 'netto', … }, { id: 'brutto', … }], note: '…' }
 ```
 
-The technology and its filters are one band at the top of every page that has a choice of them – Karte (the top band
-of the map card, its toolbar the second row), Regionen im Detail, Anlagen, Regionen im Vergleich – the same everywhere
+The technology and its filters are one band at the top of every page that has a choice of them – Regionen im Detail,
+Anlagen, Regionen im Vergleich; the map page has them in its sidebar (see below) – the same everywhere
 (`SelectionBar.jsx`): a box "Technologie" (the Netzanschlüsse: `technologyLabel`, "Anschlüsse") with the technologies,
 the chosen one filled in the topic's colour, and in the row below it, under a line, a box per filter of the chosen
 technology (`TechFilters.jsx`): the `SubtypePicker` (Anlagenart, Lage …: at least one stays selected; an option with a
@@ -399,9 +399,16 @@ a date that has passed means planned but never reported in operation, mostly sma
 
 ### The map page as one workspace (`MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx`)
 
-The map, its settings and what it shows are one card, so they read as one tool: the title and export on top, how the
-map shows the technology chosen above the card in a band below it (Kennzahl, Messgröße, Bezug, resolution or smoothing,
-and the Zeitraum on the right, in a row, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+What the map shows is chosen in a sidebar on the page's left (`MapSidebar.jsx`, `sidebar.css`), modelled on the
+settings panel of SolarPower Europe's charts: Technologie and Kennzahl as menus (closed: the current choice as a tag
+beside their name; open: every choice as a row, the current one ticked; they open and close smoothly), then the
+technology's filters (Anlagenart, Leistung, Lage …), then the Zeitraum (Jahr or Monat, the year and month in lists, below
+in words what the map shows: „Bestand im Jahr 2024“, „Zubau im Juni 2024“, `periodNote`). The column never scrolls on its
+own: it stays in view while it fits the window, else it scrolls with the page. Below 1200 px it is a drawer, opened by
+„Einstellungen“ in the map card's header. The map page uses up to 1920 px (`dashboard--wide`), the other pages 1440 px.
+
+The map, how it shows it and what it shows are one card, so they read as one tool: the title and export on top, how the
+map shows it in a band below (Messgröße, Bezug, resolution or smoothing, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
 analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
@@ -556,8 +563,8 @@ Bezug where it has one. The Rangliste beside it lists the Landkreise. The techno
 
 ### The map in time (`mapTime.js`, `/karte/<zeit>`)
 
-A technology with `zeit` (the region technologies of Erzeuger and Speicher, not the sites) has a box Kennzahl before
-the Messgröße: Bestand, Zubau, Stilllegungen, In Planung (`WERTE`), and on the row's right the Zeitraum: Jahr or Monat,
+A technology with `zeit` (the region technologies of Erzeuger and Speicher, not the sites) has in the sidebar the
+Kennzahl: Bestand, Zubau, Stilllegungen, In Planung (`WERTE`), and the Zeitraum: Jahr or Monat,
 a year from 2000 to the Datenstand's, a month of it (up to the Datenstand's month). The map then reads
 `/karte/<zeit>?level=&kennzahl=&jahr=&monat=` with the technology's selection (backend `routers/karte.py`, the view
 `mrt.karte_zeit`), under the same field names as the dashboard-stats, so the metrics, tooltip and Rangliste stay:
