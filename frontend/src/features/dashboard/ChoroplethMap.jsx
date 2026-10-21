@@ -97,10 +97,32 @@ function SizeWatcher() {
   return null;
 }
 
-// Zooming: the wheel over the map zooms it, around the pointer, a quarter level per notch of a mouse wheel (Leaflet's
-// default is more than one; the maps snap to quarters), a touchpad as fine; + and − by half a level. Also the map of the
+// Zooming: + and − by half a level; the wheel only with Ctrl/⌘ held (else it scrolls the page), around the pointer, an
+// eighth of a level per notch of a mouse wheel (WheelZoom). The maps snap to eighths. Also the map of the
 // Landkreis/Gemeinde page.
-export const ZOOM_OPTIONS = { scrollWheelZoom: true, wheelPxPerZoomLevel: 300, wheelDebounceTime: 20, zoomDelta: 0.5 };
+export const ZOOM_OPTIONS = { scrollWheelZoom: false, zoomDelta: 0.5, zoomSnap: 0.125 };
+const WHEEL_STEP = 0.125; // levels per notch (about 100 px of wheel)
+const WHEEL_PX_PER_STEP = 100;
+
+export function WheelZoom() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    let pending = 0; // wheel px not yet turned into a step (a touchpad sends many small ones)
+    const onWheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      pending += e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 800 : 1);
+      const steps = Math.trunc(pending / WHEEL_PX_PER_STEP);
+      if (!steps) return;
+      pending -= steps * WHEEL_PX_PER_STEP;
+      map.setZoomAround(map.mouseEventToContainerPoint(e), map.getZoom() - steps * WHEEL_STEP, { animate: false });
+    };
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => container.removeEventListener('wheel', onWheel);
+  }, [map]);
+  return null;
+}
 
 function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltipFor, onRegionClick, onHover }) {
   const layerRef = useRef(null);
@@ -218,6 +240,7 @@ export default function ChoroplethMap({
       attributionControl={false}
     >
       <SizeWatcher />
+      <WheelZoom />
       <ViewController focusFeature={focusFeature} homeBounds={homeBounds} />
 
       {basemap.data && (

@@ -186,7 +186,7 @@ export default function InfoPage() {
                 Gesamtansicht, jeweils mit der vorherigen Auflösung. „Deutschland“ im Gebietsfeld führt direkt zur Gesamtansicht.
               </li>
               <li>
-                <strong>Mausrad über der Karte</strong> zoomt sie, um den Mauszeiger; daneben scrollt es die Seite.
+                <strong>Strg/⌘ + Mausrad</strong> zoomt die Karte, um den Mauszeiger, in kleinen Schritten; normales Scrollen bewegt die Seite.
               </li>
               <li>
                 <strong>Solar – Anlagenart:</strong> Gebäude- und Freiflächenanlagen lassen sich getrennt auswählen. Der Filter wird gerade

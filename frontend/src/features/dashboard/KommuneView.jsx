@@ -838,7 +838,7 @@ export default function KommuneView({ config, state }) {
             </KommuneMap>
           </div>
           <footer className="map-card__footer">
-            <span>Quelle: Marktstammdatenregister (BNetzA) · Mausrad zum Zoomen · Klick auf eine Gemeinde: ihr Steckbrief</span>
+            <span>Quelle: Marktstammdatenregister (BNetzA) · Strg/⌘ + Mausrad zum Zoomen · Klick auf eine Gemeinde: ihr Steckbrief</span>
             {mapStatus === 'ready' && (
               <ChartExport
                 target=".kommune-map-frame"

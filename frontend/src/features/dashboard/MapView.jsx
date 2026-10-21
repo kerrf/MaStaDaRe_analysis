@@ -298,7 +298,7 @@ export default function MapView({ config, state }) {
         selected: region && { key: region.ags, name: region.name },
       };
 
-  const mapHints = ['Mausrad über der Karte zoomt'];
+  const mapHints = ['Strg/⌘ + Mausrad zum Zoomen'];
   // The continuous map takes no clicks on areas: its Landkreise are in the Rangliste
   if (isHeatmap) {
     if (canDrill && !kreisAgs) mapHints.push('Klick auf einen Landkreis der Rangliste zum Hineinzoomen');
