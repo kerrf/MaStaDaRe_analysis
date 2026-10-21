@@ -73,7 +73,7 @@ parameters, so the timeline can read solar's choice while wind is active (`selec
 | path `…/:land` | Selected Bundesland (ISO code, e.g. `by`) – zooms in and masks the rest of Germany |
 | path `…/:land/:kreis` | Selected Landkreis of that Land (5-digit key, e.g. `by/09175`) – zooms in further |
 | `?technologie=` | Technology id, default = first in `technologies` |
-| `?kennzahl=` | Metric id, default = first in `metrics`; the toolbar chooses it in two steps, Messgröße (its `quantity`) and Bezug (its `basis`) |
+| `?kennzahl=` | Metric id, default = first in `metrics`; the toolbar chooses it in two steps, Messgröße (its `quantity`) and Metrik (its `basis`) |
 | `?wert=` | The map in time: `zubau`, `stilllegung` or `geplant`; default the Bestand |
 | `?zeit=` | Its period: a year (`2024`) or a month (`2024-05`); default the Datenstand's year, and without `?wert=` the map of today |
 | `?ebene=` | Resolution id from `GRANULARITIES`, default = `defaultGranularity` |
@@ -408,7 +408,7 @@ own: it stays in view while it fits the window, else it scrolls with the page. B
 „Einstellungen“ in the map card's header. The map page uses up to 1920 px (`dashboard--wide`), the other pages 1440 px.
 
 The map, how it shows it and what it shows are one card, so they read as one tool: the title and export on top, how the
-map shows it in a band below (Messgröße, Bezug, resolution or smoothing, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
+map shows it in a band below (Messgröße, Metrik, resolution or smoothing, chosen in green), the map, and beside it, as high as the map (`--map-height`), the rail with tabs: the Rangliste and the technology's
 analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper picks it: the rail switches to its
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
@@ -553,13 +553,13 @@ the view: from where its thinnest 2 % of the power lie to the 99.5th percentile 
 below, they fade out. The legend shows the scale, the smoothing in km and the value under the pointer.
 
 Only the absolute Kennzahlen have a `heat` entry (`config/dashboards.js`): per km² and per inhabitant aren't offered
-there, the Bezug reads „Dichte“.
+there, the Metrik reads „Dichte“.
 
 The metric of the map is chosen in two boxes, the same for every dashboard (`MapToolbar.jsx`): Messgröße – Leistung,
-Kapazität or Anzahl (`QUANTITIES`; Anzahl: the Netzanschlusspunkte) – then Bezug – Absolut, je km², je Einwohner
+Kapazität or Anzahl (`QUANTITIES`, Kapazität first: the default of Speicher; Anzahl: the Netzanschlusspunkte) – then Metrik – Absolut, je km², je Einwohner
 (`BASES`). Each metric names its `quantity` and
 `basis`; a box with a single choice still shows (Erzeuger: Leistung; plants: Absolut), and a new Messgröße keeps the
-Bezug where it has one. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
+Metrik where it has one. The Rangliste beside it lists the Landkreise. The technology's filters (Anlagenart, Leistung, Lage) apply.
 
 ### The map in time (`mapTime.js`, `/karte/<zeit>`)
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Construction, Maximize2, Minimize2, RefreshCw, Scale, SlidersHorizontal, TriangleAlert } from 'lucide-react';
+import { BookOpen, Construction, Maximize2, Minimize2, MousePointerClick, RefreshCw, Scale, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -25,6 +25,7 @@ import SiteMarkers from './SiteMarkers';
 import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
 import { useUrlChoice } from './useDashboardState';
+import { markDrillHintSeen, useDrillHint } from './drillHint';
 import { WERTE, karteUrl, latestOf, legendOf, periodOf, periodParam } from './mapTime';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
@@ -298,6 +299,12 @@ export default function MapView({ config, state }) {
         selected: region && { key: region.ags, name: region.name },
       };
 
+  // Now and then, a small hint on the map that a click on a Land zooms in – until the person did it once (drillHint.js)
+  const drillHint = useDrillHint(canDrill && !region && activeGranularity.id === 'bundesland' && !isHeatmap && mapState === 'ready');
+  useEffect(() => {
+    if (region) markDrillHintSeen();
+  }, [region]);
+
   const mapHints = ['Strg/⌘ + Mausrad zum Zoomen'];
   // The continuous map takes no clicks on areas: its Landkreise are in the Rangliste
   if (isHeatmap) {
@@ -542,6 +549,10 @@ export default function MapView({ config, state }) {
               </div>
             )}
             <MapOverlay state={mapState} technology={technology} onRetry={retry} />
+            <div className={`map-drill-hint${drillHint ? ' is-visible' : ''}`} aria-hidden="true">
+              <MousePointerClick size={15} className="map-drill-hint__icon" />
+              Klick auf ein Bundesland zum Hineinzoomen
+            </div>
           </div>
 
           <MapRail

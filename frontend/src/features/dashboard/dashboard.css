@@ -1009,6 +1009,67 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   color: var(--ink-secondary);
 }
 
+/* Now and then: a click on a Land zooms in (drillHint.js). Fades in from just above, the pointer taps twice. */
+.map-drill-hint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-primary);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  transition: opacity 400ms var(--ease), transform 400ms var(--ease);
+}
+
+.map-drill-hint.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.map-drill-hint__icon {
+  flex: none;
+  color: var(--accent-strong);
+}
+
+.map-drill-hint.is-visible .map-drill-hint__icon {
+  animation: drill-hint-tap 900ms var(--ease) 400ms 2;
+}
+
+@keyframes drill-hint-tap {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(0.82) translateY(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-drill-hint,
+  .map-drill-hint.is-visible {
+    transition: opacity 200ms linear;
+    transform: translate(-50%, 0);
+  }
+
+  .map-drill-hint.is-visible .map-drill-hint__icon {
+    animation: none;
+  }
+}
+
 .map-overlay {
   position: absolute;
   inset: 0;

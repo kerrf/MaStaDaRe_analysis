@@ -8,7 +8,7 @@ import { SMOOTHINGS } from '../../lib/heatmap';
 const titleOf = (metric) => (metric.basis === 'dichte' ? `${metric.heat.legend} (${metric.heat.unit})` : `${metric.legend} (${metric.unit})`);
 
 /**
- * How the map shows what the sidebar chose (MapSidebar): the card's band above the map – the Messgröße and its Bezug
+ * How the map shows what the sidebar chose (MapSidebar): the card's band above the map – the Messgröße and its Metrik
  * (Leistung or Kapazität; absolut, je km² or je Einwohner), the resolution (for the continuous map its smoothing), each
  * in its box. Chosen options in green, like every setting of a card. time: the map in time (its `active`: the
  * resolutions without it are marked) or null.
@@ -41,9 +41,9 @@ export default function MapToolbar({
         />
       </Setting>
 
-      <Setting label="Bezug">
+      <Setting label="Metrik">
         <SegmentedControl
-          label="Bezug"
+          label="Metrik"
           value={metric.basis}
           onChange={(basis) => onMetric(metricOf(metric.quantity, basis).id)}
           options={bases.map((b) => ({ id: b.id, label: b.label, title: titleOf(metricOf(metric.quantity, b.id)) }))}

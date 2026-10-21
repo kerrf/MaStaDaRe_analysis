@@ -80,9 +80,9 @@ export function scopeAnalysesOf(technology) {
 // id (?kennzahl=…). Before them, for the technologies with `zeit`, the Kennzahl of the map in time: Bestand, Zubau,
 // Stilllegungen, In Planung (features/dashboard/mapTime.js).
 export const QUANTITIES = [
+  { id: 'kapazitaet', label: 'Kapazität' },
   { id: 'leistung', label: 'Leistung' },
   { id: 'waerme', label: 'Wärme' },
-  { id: 'kapazitaet', label: 'Kapazität' },
   { id: 'anzahl', label: 'Anzahl' },
 ];
 export const BASES = [
@@ -778,19 +778,9 @@ export const SPEICHER = {
         'Druckluftspeicher Huntorf ist mit 1 kW und 1,7 GWh registriert und nur mit seinem Bundesland veröffentlicht.',
     },
   ],
-  // Power, like the Erzeuger, and the usable capacity (only batteries with a plausible one, aggregate_bat_by_region_power.sql)
+  // The usable capacity first, the default (only batteries with a plausible one, aggregate_bat_by_region_power.sql), and
+  // the power, like the Erzeuger
   metrics: [
-    {
-      id: 'total_power',
-      quantity: 'leistung',
-      basis: 'absolut',
-      legend: 'Speicherleistung',
-      unit: 'MW',
-      digits: 1,
-      heat: { legend: 'Leistungsdichte', unit: 'kW/km²' },
-    },
-    { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
-    { id: 'relative_population_power', quantity: 'leistung', basis: 'einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
     {
       id: 'total_capacity',
       quantity: 'kapazitaet',
@@ -802,6 +792,17 @@ export const SPEICHER = {
     },
     { id: 'relative_area_capacity', quantity: 'kapazitaet', basis: 'flaeche', legend: 'Kapazität je Fläche', unit: 'kWh/km²', digits: 1 },
     { id: 'relative_population_capacity', quantity: 'kapazitaet', basis: 'einwohner', legend: 'Kapazität je Einwohner', unit: 'kWh/Einw.', digits: 2 },
+    {
+      id: 'total_power',
+      quantity: 'leistung',
+      basis: 'absolut',
+      legend: 'Speicherleistung',
+      unit: 'MW',
+      digits: 1,
+      heat: { legend: 'Leistungsdichte', unit: 'kW/km²' },
+    },
+    { id: 'relative_area_power', quantity: 'leistung', basis: 'flaeche', legend: 'Leistung je Fläche', unit: 'kW/km²', digits: 1 },
+    { id: 'relative_population_power', quantity: 'leistung', basis: 'einwohner', legend: 'Leistung je Einwohner', unit: 'kW/Einw.', digits: 2 },
   ],
   tooltipRows: [
     { key: 'total_units', label: 'Speicher', digits: 0 },

@@ -8,8 +8,8 @@ import TechFilters from './TechFilters';
 import { selectionOf } from './useDashboardState';
 import './sidebar.css';
 
-// A setting with many choices as a menu that opens below its name: closed, the current choice beside the name (its
-// icon and label); open, every choice as a row, the current one ticked. A choice keeps it open, to try the next.
+// A setting with many choices as a menu that opens below its name: closed, the current choice below the name (its
+// icon and label, on a line of its own: long names fit); open, every choice as a row, the current one ticked. A choice keeps it open, to try the next.
 function MenuSection({ title, label, options, value, onChange, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
@@ -18,10 +18,12 @@ function MenuSection({ title, label, options, value, onChange, defaultOpen = fal
   return (
     <section className={`sidebar-section sidebar-menu${open ? ' is-open' : ''}`}>
       <button type="button" className="sidebar-menu__head" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
-        <span className="sidebar-section__title">{title}</span>
-        <span className="sidebar-menu__current">
-          {CurrentIcon && <CurrentIcon size={14} aria-hidden="true" />}
-          {current?.label}
+        <span className="sidebar-menu__text">
+          <span className="sidebar-section__title">{title}</span>
+          <span className="sidebar-menu__current">
+            {CurrentIcon && <CurrentIcon size={14} aria-hidden="true" />}
+            <span className="sidebar-menu__current-label">{current?.label}</span>
+          </span>
         </span>
         <ChevronDown size={16} className="sidebar-menu__chevron" aria-hidden="true" />
       </button>
