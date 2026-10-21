@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Construction, Maximize2, Minimize2, RefreshCw, Scale, TriangleAlert } from 'lucide-react';
+import { BookOpen, Construction, Maximize2, Minimize2, RefreshCw, Scale, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -16,9 +16,9 @@ import MapLegend, { HeatmapLegend } from './MapLegend';
 import RankingPanel from './RankingPanel';
 import MapRail from './MapRail';
 import ExportMenu from '../../components/ui/ExportMenu';
+import MapSidebar from './MapSidebar';
 import MapToolbar from './MapToolbar';
 import ScopeBar from './ScopeBar';
-import SelectionBar from './SelectionBar';
 import { useFootnote } from './footnoteContext';
 import { FootnoteRef } from './footnotes';
 import SiteMarkers from './SiteMarkers';
@@ -388,10 +388,35 @@ export default function MapView({ config, state }) {
 
   const focusColor = config.ramp[config.ramp.length - 1];
 
+  // MOCK-UP: the settings of what the map shows in a sidebar on its left (MapSidebar); on narrow screens a drawer
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const time = hasTime
+    ? {
+        wert,
+        active: timeMode,
+        period,
+        latest,
+        // Another Kennzahl than the Bestand leaves a resolution the map in time hasn't (PLZ, continuous)
+        onWert: (id) => {
+          trackEvent('Kartenansicht', { einstellung: 'wert', wert: id });
+          setParams({ wert: id === 'bestand' ? null : id, ...(id !== 'bestand' && !AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
+        },
+        onPeriod: (next) => {
+          trackEvent('Kartenansicht', { einstellung: 'zeit', wert: periodParam(next) });
+          setParams({ zeit: periodParam(next), ...(!AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
+        },
+      }
+    : null;
+  const resetAll = () => setParams(Object.fromEntries([...searchParams.keys()].map((key) => [key, null])));
+
   return (
     <>
       <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
 
+      <div className={`sidebar-layout${sidebarOpen ? ' is-open' : ''}`}>
+        <MapSidebar technologies={config.technologies} state={state} time={time} onReset={resetAll} onClose={() => setSidebarOpen(false)} />
+        <button type="button" className="sidebar-layout__scrim" aria-label="Einstellungen schließen" onClick={() => setSidebarOpen(false)} />
+        <div className="sidebar-layout__main">
       <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
 
       <section ref={mapCardRef} className={`card map-card map-workspace${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
@@ -406,6 +431,9 @@ export default function MapView({ config, state }) {
             </div>
           </div>
           <div className="map-card__tools">
+            <button type="button" className="btn btn--secondary btn--sm sidebar-layout__open" onClick={() => setSidebarOpen(true)}>
+              <SlidersHorizontal size={14} aria-hidden="true" /> Einstellungen
+            </button>
             <ExportMenu
               size="md"
               busy={exporting}
@@ -424,8 +452,8 @@ export default function MapView({ config, state }) {
           </div>
         </header>
 
-        {/* What the map shows, and below it how it shows it: one band of the card, part of the map also in fullscreen */}
-        <SelectionBar technologies={config.technologies} state={state} label={config.technologyLabel} inCard>
+        {/* How the map shows it: one band of the card (what it shows: the sidebar) */}
+        <div className="selection-bar settings-band selection-bar--in-card">
           <MapToolbar
             technology={technology}
             metrics={metrics}
@@ -441,27 +469,9 @@ export default function MapView({ config, state }) {
             }}
             smoothing={smoothingId}
             onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
-            time={
-              hasTime
-                ? {
-                    wert,
-                    active: timeMode,
-                    period,
-                    latest,
-                    // Another Kennzahl than the Bestand leaves a resolution the map in time hasn't (PLZ, continuous)
-                    onWert: (id) => {
-                      trackEvent('Kartenansicht', { einstellung: 'wert', wert: id });
-                      setParams({ wert: id === 'bestand' ? null : id, ...(id !== 'bestand' && !AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
-                    },
-                    onPeriod: (next) => {
-                      trackEvent('Kartenansicht', { einstellung: 'zeit', wert: periodParam(next) });
-                      setParams({ zeit: periodParam(next), ...(!AGS_LENGTH[granularity.id] ? { ebene: null } : {}) });
-                    },
-                  }
-                : null
-            }
+            time={time && { ...time, inSidebar: true }}
           />
-        </SelectionBar>
+        </div>
 
         <div className="map-workspace__body">
           <div className="map-frame" ref={frameRef}>
@@ -587,6 +597,8 @@ export default function MapView({ config, state }) {
           </span>
         </footer>
       </section>
+        </div>
+      </div>
     </>
   );
 }

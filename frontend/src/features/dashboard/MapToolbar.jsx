@@ -82,7 +82,7 @@ export default function MapToolbar({
     metrics.find((m) => m.quantity === quantity && m.basis === basis) ?? metrics.find((m) => m.quantity === quantity);
   return (
     <SettingsRow label="Darstellung der Karte">
-      {time && (
+      {time && !time.inSidebar && (
         <Setting label="Kennzahl">
           <SegmentedControl
             label="Kennzahl"
@@ -142,7 +142,7 @@ export default function MapToolbar({
         </Setting>
       )}
 
-      {time && <PeriodSetting time={time} />}
+      {time && !time.inSidebar && <PeriodSetting time={time} />}
     </SettingsRow>
   );
 }
