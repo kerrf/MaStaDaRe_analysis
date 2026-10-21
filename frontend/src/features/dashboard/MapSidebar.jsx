@@ -25,7 +25,8 @@ function MenuSection({ title, label, options, value, onChange, defaultOpen = fal
         </span>
         <ChevronDown size={16} className="sidebar-menu__chevron" aria-hidden="true" />
       </button>
-      <div id={id} className="sidebar-menu__body" hidden={!open}>
+      {/* Always there, closed by its height (sidebar.css: rows 0fr → 1fr), so it opens smoothly; inert while closed */}
+      <div id={id} className="sidebar-menu__body" inert={!open}>
         <div className="sidebar-menu__list" role="radiogroup" aria-label={label}>
           {options.map((o) => {
             const Icon = o.icon;
@@ -139,7 +140,7 @@ function useFitsWindow(ref) {
 }
 
 /**
- * MOCK-UP (branch mockup/sidebar): what the map page shows, in a column on its left – the technology and the Kennzahl
+ * What the map page shows, in a column on its left – the technology and the Kennzahl
  * as menus (closed: the current choice beside their name), the technology's filters, the Zeitraum with what it means in
  * words. How the map shows it (Messgröße, Bezug, Auflösung) stays in the map's card. Narrow screens: a drawer, opened by
  * "Einstellungen" above the map. technologies, state: the dashboard's; time: the map in time (MapToolbar's prop) or
@@ -153,6 +154,18 @@ export default function MapSidebar({ technologies, state, time, onReset, onClose
   const changed = state.searchParams.toString() !== '';
   const ref = useRef(null);
   const fits = useFitsWindow(ref);
+  // The technology's filters: after the Kennzahl, where there is one, else after the technology
+  const filters = filtered && (
+    <div className="map-sidebar__filters">
+      <TechFilters
+        technology={technology}
+        subtypes={subtypes}
+        onSubtypes={(ids) => state.setSubtypesOf(technology, ids)}
+        leistung={leistung}
+        onLeistung={(id) => state.setLeistungOf(technology, id)}
+      />
+    </div>
+  );
 
   return (
     <aside ref={ref} className={`map-sidebar${fits ? ' is-sticky' : ''}`} aria-label="Einstellungen der Karte">
@@ -175,21 +188,13 @@ export default function MapSidebar({ technologies, state, time, onReset, onClose
         options={technologies.map((t) => ({ id: t.id, label: t.label, icon: t.icon, disabled: !hasData(t) }))}
       />
 
-      {filtered && (
-        <div className="map-sidebar__filters">
-          <TechFilters
-            technology={technology}
-            subtypes={subtypes}
-            onSubtypes={(ids) => state.setSubtypesOf(technology, ids)}
-            leistung={leistung}
-            onLeistung={(id) => state.setLeistungOf(technology, id)}
-          />
-        </div>
-      )}
+      {!time && filters}
 
       {time && (
         <>
           <MenuSection title="Kennzahl" label="Kennzahl" value={time.wert} onChange={time.onWert} options={WERTE} />
+          {filters}
+
           <section className="sidebar-section">
             <h3 className="sidebar-section__title">Zeitraum</h3>
             {time.wert !== 'geplant' && <Period time={time} />}

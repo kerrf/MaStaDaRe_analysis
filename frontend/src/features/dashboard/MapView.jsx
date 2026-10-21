@@ -388,7 +388,7 @@ export default function MapView({ config, state }) {
 
   const focusColor = config.ramp[config.ramp.length - 1];
 
-  // MOCK-UP: the settings of what the map shows in a sidebar on its left (MapSidebar); on narrow screens a drawer
+  // What the map shows is chosen in the sidebar on its left (MapSidebar), on narrow screens a drawer
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const time = hasTime
     ? {
@@ -469,7 +469,7 @@ export default function MapView({ config, state }) {
             }}
             smoothing={smoothingId}
             onSmoothing={(id) => setParam('glaettung', id, DEFAULT_SMOOTHING)}
-            time={time && { ...time, inSidebar: true }}
+            time={time}
           />
         </div>
 

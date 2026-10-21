@@ -3,65 +3,15 @@ import SegmentedControl from '../../components/ui/SegmentedControl';
 import Setting, { SettingsRow } from '../../components/ui/Setting';
 import { BASES, GRANULARITIES, QUANTITIES, isAvailable } from '../../config/dashboards';
 import { SMOOTHINGS } from '../../lib/heatmap';
-import { FIRST_YEAR, MONTHS, WERTE } from './mapTime';
 
 // What an option of the Kennzahl means, as its tooltip: the metric's name and unit (on the continuous map: its density)
 const titleOf = (metric) => (metric.basis === 'dichte' ? `${metric.heat.legend} (${metric.heat.unit})` : `${metric.legend} (${metric.unit})`);
 
-// The period of the map in time, on the row's right: a year or a month of it, from 2000 up to the Datenstand
-function PeriodSetting({ time }) {
-  const { period, latest, onPeriod } = time;
-  const years = [];
-  for (let y = latest.jahr; y >= FIRST_YEAR; y -= 1) years.push({ value: String(y), label: String(y) });
-  const months = MONTHS.map((label, i) => ({ value: String(i + 1), label, disabled: period.jahr === latest.jahr && i + 1 > latest.monat }));
-  // A month of the newest year after the Datenstand's goes back to the Datenstand's month
-  const monthIn = (jahr, monat) => (jahr === latest.jahr ? Math.min(monat, latest.monat) : monat);
-  const planned = time.wert === 'geplant';
-  return (
-    <Setting label="Zeitraum" className="setting--end">
-      {planned ? (
-        <span className="map-toolbar__no-period">alle geplanten, ohne Zeitraum</span>
-      ) : (
-        <>
-          <SegmentedControl
-            label="Zeitraster"
-            value={period.raster}
-            onChange={(raster) =>
-              onPeriod(raster === 'monat' ? { jahr: period.jahr, monat: monthIn(period.jahr, 12) } : { jahr: period.jahr, monat: null })
-            }
-            options={[
-              { id: 'jahr', label: 'Jahr' },
-              { id: 'monat', label: 'Monat' },
-            ]}
-          />
-          <ListSelect
-            label="Jahr"
-            className="map-toolbar__year"
-            value={String(period.jahr)}
-            onChange={(value) => onPeriod({ jahr: Number(value), monat: period.monat && monthIn(Number(value), period.monat) })}
-            options={years}
-          />
-          {period.raster === 'monat' && (
-            <ListSelect
-              label="Monat"
-              className="map-toolbar__month"
-              value={String(period.monat)}
-              onChange={(value) => onPeriod({ jahr: period.jahr, monat: Number(value) })}
-              options={months}
-            />
-          )}
-        </>
-      )}
-    </Setting>
-  );
-}
-
 /**
- * How the map shows the technology chosen above it: the second row of the card's band (SelectionBar) – with time
- * (`time`, the technologies of the map in time) first the Kennzahl (Bestand, Zubau, Stilllegungen, In Planung), then
- * the Messgröße and its Bezug (Leistung or Kapazität; absolut, je km² or je Einwohner), the resolution (for the
- * continuous map its smoothing), and on the right the period. Chosen options in green, like every setting of a card.
- * time: { wert, onWert, period, onPeriod, latest } or null.
+ * How the map shows what the sidebar chose (MapSidebar): the card's band above the map – the Messgröße and its Bezug
+ * (Leistung or Kapazität; absolut, je km² or je Einwohner), the resolution (for the continuous map its smoothing), each
+ * in its box. Chosen options in green, like every setting of a card. time: the map in time (its `active`: the
+ * resolutions without it are marked) or null.
  */
 export default function MapToolbar({
   technology,
@@ -82,17 +32,6 @@ export default function MapToolbar({
     metrics.find((m) => m.quantity === quantity && m.basis === basis) ?? metrics.find((m) => m.quantity === quantity);
   return (
     <SettingsRow label="Darstellung der Karte">
-      {time && !time.inSidebar && (
-        <Setting label="Kennzahl">
-          <SegmentedControl
-            label="Kennzahl"
-            value={time.wert}
-            onChange={time.onWert}
-            options={WERTE.map(({ id, label, title }) => ({ id, label, title }))}
-          />
-        </Setting>
-      )}
-
       <Setting label="Messgröße">
         <SegmentedControl
           label="Messgröße"
@@ -142,7 +81,6 @@ export default function MapToolbar({
         </Setting>
       )}
 
-      {time && !time.inSidebar && <PeriodSetting time={time} />}
     </SettingsRow>
   );
 }

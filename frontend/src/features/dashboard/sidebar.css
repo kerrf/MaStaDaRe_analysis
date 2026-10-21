@@ -1,4 +1,4 @@
-/* MOCK-UP (branch mockup/sidebar): the map page with its settings in a column on the left (MapSidebar.jsx). Wide
+/* The map page with its settings in a column on the left (MapSidebar.jsx). Wide
    screens: the column beside the KPIs and the map, staying in view while it fits the window (never scrolling on its
    own). Below 1200 px a drawer, opened by "Einstellungen" in the map's header. The map page uses up to 1920 px. */
 :root:has(.dashboard--wide) {
@@ -180,14 +180,30 @@
   transform: rotate(180deg);
 }
 
+/* Opens and closes smoothly: its row grows from 0 to the list's height (and the list fades in) */
 .sidebar-menu__body {
-  padding: 4px 0 8px;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur) var(--ease);
+}
+
+.sidebar-menu.is-open .sidebar-menu__body {
+  grid-template-rows: 1fr;
 }
 
 .sidebar-menu__list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), padding var(--dur) var(--ease);
+}
+
+.sidebar-menu.is-open .sidebar-menu__list {
+  padding: 4px 0 8px;
+  opacity: 1;
 }
 
 /* A choice of the menu: icon, name (and what it means), a tick where chosen */
