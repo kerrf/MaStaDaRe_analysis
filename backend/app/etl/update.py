@@ -630,6 +630,39 @@ def upsert(conn: Connection, table_name: str, columns: tuple[str, ...], key: str
     logger.info(f"{table_name}: {written:,} rows inserted or updated")
 
 
+def repair_gemeindeschluessel(engine: Engine) -> None:
+    """Every Gemeindeschlüssel of the raw tables with 8 digits, as the views need it: they tell Gemeinde, Kreis and Land
+    by the key's length, so a key of 5 digits counts twice as its Kreis and breaks their unique indexes (2026-10-21:
+    a battery in Leipzig with "14713"). The register has such keys now and then. 5 digits that are a kreisfreie Stadt
+    get their Gemeinde ("14713" → "14713000", if geo.gemeinden has it); every other odd key becomes empty: the unit
+    still counts for Deutschland, its Land and Kreis only where the views find them. Never fails the update."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("SET LOCAL statement_timeout = '15min'"))
+            tables = conn.execute(
+                text("""
+                    SELECT table_name FROM information_schema.columns
+                    WHERE table_schema = 'raw' AND column_name = 'Gemeindeschluessel'
+                      AND data_type IN ('text', 'character varying')
+                    ORDER BY table_name
+                """)
+            ).scalars()
+            for table in list(tables):
+                repaired = conn.execute(
+                    text(f"""
+                        UPDATE {raw_table(table)} SET "Gemeindeschluessel" = (
+                            SELECT g.ags FROM geo.gemeinden g
+                            WHERE "Gemeindeschluessel" ~ '^[0-9]{{5}}$' AND g.ags = "Gemeindeschluessel" || '000'
+                        )
+                        WHERE "Gemeindeschluessel" !~ '^[0-9]{{8}}$'
+                    """)
+                ).rowcount
+                if repaired:
+                    logger.warning(f"{table}: {repaired:,} Gemeindeschlüssel without 8 digits repaired or emptied")
+    except Exception:
+        logger.exception("Repairing the Gemeindeschlüssel failed: the views may refuse odd keys")
+
+
 def refresh_views(engine: Engine) -> list[str]:
     """Recompute the dashboard's materialized views from the updated tables. They read the raw and geo tables only,
     so the order doesn't matter. (transform.py builds them, with every deploy whose SQL changed.) Returns the failed ones."""
@@ -774,7 +807,8 @@ if __name__ == "__main__":
             logger.exception(f"{table.name}: update failed")
             failed.append(table.name)
 
-    # Also after a failure: what did update should reach the website
+    # Also after a failure: what did update should reach the website – with clean Gemeindeschlüssel
+    repair_gemeindeschluessel(engine)
     failed += refresh_views(engine)
 
     used_after, _ = api.quota()
