@@ -4,6 +4,13 @@ export const RAMPS = {
   blue: ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281', '#0d366b'],
   teal: ['#d9f2ee', '#bce7e0', '#98d8ce', '#6fc6b9', '#46b0a2', '#239a8c', '#0e8a7e', '#0b675e', '#084f48'],
   rose: ['#fdebf0', '#f9cdd9', '#f2a9bc', '#e9829d', '#dc5a7f', '#c0365b', '#9d2547', '#7a1836', '#5c0f28'],
+  // The Erzeuger besides solar (the orange), each its own hue – none of the Speicher's blue, the Gas teal or the Netz rose
+  // (at least about 30° apart in CIELAB); the same lightness steps as the orange, light (little) to dark (much)
+  green: ['#e8f5eb', '#c9e8d1', '#a5d7b2', '#7dc28f', '#55a96b', '#3c9055', '#2c7744', '#1f5e34', '#144526'],
+  olive: ['#f4f4dc', '#e6e7b6', '#d2d48c', '#bbbd62', '#a1a43f', '#878b2c', '#6d7121', '#555818', '#3d4010'],
+  petrol: ['#e2f3f8', '#c0e4ee', '#98d1e1', '#6bbad1', '#3d9fbd', '#2786a5', '#1a6c88', '#11536b', '#0a3c4f'],
+  terracotta: ['#fcebe6', '#f7cfc3', '#efab99', '#e4826b', '#d35b43', '#b9432e', '#963423', '#74271a', '#551b12'],
+  violet: ['#f0ecf9', '#dcd3f1', '#c3b5e6', '#a796d8', '#8b78c8', '#7160b4', '#5a4a98', '#45387a', '#31285b'],
 };
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));

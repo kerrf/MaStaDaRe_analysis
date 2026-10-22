@@ -51,9 +51,10 @@ export const footnoteId = (option) => `fussnote-${option.param}`;
 export function regionTablesOf(technology) {
   const orientation = technology.analyses?.find((a) => a.kind === 'orientation');
   const sizes = technology.analyses?.find((a) => a.kind === 'sizes' && a.regions);
+  // The size classes first: the default table (solar: before the Ausrichtung)
   return [
-    orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: `${orientation.path}/regions` },
     technology.sizesPath && { id: 'groesse', label: 'Anlagengröße', path: `${technology.sizesPath}/regions` },
+    orientation && { id: 'ausrichtung', label: 'Ausrichtung', path: `${orientation.path}/regions` },
     sizes && {
       id: 'groesse',
       label: sizes.regions.label,
@@ -75,7 +76,7 @@ export function scopeAnalysesOf(technology) {
 }
 
 // A metric of the map is a quantity in a basis: Leistung, Wärme (KWK), Kapazität or Anzahl, absolut, je km² or je
-// Einwohner (the continuous map: as a density). The toolbar chooses them in two boxes, Messgröße and Bezug
+// Einwohner (the continuous map: as a density). The toolbar chooses them in two boxes, Messgröße and Metrik
 // (MapToolbar.jsx), the same for every technology, each with the quantities its metrics have; the URL keeps the metric's
 // id (?kennzahl=…). Before them, for the technologies with `zeit`, the Kennzahl of the map in time: Bestand, Zubau,
 // Stilllegungen, In Planung (features/dashboard/mapTime.js).
@@ -158,6 +159,8 @@ export const ERZEUGER = {
       label: 'Solar',
       icon: Sun,
       statsPath: '/solar/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'solar', parts: { gebaeude: 'solar_gebaeude', freiflaeche: 'solar_freiflaeche' } },
       // The map in time: Bestand, Zubau, Stilllegungen per year or month and what is planned (/karte/<zeit>,
       // features/dashboard/mapTime.js)
       zeit: 'solar',
@@ -252,7 +255,11 @@ export const ERZEUGER = {
       label: 'Wind',
       icon: Wind,
       statsPath: '/wind/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'wind', parts: { an_land: 'wind_an_land', auf_see: 'wind_auf_see' } },
       zeit: 'wind',
+      // The map in its own hue (lib/colorScale.js)
+      ramp: RAMPS.green,
       sizesPath: '/wind/size-distribution',
       heatmapPath: '/wind/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
@@ -285,7 +292,11 @@ export const ERZEUGER = {
       label: 'Biomasse',
       icon: Leaf,
       statsPath: '/biomass/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'biomasse' },
       zeit: 'biomass',
+      // The map in its own hue (lib/colorScale.js)
+      ramp: RAMPS.olive,
       sizesPath: '/biomass/size-distribution',
       granularities: REGION_LEVELS,
       // Biogas (with Biomethan, Klär- and Deponiegas), solid and liquid biomass: passed as ?art=… (no param = all, the
@@ -318,7 +329,11 @@ export const ERZEUGER = {
       label: 'Wasserkraft',
       icon: Droplets,
       statsPath: '/water/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'wasserkraft' },
       zeit: 'water',
+      // The map in its own hue (lib/colorScale.js)
+      ramp: RAMPS.petrol,
       sizesPath: '/water/size-distribution',
       granularities: REGION_LEVELS,
       // Überblick: from the monthly series of the Zubau, no parts, no target
@@ -336,7 +351,11 @@ export const ERZEUGER = {
       label: 'Geothermie & Grubengas',
       icon: Thermometer,
       statsPath: '/geothermal/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'geothermie_grubengas' },
       zeit: 'geothermal',
+      // The map in its own hue (lib/colorScale.js)
+      ramp: RAMPS.terracotta,
       sizesPath: '/geothermal/size-distribution',
       granularities: REGION_LEVELS,
       subtypes: {
@@ -378,7 +397,11 @@ export const ERZEUGER = {
       label: 'KWK',
       icon: Factory,
       statsPath: '/kwk/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'kwk' },
       zeit: 'kwk',
+      // The map in its own hue (lib/colorScale.js)
+      ramp: RAMPS.violet,
       sizesPath: '/kwk/size-distribution',
       granularities: REGION_LEVELS,
       subtypes: {
@@ -468,9 +491,11 @@ export const ERZEUGER = {
   kpis: [
     { id: 'units', kind: 'sum', field: 'total_units', label: 'Anlagen', icon: Zap },
     { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Installierte Leistung', icon: Gauge },
-    { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
     // In operation since less than 12 months (added_12m_power of the region views)
     { id: 'growth', kind: 'sum', field: 'added_12m_power', format: 'power', label: 'Zubau (12 Monate)', icon: TrendingUp },
+    // Registered in the MaStR in the last 12 months, in the area (mrt.registrierungen_regions, the technology's
+    // `registrations` series)
+    { id: 'registrations', kind: 'registrations', label: 'Registrierungen (12 Monate)', icon: ClipboardList },
   ],
   analyses: [
     {
@@ -600,6 +625,8 @@ export const SPEICHER = {
       label: 'Batteriespeicher',
       icon: BatteryCharging,
       statsPath: '/battery/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'batterie' },
       zeit: 'battery',
       heatmapPath: '/battery/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
@@ -699,6 +726,8 @@ export const SPEICHER = {
       icon: Mountain,
       // Each plant as an icon at its location instead of shaded areas (mrt.pumpkraftwerke)
       plantsPath: '/pumped-storage/plants',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'pumpspeicher' },
       site: {
         label: 'Kraftwerke',
         key: 'spe_mastr_nummer',
@@ -719,7 +748,7 @@ export const SPEICHER = {
         { id: 'plants', kind: 'sum', field: 'plants', label: 'Kraftwerke in Betrieb', icon: Mountain },
         { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Turbinenleistung', icon: Zap },
         { id: 'pump', kind: 'sum', field: 'pump_power', format: 'power', label: 'Pumpleistung', icon: Gauge },
-        { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', scopedLabel: 'Anteil an Deutschland', icon: Trophy },
+        { id: 'registrations', kind: 'registrations', label: 'Registrierungen (12 Monate)', icon: ClipboardList },
       ],
     },
     // The storages that are neither batteries nor pumped storage: few and small, most of them hydrogen storages in houses
@@ -728,6 +757,8 @@ export const SPEICHER = {
       label: 'Sonstige',
       icon: Package,
       statsPath: '/other-storage/dashboard-stats',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'speicher_sonstige' },
       zeit: 'other_storage',
       granularities: REGION_LEVELS,
       // Druckluft, Schwungrad, Wasserstoff: passed as ?art=… (no param = all, the API sums them)
@@ -814,9 +845,9 @@ export const SPEICHER = {
   kpis: [
     { id: 'units', kind: 'sum', field: 'total_units', label: 'Speicher', icon: BatteryCharging },
     { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Leistung', icon: Zap },
-    { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
     // Usable capacity in operation since less than 12 months (added_12m_capacity of mrt.battery_region_stats)
     { id: 'growth', kind: 'sum', field: 'added_12m_capacity', format: 'capacity', label: 'Zubau (12 Monate)', icon: TrendingUp },
+    { id: 'registrations', kind: 'registrations', label: 'Registrierungen (12 Monate)', icon: ClipboardList },
   ],
   analyses: [
     {
@@ -902,6 +933,8 @@ export const GAS = {
       label: 'Gaserzeuger',
       icon: Flame,
       plantsPath: '/gas/erzeuger',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'gaserzeuger' },
       site: {
         label: 'Anlagen',
         key: 'mastr_nummer',
@@ -946,7 +979,7 @@ export const GAS = {
         { id: 'plants', kind: 'sum', field: 'plants', label: 'Anlagen in Betrieb', icon: Flame },
         { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Erzeugungsleistung', icon: Gauge },
         { id: 'planned', kind: 'sum', field: 'planned', label: 'In Planung', icon: Construction },
-        { id: 'leader', kind: 'leader', field: 'total_power', label: 'Spitzenreiter', icon: Trophy },
+        { id: 'registrations', kind: 'registrations', label: 'Registrierungen (12 Monate)', icon: ClipboardList },
       ],
       note:
         'Speicher, deren Ausspeisung zusätzlich als „Förderung fossilen Erdgases“ registriert ist (Etzel, Epe, Staßfurt u. a.), ' +
@@ -957,6 +990,8 @@ export const GAS = {
       label: 'Gasspeicher',
       icon: Cylinder,
       plantsPath: '/gas/speicher',
+      // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
+      registrations: { all: 'gasspeicher' },
       site: {
         label: 'Speicher',
         key: 'mastr_nummer',
@@ -1011,7 +1046,7 @@ export const GAS = {
         { id: 'plants', kind: 'sum', field: 'plants', label: 'Speicher in Betrieb', icon: Cylinder },
         { id: 'capacity', kind: 'sum', field: 'total_capacity', format: 'amount', unit: 'GWh', label: 'Arbeitsgas', icon: Layers },
         { id: 'power', kind: 'sum', field: 'total_power', format: 'power', label: 'Ausspeicherleistung', icon: Gauge },
-        { id: 'leader', kind: 'leader', field: 'total_capacity', label: 'Spitzenreiter', icon: Trophy },
+        { id: 'registrations', kind: 'registrations', label: 'Registrierungen (12 Monate)', icon: ClipboardList },
       ],
       note:
         'Das MaStR nennt es „maximal nutzbares Arbeitsgasvolumen“, gibt es aber als Energie an (kWh). Das Volumen folgt über ' +
@@ -1052,6 +1087,27 @@ export const NETZ_TECHNOLOGIEN = [
   { id: 'kohle', label: 'Kohle', color: 'var(--series-netz-kohle)' },
   { id: 'sonstige', label: 'Sonstige', color: 'var(--series-netz-sonstige)' },
 ];
+
+// The Spannungsebenen as series of the Zubau page (mrt.netz_zubau_regions), the lowest at the bottom; suffix: the
+// series of the API (the power: none; the points: _punkte)
+const netzSeries = (suffix = '') =>
+  [
+    { ebene: 'niederspannung', label: 'Niederspannung', color: 'var(--series-netz-nieder)' },
+    { ebene: 'mittelspannung', label: 'Mittelspannung', color: 'var(--series-netz-mittel)' },
+    { ebene: 'hochspannung', label: 'Hochspannung', color: 'var(--series-netz-hoch)' },
+    { ebene: 'hoechstspannung', label: 'Höchstspannung', color: 'var(--series-netz-hoechst)' },
+  ].map(({ ebene, label, color }) => ({
+    id: `netz_${ebene}`,
+    ...(suffix ? { source: `netz_${ebene}${suffix}` } : {}),
+    label,
+    color,
+  }));
+
+const NETZ_ZUBAU_NOTE =
+  'Netzanschlusspunkte haben im MaStR kein eigenes Datum: Ein Punkt gilt ab der ersten Inbetriebnahme einer Einheit seiner ' +
+  'Lokation, als registriert mit ihrer ersten Registrierung; er geht, wenn alle ihre Einheiten endgültig stillgelegt sind. ' +
+  'Die angeschlossene Leistung wächst mit jeder Einheit, die in Betrieb geht. Ein Punkt zählt im Land und Kreis seiner ' +
+  'Lokation; große Kraftwerke, nur mit dem Bundesland veröffentlicht, nicht im Kreis.';
 
 const NETZ_NOTE =
   'Netzanschlusspunkte aus dem MaStR, jede Nacht aktualisiert, verortet über die Einheiten ihrer Lokation. ' +
@@ -1119,8 +1175,25 @@ export const NETZ = {
     { id: 'new', kind: 'sum', field: 'added_12m_units', label: 'Neu (12 Monate)', icon: TrendingUp },
     { id: 'planned', kind: 'sum', field: 'planned_units', label: 'In Planung', icon: Construction },
   ],
-  // The page Spannungsebenen & Netzbetreiber, in the scope (mrt.netz_anschluesse)
+  // The page Zubau & Registrierungen (mrt.netz_zubau_regions) and the page Spannungsebenen & Netzbetreiber, in the scope
+  // (mrt.netz_anschluesse)
   analyses: [
+    {
+      id: 'timeline',
+      title: 'Neue Netzanschlüsse im Zeitverlauf',
+      icon: ChartColumnIncreasing,
+      view: 'zubau',
+      timeline: {
+        path: '/zubau/zeitverlauf',
+        since: 2000,
+        measures: [
+          { id: 'leistung', label: 'Leistung', unit: 'MW', quantity: 'angeschlossene Leistung', series: netzSeries() },
+          { id: 'punkte', label: 'Anschlusspunkte', unit: 'Punkte', quantity: 'Netzanschlusspunkte', series: netzSeries('_punkte') },
+        ],
+        note: NETZ_ZUBAU_NOTE,
+      },
+    },
+    registrationsOf(netzSeries(), { stacked: true }),
     {
       id: 'netzebenen',
       title: 'Netzanschlüsse je Netzebene',

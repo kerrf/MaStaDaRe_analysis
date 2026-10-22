@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -86,3 +86,60 @@ def get_netzbetreiber(db: Annotated[Session, Depends(get_db)], region: NetzScope
     )
     rows = [{**row, "name": row.pop("netzbetreiber_name")} for row in rows]
     return sorted(rows, key=lambda row: row["leistung"] or 0, reverse=True)
+
+
+# What of the Netzanschlüsse isn't on the map of a level, for the chosen Spannungsebenen: the points in operation and
+# their power at the level and on its map (keys the boundaries have, and the sea), those of the Länder, and the row
+# 'ohne_ort' (no place in the register)
+OHNE_ORT = """
+WITH keys AS (SELECT DISTINCT LEFT(ags, :n) AS region FROM geo.gemeinden),
+rows AS (
+    SELECT s.*,
+        CASE :level WHEN 'bundesland' THEN s.landkreis IS NULL AND s.bundesland IS NOT NULL AND s.bundesland <> 'ohne_ort'
+            WHEN 'landkreis' THEN s.landkreis IS NOT NULL AND s.gemeinde IS NULL
+            ELSE s.gemeinde IS NOT NULL END AS at_level,
+        CASE :level WHEN 'bundesland' THEN s.bundesland WHEN 'landkreis' THEN s.landkreis ELSE s.gemeinde END AS region
+    FROM mrt.netz_region_stats s
+    WHERE s.ebene = ANY(:ebenen)
+)
+SELECT
+    sum(total_units) FILTER (WHERE bundesland = 'ohne_ort' AND landkreis IS NULL) AS ohne_ort_units,
+    sum(total_power) FILTER (WHERE bundesland = 'ohne_ort' AND landkreis IS NULL) AS ohne_ort_power,
+    sum(total_units) FILTER (WHERE landkreis IS NULL AND bundesland IS NOT NULL AND bundesland <> 'ohne_ort') AS land_units,
+    sum(total_power) FILTER (WHERE landkreis IS NULL AND bundesland IS NOT NULL AND bundesland <> 'ohne_ort') AS land_power,
+    sum(total_units) FILTER (WHERE at_level) AS level_units,
+    sum(total_power) FILTER (WHERE at_level) AS level_power,
+    sum(total_units) FILTER (WHERE at_level AND (region = 'offshore' OR region IN (SELECT region FROM keys))) AS map_units,
+    sum(total_power) FILTER (WHERE at_level AND (region = 'offshore' OR region IN (SELECT region FROM keys))) AS map_power
+FROM rows
+"""
+
+
+@router.get("/ohne-ort", response_model=None)
+def get_ohne_ort(level: RegionLevel, ebenen: Ebenen, db: Annotated[Session, Depends(get_db)]) -> dict:
+    """What of the Netzanschlüsse in operation isn't on the map of a level, for the chosen Spannungsebenen (?spannung=):
+    in total (points, MW) and why – ohne_ort (the Lokation has no place in the register), nur_land (published with its
+    Land only: not in a Kreis or Gemeinde), unbekannt (a Gemeinde key the boundaries don't have); like /karte/…/ohne-ort."""
+    row = db.execute(
+        text(OHNE_ORT),
+        {"level": level, "n": {"bundesland": 2, "landkreis": 5, "gemeinde": 8}[level], "ebenen": list(ebenen)},
+    ).one()
+
+    def part(units, power) -> dict | None:
+        units, power = int(units or 0), round(float(power or 0), 3)
+        return {"total_units": units, "total_power": power} if units or power else None
+
+    gruende = {
+        "ohne_ort": part(row.ohne_ort_units, row.ohne_ort_power),
+        # The Länder's points that no row of the level has: those with their Land only (none on the Länder map itself)
+        "nur_land": part(
+            (row.land_units or 0) - (row.level_units or 0), (row.land_power or 0) - (row.level_power or 0)
+        ),
+        "unbekannt": part((row.level_units or 0) - (row.map_units or 0), (row.level_power or 0) - (row.map_power or 0)),
+    }
+    gruende = {k: v for k, v in gruende.items() if v}
+    missing = {
+        "total_units": sum(v["total_units"] for v in gruende.values()),
+        "total_power": round(sum(v["total_power"] for v in gruende.values()), 3),
+    }
+    return {"nicht_zugeordnet": missing, "gruende": gruende, "auf_der_karte": part(row.map_units, row.map_power)}

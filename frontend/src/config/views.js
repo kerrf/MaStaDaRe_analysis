@@ -72,6 +72,7 @@ export const DASHBOARD_MENUS = [
     basePath: '/netz',
     views: {
       karte: 'Netzanschlusspunkte der Stromerzeugung je Land, Kreis, Gemeinde',
+      zubau: 'Neue Netzanschlüsse und angeschlossene Leistung je Spannungsebene, Registrierungen',
       spannungsebenen: 'Netzanschlüsse je Netzebene und Technologie, die größten Netzbetreiber',
     },
   },

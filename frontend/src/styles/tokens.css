@@ -98,8 +98,13 @@
   --series-netz-erdgas: #8a6a45;
   --series-netz-kohle: #45403b;
   --series-netz-sonstige: #b9ab8f;
-  /* Biomass: the netz green, Biogas in it, the solid fuel in a brown wood, the liquid one in an olive */
-  --series-biomasse: #4f9a3a;
+  /* The Spannungsebenen (Zubau of the Netzanschlüsse): the rose of the Netz map, the higher the voltage the darker */
+  --series-netz-hoechst: #5c0f28;
+  --series-netz-hoch: #9d2547;
+  --series-netz-mittel: #dc5a7f;
+  --series-netz-nieder: #f2a9bc;
+  /* Biomass: all of it in the olive of its map; Biogas the netz green, the solid fuel a brown wood, the liquid one an olive */
+  --series-biomasse: #878b2c; /* the olive of its map */
   --series-biogas: #4f9a3a;
   --series-biomasse-fest: #8a5a2b;
   --series-biomasse-fluessig: #a7a33a;
@@ -110,7 +115,7 @@
   --series-druckentspannung: #3b6fd4;
   --series-solarthermie: #e8a33a;
   /* KWK by the fuel of its largest unit, like the Netzanschlüsse */
-  --series-kwk: #c25a0e;
+  --series-kwk: #7160b4; /* the violet of its map */
   --series-kwk-erdgas: #8a6a45;
   --series-kwk-biomasse: #4f9a3a;
   --series-kwk-kohle: #45403b;

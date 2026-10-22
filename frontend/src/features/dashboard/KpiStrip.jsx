@@ -1,13 +1,7 @@
 import StatTile from '../../components/ui/StatTile';
-import { OFFSHORE, findBundeslandByAgs, isKreisKey, regionName } from '../../config/regions';
-import { formatCapacity, formatNumber, formatPercent, formatPower, scaleAmount } from '../../lib/format';
-
-// The units the KPIs compare, keyed like the stats rows. Bundesland rows may also contain "offshore" (wind): it counts for
-// the total but isn't a Land.
-const LEVELS = {
-  bundesland: { isPeer: (key) => Boolean(findBundeslandByAgs(key)), peers: 'Bundesländern' },
-  landkreis: { isPeer: isKreisKey, peers: 'Landkreisen' },
-};
+import { API_BASE_URL } from '../../config/site';
+import { useJson } from '../../lib/data';
+import { formatCapacity, formatNumber, formatPower, scaleAmount } from '../../lib/format';
 
 const sum = (rows, field) => rows.reduce((acc, row) => acc + (row[field] ?? 0), 0);
 
@@ -43,30 +37,51 @@ function computeKpi(kpi, { rows, status, level, selected, parentName }) {
     };
   }
 
-  const { isPeer, peers } = LEVELS[level];
-  const ranked = rows.filter((row) => isPeer(row[level])).sort((a, b) => (b[kpi.field] ?? 0) - (a[kpi.field] ?? 0));
-
-  if (selected) {
-    const rank = ranked.findIndex((row) => row[level] === selected.key) + 1;
-    return {
-      ...base,
-      label: `Anteil an ${parentName}`,
-      value: formatPercent(selectedRow[kpi.field] / total),
-      sub: `Rang ${rank} von ${ranked.length} ${peers}`,
-    };
-  }
-  // The leader of Germany may also be the sea (offshore wind, an area of its own on the map), though it is no Land
-  const top = [...ranked, ...rows.filter((row) => row[level] === OFFSHORE.ags)].sort((a, b) => (b[kpi.field] ?? 0) - (a[kpi.field] ?? 0))[0];
-  return { ...base, value: regionName(top.bundesland), textValue: true, sub: `${formatPercent(top[kpi.field] / total)} des Bundeswerts` };
+  return { ...base, status: 'empty' };
 }
 
-export default function KpiStrip({ kpis, rows, status, level = 'bundesland', selected = null, parentName = 'Deutschland' }) {
+// The units registered in the last 12 months of a region ('DE', a Land's or a Kreis' key), of the series (the months up
+// to the newest of the view, the Datenstand's): null while loading
+function useRegistered12m(region, series) {
+  const query = series.map((id) => `technology=${encodeURIComponent(id)}`).join('&');
+  const data = useJson(series.length ? `${API_BASE_URL}/zubau/registrierungen?region=${region}&${query}` : null);
+  if (data.status !== 'ready') return { status: data.status, value: null };
+  const months = data.data.filter((row) => row.month != null);
+  const latest = Math.max(...months.map((row) => row.year * 12 + row.month - 1));
+  const value = months.filter((row) => row.year * 12 + row.month - 1 > latest - 12).reduce((acc, row) => acc + row.units, 0);
+  return { status: 'ready', value };
+}
+
+// Registrierungen (12 Monate): in the area, and below it the area's parent (Deutschland for a Land, the Land for a Kreis)
+function RegistrationsTile({ kpi, region, parent, parentName, series }) {
+  const own = useRegistered12m(region, series);
+  const above = useRegistered12m(parent ?? region, parent ? series : []);
+  const base = { label: kpi.label, icon: kpi.icon };
+  if (!series.length) return <StatTile {...base} status="empty" sub="Keine Registrierungsdaten" />;
+  if (own.status === 'loading' || (parent && above.status === 'loading')) return <StatTile {...base} status="loading" />;
+  if (own.status !== 'ready') return <StatTile {...base} status="empty" sub="Daten derzeit nicht verfügbar" />;
+  const sub = parent && above.status === 'ready' ? `${parentName}: ${formatNumber(above.value)}` : `${parentName} gesamt`;
+  return <StatTile {...base} value={formatNumber(own.value)} sub={sub} />;
+}
+
+/**
+ * The KPIs of the area: Deutschland, a Land among the Länder, a Kreis among the Kreise of its Land. registrations: the
+ * technology's series of the Registrierungen (config `registrations`, the chosen parts) for the kind 'registrations'.
+ */
+export default function KpiStrip({ kpis, rows, status, level = 'bundesland', selected = null, parentName = 'Deutschland', registrations = [] }) {
   const scope = { rows, status, level, selected, parentName };
+  const region = selected?.key ?? 'DE';
+  // A Land compares with Deutschland, a Kreis with its Land
+  const parent = selected ? (level === 'landkreis' ? selected.key.slice(0, 2) : 'DE') : null;
   return (
     <section className="kpi-strip" aria-label="Kennzahlen">
-      {kpis.map((kpi) => (
-        <StatTile key={kpi.id} {...computeKpi(kpi, scope)} />
-      ))}
+      {kpis.map((kpi) =>
+        kpi.kind === 'registrations' ? (
+          <RegistrationsTile key={kpi.id} kpi={kpi} region={region} parent={parent} parentName={parentName} series={registrations} />
+        ) : (
+          <StatTile key={kpi.id} {...computeKpi(kpi, scope)} />
+        ),
+      )}
     </section>
   );
 }

@@ -97,6 +97,9 @@ VIEW_FILES = [
     # Netzanschlüsse: the Netzanschlusspunkte of the bulk export (raw.grid_connection_points, grid_operators) placed by
     # the units of their Lokation – of every kind (raw.*_units, also biomass, combustion, nuclear, geothermal)
     "aggregate_netzanschluesse.sql",
+    # Zubau und Registrierungen der Netzanschlüsse per Spannungsebene, region and month (their dates: those of the units
+    # at their Lokation; the page Zubau & Registrierungen of the Netzanschlüsse)
+    "aggregate_netz_zubau.sql",
     # Every wind turbine on its own: hub height, rotor, power, year, place, manufacturer (the Anlagen page of wind)
     "aggregate_wind_turbines.sql",
 ]

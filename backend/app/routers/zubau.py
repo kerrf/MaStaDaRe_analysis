@@ -5,7 +5,14 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.zubau import GeplantRegion, RegistrierungenRegion, RegistrierungsverzugRegion, Technology, ZubauRegion
+from app.models.zubau import (
+    GeplantRegion,
+    NetzZubauRegion,
+    RegistrierungenRegion,
+    RegistrierungsverzugRegion,
+    Technology,
+    ZubauRegion,
+)
 
 router = APIRouter(prefix="/zubau", tags=["Zubau"])
 
@@ -24,13 +31,21 @@ async def get_zeitverlauf(
     region: ZubauScope = "DE",
     db: Session = Depends(get_db),
 ):
-    """Zubau and Bestand per month and year in Germany, a Land or a Kreis, for the given series (default: all)."""
-    query = db.query(ZubauRegion).filter(ZubauRegion.region == region)
-    if technology:
-        query = query.filter(ZubauRegion.technology.in_(technology))
-    if yearly:
-        query = query.filter(ZubauRegion.month.is_(None))
-    return query.order_by(ZubauRegion.technology, ZubauRegion.year, ZubauRegion.month.nulls_first()).all()
+    """Zubau and Bestand per month and year in Germany, a Land or a Kreis, for the given series (default: all of the
+    generation and storage). The series of the Netzanschlüsse (netz_…) come from their own view."""
+    rows = []
+    netz = [t for t in technology or [] if t.startswith("netz_")]
+    others = [t for t in technology or [] if not t.startswith("netz_")]
+    for model, series in ((ZubauRegion, others), (NetzZubauRegion, netz)):
+        if technology and not series:
+            continue
+        query = db.query(model).filter(model.region == region)
+        if series:
+            query = query.filter(model.technology.in_(series))
+        if yearly:
+            query = query.filter(model.month.is_(None))
+        rows += query.order_by(model.technology, model.year, model.month.nulls_first()).all()
+    return rows
 
 
 class RegionBestand(BaseModel):
@@ -94,12 +109,36 @@ def get_registrierungen(
     """Units registered in the Marktstammdatenregister per month and year and technology, in Germany, a Land or a Kreis,
     from the first registration on: in the period, and all up to its end."""
     model = RegistrierungenRegion
-    query = db.query(model).filter(model.region == region)
-    if technology:
-        query = query.filter(model.technology.in_(technology))
-    if yearly:
-        query = query.filter(model.month.is_(None))
-    return query.order_by(model.technology, model.year, model.month.nulls_first()).all()
+    netz = [t for t in technology or [] if t.startswith("netz_")]
+    others = [t for t in technology or [] if not t.startswith("netz_")]
+    rows = []
+    if not technology or others:
+        query = db.query(model).filter(model.region == region)
+        if others:
+            query = query.filter(model.technology.in_(others))
+        if yearly:
+            query = query.filter(model.month.is_(None))
+        rows += query.order_by(model.technology, model.year, model.month.nulls_first()).all()
+    if netz:
+        # The Netzanschlüsse (netz_<ebene>): their points registered, from their own view (netz_<ebene>_registriert)
+        query = db.query(NetzZubauRegion).filter(
+            NetzZubauRegion.region == region, NetzZubauRegion.technology.in_([f"{t}_registriert" for t in netz])
+        )
+        if yearly:
+            query = query.filter(NetzZubauRegion.month.is_(None))
+        for row in query.order_by(
+            NetzZubauRegion.technology, NetzZubauRegion.year, NetzZubauRegion.month.nulls_first()
+        ):
+            rows.append(
+                RegistrationPeriod(
+                    technology=row.technology.removesuffix("_registriert"),
+                    year=row.year,
+                    month=row.month,
+                    units=row.added_units or 0,
+                    total=row.installed_units or 0,
+                )
+            )
+    return rows
 
 
 class RegistrationDelay(BaseModel):

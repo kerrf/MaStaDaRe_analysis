@@ -13,6 +13,10 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.karte_zeit;
 --                       stillgelegt: they are still there); the Bestand at the end of a month is the one of the year
 --                       before plus that year's months up to it (the API)
 --   geplant             the units in planning (year and month NULL)
+--   heute               the units in operation today (year and month NULL): the map of today (dashboard-stats), here
+--                       for what isn't on it (routers/karte.py, /ohne-ort)
+-- A unit in Germany without a Gemeinde (or Land, where the region view takes it) is in the area 'ohne_ort': on no map,
+-- but counted in what isn't on it; units abroad (the border hydropower plants) are left out.
 -- Measures in kW and kWh: power (Bruttoleistung; KWK: electrical), power_net (solar: Nettonennleistung), capacity
 -- (batteries: only a plausible one, like their map; the other storages as registered), heat (KWK: thermal, only where
 -- plausible, like their map). Units: KWK counts plants. The rules of the kinds and places are those of the region views
@@ -90,7 +94,8 @@ units AS (
         "Gemeindeschluessel" AS area, "EinheitBetriebsstatus" AS status, "Inbetriebnahmedatum" AS added_on,
         CAST("DatumEndgueltigeStilllegung" AS date) AS removed_on,
         "Bruttoleistung" AS power, "Nettonennleistung" AS power_net,
-        CAST(NULL AS float8) AS capacity, CAST(NULL AS float8) AS heat
+        CAST(NULL AS float8) AS capacity, CAST(NULL AS float8) AS heat,
+        COALESCE("Land", 'Deutschland') = 'Deutschland' AS inland
     FROM raw.solar_units
 
     UNION ALL
@@ -98,24 +103,27 @@ units AS (
         CASE WHEN "WindAnLandOderAufSee" = 'Windkraft auf See' THEN 'auf_see' ELSE 'an_land' END,
         CASE WHEN "WindAnLandOderAufSee" = 'Windkraft auf See' THEN 'offshore' ELSE "Gemeindeschluessel" END,
         "EinheitBetriebsstatus", "Inbetriebnahmedatum", CAST("DatumEndgueltigeStilllegung" AS date),
-        "Bruttoleistung", NULL, NULL, NULL
+        "Bruttoleistung", NULL, NULL, NULL, COALESCE("Land", 'Deutschland') = 'Deutschland'
     FROM raw.wind_units
 
     UNION ALL
     SELECT 'water', 'alle', "Gemeindeschluessel", "EinheitBetriebsstatus", "Inbetriebnahmedatum",
-        CAST("DatumEndgueltigeStilllegung" AS date), "Bruttoleistung", NULL, NULL, NULL
+        CAST("DatumEndgueltigeStilllegung" AS date), "Bruttoleistung", NULL, NULL, NULL,
+        COALESCE("Land", 'Deutschland') = 'Deutschland'
     FROM raw.water_units
 
     UNION ALL
     SELECT 'biomass', a.art, COALESCE(u."Gemeindeschluessel", l.land), u."EinheitBetriebsstatus",
-        u."Inbetriebnahmedatum", CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL, NULL, NULL
+        u."Inbetriebnahmedatum", CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL, NULL, NULL,
+        COALESCE(u."Land", 'Deutschland') = 'Deutschland'
     FROM raw.biomass_units u
     JOIN biomasse_arten a ON a.mastr = u."Biomasseart"
     LEFT JOIN laender l ON l.name = u."Bundesland"
 
     UNION ALL
     SELECT 'geothermal', a.art, COALESCE(u."Gemeindeschluessel", l.land), u."EinheitBetriebsstatus",
-        u."Inbetriebnahmedatum", CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL, NULL, NULL
+        u."Inbetriebnahmedatum", CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL, NULL, NULL,
+        COALESCE(u."Land", 'Deutschland') = 'Deutschland'
     FROM raw.geothermal_units u
     JOIN geothermie_arten a ON a.mastr = u."Energietraeger"
     LEFT JOIN laender l ON l.name = u."Bundesland"
@@ -123,7 +131,8 @@ units AS (
     UNION ALL
     SELECT 'kwk', k.art, k.area, p."AnlageBetriebsstatus", p."Inbetriebnahmedatum", k.removed_on,
         p."ElektrischeKwkLeistung", NULL, NULL,
-        CASE WHEN p."ThermischeNutzleistung" <= 50 * p."ElektrischeKwkLeistung" THEN p."ThermischeNutzleistung" END
+        CASE WHEN p."ThermischeNutzleistung" <= 50 * p."ElektrischeKwkLeistung" THEN p."ThermischeNutzleistung" END,
+        true
     FROM raw.kwk_plants p
     JOIN kwk_places k ON k.kwk = p."KwkMastrNummer"
 
@@ -134,7 +143,7 @@ units AS (
         CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL,
         CASE WHEN b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12
             THEN b.capacity * u."Bruttoleistung" / b.power END,
-        NULL
+        NULL, COALESCE(u."Land", 'Deutschland') = 'Deutschland'
     FROM raw.storage_units u
     LEFT JOIN battery_plants b USING ("SpeMastrNummer")
     WHERE u."Technologie" = 'Batterie'
@@ -143,7 +152,7 @@ units AS (
     -- The other storages: their capacity as registered, split between the units by their power
     SELECT 'other_storage', a.art, COALESCE(u."Gemeindeschluessel", l.land), u."EinheitBetriebsstatus",
         u."Inbetriebnahmedatum", CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL,
-        b.capacity * u."Bruttoleistung" / NULLIF(b.power, 0), NULL
+        b.capacity * u."Bruttoleistung" / NULLIF(b.power, 0), NULL, COALESCE(u."Land", 'Deutschland') = 'Deutschland'
     FROM raw.storage_units u
     JOIN speicher_arten a ON a.mastr = u."Technologie"
     LEFT JOIN other_storage_plants b USING ("SpeMastrNummer")
@@ -152,18 +161,21 @@ units AS (
 ),
 events AS (
     -- 2. Per unit what happened when, in one pass: it came (a unit in operation, not one in planning), it left for good
-    --    (never before it came: a date before counts as the day it came), it is planned (no day)
-    SELECT u.technology, u.art, u.area, e.kennzahl, e.day, u.power, u.power_net, u.capacity, u.heat
+    --    (never before it came: a date before counts as the day it came), it is planned, it is in operation today (no
+    --    day). Without a place: 'ohne_ort', in Germany only.
+    SELECT u.technology, u.art, COALESCE(u.area, 'ohne_ort') AS area, e.kennzahl, e.day, u.power, u.power_net,
+        u.capacity, u.heat
     FROM units u
     CROSS JOIN LATERAL (VALUES
         ('zubau', u.added_on, u.status <> 'In Planung' AND u.added_on IS NOT NULL),
         ('stilllegung', GREATEST(u.removed_on, u.added_on), u.status = 'Endgültig stillgelegt' AND u.added_on IS NOT NULL),
-        ('geplant', NULL, u.status = 'In Planung')
+        ('geplant', NULL, u.status = 'In Planung'),
+        ('heute', NULL, u.status = 'In Betrieb')
     ) AS e(kennzahl, day, happened)
-    WHERE e.happened AND u.area IS NOT NULL
+    WHERE e.happened AND (u.area IS NOT NULL OR u.inland)
 ),
 monthly AS (
-    -- Per kind, area and month (planned: none)
+    -- Per kind, area and month (planned and today: none)
     SELECT technology, art, area, kennzahl, CAST(date_trunc('month', day) AS date) AS month_start,
         count(*) AS units, sum(power) AS power, sum(power_net) AS power_net, sum(capacity) AS capacity, sum(heat) AS heat
     FROM events
@@ -174,7 +186,7 @@ yearly AS (
         sum(units) AS units, sum(power) AS power, sum(power_net) AS power_net, sum(capacity) AS capacity,
         sum(heat) AS heat
     FROM monthly
-    WHERE kennzahl <> 'geplant'
+    WHERE kennzahl IN ('zubau', 'stilllegung')
     GROUP BY 1, 2, 3, 4, 5
 ),
 net AS (

@@ -522,6 +522,8 @@ export default function KommuneView({ config, state }) {
   const { region, kreisAgs, kreisFeature, kreisName, gemeindeAgs, kreise, searchParams } = state;
   const profile = KOMMUNE[config.id];
   const technology = config.technologies.find((t) => t.id === profile.technology);
+  // The map in the technology's own hue, like on the map page
+  const ramp = technology.ramp ?? config.ramp;
   const selection = selectionOf(technology, searchParams);
   const query = profile.filters ? selection.query : '';
   const leistungLabel = selection.leistung?.label ?? null;
@@ -617,8 +619,8 @@ export default function KommuneView({ config, state }) {
   const scale = useMemo(() => {
     const values = gemeinden ? gemeinden.features.filter((f) => f.properties._hasData).map((f) => f.properties[metric.id] ?? 0) : [];
     const max = scaleDomainMax(values);
-    return { colorFor: makeColorScale(config.ramp, max), max, clipped: values.some((v) => v > max) };
-  }, [gemeinden, metric.id, config.ramp]);
+    return { colorFor: makeColorScale(ramp, max), max, clipped: values.some((v) => v > max) };
+  }, [gemeinden, metric.id, ramp]);
 
   // The rows of the table and the panel: one per Gemeinde, with its share of the Kreis
   const sizeField = profile.size.field;
@@ -818,10 +820,10 @@ export default function KommuneView({ config, state }) {
               basemap={basemap}
               opacity={opacity}
               onBasemap={chooseBasemap}
-              kreisColor={config.ramp[config.ramp.length - 1]}
+              kreisColor={ramp[ramp.length - 1]}
               onHover={onAreaHover}
             >
-              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.count ? '' : metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />}
+              {mapStatus === 'ready' && <MapLegend title={metric.legend} unit={metric.count ? '' : metric.unit} ramp={ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />}
               {mapStatus === 'loading' && (
                 <div className="map-overlay map-overlay--loading" role="status">
                   <div className="spinner" />

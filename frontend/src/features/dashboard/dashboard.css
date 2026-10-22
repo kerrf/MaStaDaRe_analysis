@@ -2127,8 +2127,9 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 }
 
 .ranking {
-  width: 100%;
-  border-collapse: collapse;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: 13.5px;
 }
 
@@ -2136,56 +2137,69 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   margin-top: 10px;
 }
 
-.ranking tr + tr {
+.ranking li + li {
   border-top: 1px solid var(--border-subtle);
 }
 
-.ranking tr.is-clickable {
-  cursor: pointer;
-}
-
-.ranking tr.is-clickable:hover {
-  background: var(--surface-hover);
-}
-
-.ranking tr.is-focus {
+.ranking li.is-focus {
   background: var(--accent-soft);
 }
 
-.ranking td,
-.ranking th {
-  padding: 7px 4px;
+/* A row: rank, name and value on a line, the bar below them across name and value */
+.ranking__row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 8px;
+  width: 100%;
+  padding: 6px 6px 7px 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+.ranking__row.is-clickable {
+  cursor: pointer;
+}
+
+.ranking__row.is-clickable:hover {
+  background: var(--surface-hover);
+}
+
+.ranking__row:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
 }
 
 .ranking__rank {
-  width: 26px;
+  text-align: right;
   color: var(--ink-muted);
   font-weight: 600;
 }
 
 .ranking__name {
-  max-width: 0;
-  width: 42%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
   font-weight: 600;
 }
 
 .ranking__value {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: 650;
+}
+
+.ranking__unit {
+  font-weight: 500;
+  color: var(--ink-muted);
+  font-size: 12px;
 }
 
 .ranking__bar {
-  flex: 1;
-  min-width: 40px;
-  height: 10px;
+  grid-column: 2 / -1;
+  height: 6px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
 }
@@ -2194,13 +2208,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   display: block;
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--accent);
-}
-
-.ranking__unit {
-  font-weight: 500;
-  color: var(--ink-muted);
-  font-size: 12px;
+  background: var(--ranking-color, var(--accent));
 }
 
 /* ------------------------------------------------------------ Responsive */

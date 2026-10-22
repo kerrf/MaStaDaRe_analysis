@@ -47,6 +47,15 @@ Technology = Literal[
     "druckluftspeicher_leistung",
     "schwungradspeicher_leistung",
     "wasserstoffspeicher_leistung",
+    # The Netzanschlüsse per Spannungsebene (mrt.netz_zubau_regions): the connected power, and the points
+    "netz_hoechstspannung",
+    "netz_hochspannung",
+    "netz_mittelspannung",
+    "netz_niederspannung",
+    "netz_hoechstspannung_punkte",
+    "netz_hochspannung_punkte",
+    "netz_mittelspannung_punkte",
+    "netz_niederspannung_punkte",
 ]
 
 
@@ -103,6 +112,26 @@ class ZubauRegion(Base):
             {"technologies": technologies, "year": year, "month": month, "parent": parent},
         )
         return [row._asdict() for row in rows]
+
+
+class NetzZubauRegion(Base):
+    """Zubau and Bestand of the Netzanschlüsse per region, Spannungsebene, month and year (aggregate_netz_zubau.sql), in
+    the shape of ZubauRegion: netz_<ebene> the connected power (MW), netz_<ebene>_punkte the points, and
+    netz_<ebene>_registriert the points registered (their dates: those of the units at their Lokation)."""
+
+    __tablename__ = "netz_zubau_regions"
+    __table_args__ = {"schema": "mrt"}
+
+    region = Column(String, primary_key=True)
+    technology = Column(String, primary_key=True)
+    year = Column(Integer, primary_key=True)
+    month = Column(Integer, primary_key=True)
+    unit = Column(String)  # MW or Punkte
+
+    added_units = Column(Integer)
+    added = Column(Float)
+    installed = Column(Float)
+    installed_units = Column(Integer)
 
 
 class GeplantRegion(Base):

@@ -25,7 +25,7 @@ export default function RegionenView({ config, state }) {
             scopeKey={state.scopeKey}
             scopeName={state.scopeName}
             selectionQuery={selectionQuery}
-            ramp={config.ramp}
+            ramp={technology.ramp ?? config.ramp}
             fileBase={`mastr_${config.id}_${technology.id}`}
             anchor="analyse-gebiete"
           />

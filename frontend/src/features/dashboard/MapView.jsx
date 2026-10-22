@@ -13,7 +13,7 @@ import { escapeHtml, formatDate, formatNumber } from '../../lib/format';
 import ChoroplethMap from './ChoroplethMap';
 import KpiStrip from './KpiStrip';
 import MapLegend, { HeatmapLegend } from './MapLegend';
-import RankingPanel from './RankingPanel';
+import RankingPanel, { rankingTitle } from './RankingPanel';
 import MapRail from './MapRail';
 import ExportMenu from '../../components/ui/ExportMenu';
 import MapSidebar from './MapSidebar';
@@ -87,6 +87,8 @@ export default function MapView({ config, state }) {
   // Some technologies show their plants as icons at their location instead of shaded areas (Pumpspeicher, Gas). They rank
   // as plants within the scope, keyed by their Gemeindeschlüssel.
   const isSites = Boolean(technology.plantsPath);
+  // The map's colours: the technology's own ramp (each Erzeuger its hue), else the dashboard's
+  const ramp = technology.ramp ?? config.ramp;
   const plantsLevel = isSites ? { id: 'standorte', label: technology.site.label, featureKey: 'ags' } : null;
   // The map in time (mapTime.js), for the technologies that have it: the Kennzahl (?wert=) and the period (?zeit=). It
   // replaces the map of today once either is chosen, on the Länder, Kreise and Gemeinden only.
@@ -191,8 +193,8 @@ export default function MapView({ config, state }) {
     const values = merged ? merged.features.filter((f) => f.properties._hasData).map((f) => f.properties[metric.id] ?? 0) : [];
     const max = scaleDomainMax(values);
     const trueMax = values.reduce((m, v) => Math.max(m, v), 0);
-    return { colorFor: makeColorScale(config.ramp, max), max, clipped: trueMax > max };
-  }, [merged, metric.id, config.ramp]);
+    return { colorFor: makeColorScale(ramp, max), max, clipped: trueMax > max };
+  }, [merged, metric.id, ramp]);
 
   const mapData = isSites ? plants : mapStats;
   // The areas (shaded, or the Rangliste beside the continuous map)
@@ -278,6 +280,15 @@ export default function MapView({ config, state }) {
   // Plants rank within the deepest scope.
   const rankingWithin = (isSites ? scopeUnits : scopeUnits.filter((unit) => unit.key.length < levelLength)).pop() ?? null;
   const rankingFocus = isSites ? null : scopeUnits.find((unit) => unit.key.length === levelLength)?.key ?? null;
+
+  // The series of the KPI „Registrierungen (12 Monate)“: the technology's, or those of the chosen parts (solar: Gebäude,
+  // Freifläche; wind: an Land, auf See) where its filter narrows it down
+  const registrationSeries = (() => {
+    const series = technology.registrations;
+    if (!series) return [];
+    const narrowed = series.parts && subtypes && technology.subtypes && subtypes.length < technology.subtypes.options.length;
+    return narrowed ? subtypes.map((id) => series.parts[id]).filter(Boolean) : [series.all];
+  })();
 
   // KPIs describe the scope: Deutschland or a Land among the Bundesländer, a Landkreis among the Kreise of its Land.
   // Plants are summed per Land and per Kreis first, so they read like the stats of the other technologies.
@@ -393,7 +404,7 @@ export default function MapView({ config, state }) {
     }
   };
 
-  const focusColor = config.ramp[config.ramp.length - 1];
+  const focusColor = ramp[ramp.length - 1];
 
   // What the map shows is chosen in the sidebar on its left (MapSidebar), on narrow screens a drawer
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -424,7 +435,7 @@ export default function MapView({ config, state }) {
         <MapSidebar technologies={config.technologies} state={state} time={time} onReset={resetAll} onClose={() => setSidebarOpen(false)} />
         <button type="button" className="sidebar-layout__scrim" aria-label="Einstellungen schließen" onClick={() => setSidebarOpen(false)} />
         <div className="sidebar-layout__main">
-      <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} />
+      <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} registrations={registrationSeries} />
 
       <section ref={mapCardRef} className={`card map-card map-workspace${fullscreen ? ' is-fullscreen' : ''}`} aria-label="Karte">
         <header className="card__header map-card__header">
@@ -501,20 +512,20 @@ export default function MapView({ config, state }) {
               onRegionClick={onRegionClick}
               highlight={pickedFeature}
               heat={
-                isHeatmap ? { data: heat.data, ramp: config.ramp, smoothing: SMOOTHINGS[smoothingId], onDrawn: setHeatDrawn, onHover: onHeatHover } : null
+                isHeatmap ? { data: heat.data, ramp, smoothing: SMOOTHINGS[smoothingId], onDrawn: setHeatDrawn, onHover: onHeatHover } : null
               }
               onHover={onAreaHover}
             >
               {isSites && <SiteMarkers sites={sites} site={technology.site} categoryOf={categoryOf} />}
             </ChoroplethMap>
             {mapState === 'ready' && !isHeatmap && !bordersOnly && !isSites && (
-              <MapLegend title={metricLegend} unit={metric.unit} ramp={config.ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />
+              <MapLegend title={metricLegend} unit={metric.unit} ramp={ramp} max={scale.max} clipped={scale.clipped} hoverRef={areaHover} />
             )}
             {isHeatmap && mapState === 'ready' && heatDrawn && (
               <HeatmapLegend
                 title={metric.heat.legend}
                 unit={metric.heat.unit}
-                ramp={config.ramp}
+                ramp={ramp}
                 scale={heatDrawn.scale}
                 smoothingKm={heatDrawn.smoothingKm}
                 hoverRef={heatHover}
@@ -559,7 +570,7 @@ export default function MapView({ config, state }) {
             analyses={scopeAnalyses}
             tab={railTab}
             onTab={setRailTab}
-            rankingTitle={`Top 10 · ${isSites ? plantsLevel.label : activeGranularity.label}`}
+            rankingTitle={rankingTitle(isSites ? plantFeatures : merged?.features, metric, isSites ? plantsLevel : activeGranularity, rankingWithin)}
             rankingSubtitle={`${metricLegend} (${metric.unit})`}
             ranking={
               <RankingPanel
@@ -571,6 +582,7 @@ export default function MapView({ config, state }) {
                 status={!withData || bordersOnly ? 'unavailable' : isHeatmap ? areasState : mapState}
                 labelFor={isSites ? (f) => f.properties.name : labelFor}
                 onRowClick={(canDrill || canPick) && !isSites ? onRankingRowClick : undefined}
+                color={ramp[Math.round((ramp.length - 1) * 0.7)]}
                 fileBase={`${filePrefix}_${isSites ? plantsLevel.id : activeGranularity.id}_rangliste_${metric.id}`}
               />
             }
