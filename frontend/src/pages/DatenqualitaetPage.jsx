@@ -37,7 +37,14 @@ const KATALOG_JSON = '/daten/mastr-katalogwerte.json';
 // What holds for the whole register, then the technologies, each with its findings (sub-sections); one without any yet
 // says so
 const CATEGORIES = [
-  { id: 'allgemein', label: 'Allgemein', topics: [{ id: 'codes', label: 'Zahlen statt Text' }] },
+  {
+    id: 'allgemein',
+    label: 'Allgemein',
+    topics: [
+      { id: 'codes', label: 'Zahlen statt Text' },
+      { id: 'gemeindeschluessel', label: 'Unvollständige Gemeindeschlüssel' },
+    ],
+  },
   {
     id: 'solar',
     label: 'Solar',
@@ -155,6 +162,21 @@ export default function DatenqualitaetPage() {
                   <Download size={14} aria-hidden="true" /> Alle Kataloge mit ihren Spalten (JSON, 90 KB)
                 </a>
               </p>
+            </section>
+
+            <section id="gemeindeschluessel">
+              <h3>Unvollständige Gemeindeschlüssel</h3>
+              <ul>
+                <li>Der Gemeindeschlüssel hat 8 Stellen: 2 für das Land, 3 für den Kreis, 3 für die Gemeinde.</li>
+                <li>
+                  Vereinzelt liefert das Register nur 5 Stellen – im Oktober 2026 ein Batteriespeicher in Leipzig mit „14713“ statt
+                  „14713000“. Er zählte doppelt als Kreis und hielt den nächtlichen Abgleich einen Tag lang auf.
+                </li>
+                <li>
+                  Umgang: Jede Nacht bekommt ein fünfstelliger Schlüssel einer kreisfreien Stadt seine Gemeinde („14713000“), jeder
+                  andere unvollständige wird geleert – die Einheit fehlt dann in den Auswertungen nach Gebiet.
+                </li>
+              </ul>
             </section>
           </section>
 
