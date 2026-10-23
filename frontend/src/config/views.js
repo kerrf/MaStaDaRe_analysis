@@ -28,15 +28,16 @@ export const VIEWS = {
 };
 export const VIEW_PATHS = new Set(Object.values(VIEWS).map((view) => view.path).filter(Boolean));
 
-// The dashboards in the navigation, each with its pages and what they show (the texts of the menu)
+// The dashboards in the navigation, each with its pages and what they show (the texts of the menu), in the order of the
+// menu and the tabs: the Überblick first
 export const DASHBOARD_MENUS = [
   {
     id: 'erzeuger',
     label: 'Erzeuger',
     basePath: '/erzeuger',
     views: {
-      karte: 'Solar, Wind, Biomasse, Wasserkraft, Geothermie, KWK je Land, Kreis, Gemeinde',
       ueberblick: 'Eine Technologie eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Rang, Ausbauziel – auch als PDF',
+      karte: 'Solar, Wind, Biomasse, Wasserkraft, Geothermie, KWK je Land, Kreis, Gemeinde',
       zubau: 'Zubau seit 2000, Registrierungen und Meldefristen',
       anlagen: 'Größenklassen, Ausrichtung, Batteriespeicher an Solaranlagen',
       kommune: 'Ein Landkreis und seine Gemeinden im Detail: Karte, Kennzahlen, Zubau je Jahr',
@@ -48,8 +49,8 @@ export const DASHBOARD_MENUS = [
     label: 'Speicher',
     basePath: '/speicher',
     views: {
-      karte: 'Batterie-, Pump-, Druckluft-, Schwungrad- und Wasserstoffspeicher je Land, Kreis, Gemeinde',
       ueberblick: 'Batterie- oder sonstige Speicher eines Gebiets in einem Jahr oder Monat: Bestand, Zubau, Arten, Rang – auch als PDF',
+      karte: 'Batterie-, Pump-, Druckluft-, Schwungrad- und Wasserstoffspeicher je Land, Kreis, Gemeinde',
       zubau: 'Batteriekapazität und -leistung je Jahr, Registrierungen und Meldefristen',
       anlagen: 'Speichergröße, Batterietechnologie und Kopplung, Batteriespeicher an Solaranlagen',
       kommune: 'Batteriespeicher eines Landkreises und seiner Gemeinden: Karte, Kennzahlen, Zubau je Jahr',

@@ -3,8 +3,8 @@ import { ArrowRight } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import Chapters from '../features/home/Chapters';
 import HeroPreviews from '../features/home/HeroPreviews';
+import QuestionGallery from '../features/home/QuestionGallery';
 import RegisterFigures from '../features/home/RegisterFigures';
-import TargetsOverview from '../features/home/TargetsOverview';
 import { SITE } from '../config/site';
 import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
@@ -41,6 +41,16 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="container home-section" aria-labelledby="fragen-title">
+        <div className="home-intro">
+          <span className="eyebrow">Fragen an die Daten</span>
+          <h2 id="fragen-title" className="home-intro__title">
+            Was sich hier herausfinden lässt
+          </h2>
+        </div>
+        <QuestionGallery />
+      </section>
+
       <section className="container home-section" aria-labelledby="register-title">
         <div className="home-intro">
           <span className="eyebrow">Stand {formatDate(datenstand)} · in Betrieb</span>
@@ -49,16 +59,6 @@ export default function HomePage() {
           </h2>
         </div>
         <RegisterFigures />
-      </section>
-
-      <section className="container home-section" aria-labelledby="ziele-title">
-        <div className="home-intro">
-          <span className="eyebrow">Ausbauziele des Bundes</span>
-          <h2 id="ziele-title" className="home-intro__title">
-            Auf dem Weg zu den Zielen 2030
-          </h2>
-        </div>
-        <TargetsOverview />
       </section>
 
       <section className="container home-section" aria-labelledby="dashboards-title">

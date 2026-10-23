@@ -62,6 +62,15 @@ def main():
     names[OFFSHORE] = OFFSHORE_NAME
     for file_name, digits in LEVELS.items():
         write_topojson(merge_to(areas, digits, names), MAP_DIR / file_name)
+    write_kreis_names(names)
+
+
+def write_kreis_names(names: dict) -> None:
+    """The Kreise's names by their key, small (frontend/public/kreise.json): for the pages that name a Kreis without
+    loading its map (the questions on the home page)."""
+    kreise = {ags: name for ags, name in sorted(names.items()) if len(ags) == 5 and ags.isdigit()}
+    with open(MAP_DIR / "kreise.json", "w", encoding="utf-8") as f:
+        json.dump(kreise, f, separators=(",", ":"), ensure_ascii=False)
 
 
 def read_layer(layer: str) -> gpd.GeoDataFrame:

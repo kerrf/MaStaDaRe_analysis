@@ -128,10 +128,6 @@ html .chapter__title {
   color: var(--brand-700);
 }
 
-html .targets-overview {
-  border-color: var(--border);
-}
-
 html .cta-band {
   background: var(--brand-700);
 }
