@@ -1,5 +1,6 @@
-/* Überblick (OverviewView): one technology of an area for a year or a month, like a report – its numbers on cards, its
-   Arten side by side, the Zubau per year or month, in Germany the targets; and the same as a PDF (OverviewReport) */
+/* Überblick (OverviewView): one technology of an area for a year or a month, like a report – its numbers on cards with
+   their trends, the Zubau of the last 12 months beside the years, its Arten in a table, in Germany the targets; and the
+   same as a PDF (OverviewReport) */
 
 .ov-head {
   display: flex;
@@ -50,46 +51,25 @@
   gap: 6px;
 }
 
-/* ------------------------------------------------------------------ Tiles */
-/* A number per card: its name, the number large, one line of context – in rows of three or four (--ov-columns) */
-.ov-tiles {
+/* ------------------------------------------------------------------ Cards */
+/* A number per card, all read the same way: its name, the number large, its change, its trend, a line of context. The
+   trends stand at the foot of the cards, at the same height across the row. */
+.kpis {
   display: grid;
-  grid-template-columns: var(--ov-template, repeat(4, minmax(0, 1fr)));
+  grid-template-columns: repeat(var(--kpis, 5), minmax(0, 1fr));
   gap: 16px;
 }
 
-.ov-tiles > * {
-  min-width: 0;
-}
-
-/* Two numbers in one card, a dashed line between them */
-.ov-tile__values {
-  display: flex;
-  gap: 18px;
-}
-
-.ov-tile__part {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.ov-tile__part + .ov-tile__part {
-  padding-left: 18px;
-  border-left: 1px dashed var(--border);
-}
-
-.ov-tile {
+.kpi {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 18px 20px 20px;
+  min-width: 0;
+  padding: 16px 18px 14px;
   border-top: 3px solid var(--accent);
 }
 
-.ov-tile__label {
+.kpi__label {
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.06em;
@@ -97,36 +77,226 @@
   color: var(--ink-secondary);
 }
 
-.ov-tile__value {
-  font-size: clamp(30px, 3vw, 40px);
+/* The number in proportional figures: tabular ones look loose this large */
+.kpi__value {
+  font-size: clamp(28px, 2.5vw, 36px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
+  white-space: nowrap;
   color: var(--ink-primary);
 }
 
-.ov-tile--up .ov-tile__value {
-  color: var(--success-ink);
-}
-
-.ov-tile--down .ov-tile__value {
-  color: var(--warn-ink);
-}
-
-.ov-tile__unit {
-  margin-left: 6px;
-  font-size: 0.42em;
+.kpi__unit {
+  margin-left: 5px;
+  font-size: 0.45em;
   font-weight: 650;
   letter-spacing: 0;
   color: var(--ink-secondary);
 }
 
-.ov-tile__sub {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
+.kpi__chart {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.kpi__foot {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  line-height: 1.35;
   color: var(--ink-muted);
+}
+
+/* ----------------------------------------------------------------- Changes */
+/* A change as a chip – up green, down red, hardly any grey – and what it is measured against beside it */
+.delta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 22px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--ink-muted);
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delta--up {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.delta--down {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.delta--flat {
+  background: var(--surface-sunken);
+  color: var(--ink-secondary);
+}
+
+/* ------------------------------------------------------------ Small charts */
+/* A trend beside a number: a line, bars, the peers on a strip; the value under the pointer above it */
+.mini-chart {
+  position: relative;
+  min-width: 0;
+}
+
+.mini-chart svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.mini-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ink-muted);
+}
+
+.mini-axis--all {
+  display: grid;
+  text-align: center;
+}
+
+.mini-tip {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--ink-secondary);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.mini-tip b {
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.spark__area {
+  fill: var(--accent);
+  fill-opacity: 0.12;
+}
+
+.spark__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.spark__dot {
+  fill: var(--accent);
+  stroke: var(--surface-card);
+  stroke-width: 2;
+}
+
+.spark__cursor {
+  stroke: var(--ink-muted);
+  stroke-width: 1;
+}
+
+/* Bars: the period of the page in colour, the others grey; one still running hatched */
+.spark-bars__base {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.spark-bars__bar {
+  fill: var(--border-strong);
+  fill-opacity: 0.45;
+}
+
+.spark-bars__bar.is-strong {
+  fill: var(--bars-color);
+  fill-opacity: 1;
+}
+
+.spark-bars__bar.is-active {
+  fill-opacity: 0.8;
+}
+
+.spark-bars__bar.is-strong.is-active {
+  fill-opacity: 1;
+  stroke: var(--ink-primary);
+  stroke-width: 1;
+}
+
+.spark-bars__hatch-ground {
+  fill: var(--bars-color);
+  fill-opacity: 0.25;
+}
+
+.spark-bars__hatch {
+  fill: var(--bars-color);
+}
+
+/* The peers: grey dots, the area in scope a larger dot in the dashboard's colour, the area above a mark */
+.peers__axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.peers__dot {
+  fill: var(--ink-muted);
+  fill-opacity: 0.4;
+}
+
+.peers__dot.is-active {
+  fill-opacity: 0.9;
+}
+
+.peers__own {
+  fill: var(--accent);
+  stroke: var(--surface-card);
+  stroke-width: 2;
+}
+
+.peers__reference {
+  stroke: var(--ink-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.peers__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.peers__legend i {
+  display: inline-block;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--ink-primary);
 }
 
 /* --------------------------------------------------------------- Sections */
@@ -169,132 +339,322 @@
   padding: 0 20px 14px;
 }
 
-/* ------------------------------------------------------------------ Arten */
-/* The Arten side by side, each a column read downwards: its name under a band of its colour, then its units and its
-   measure – the number, its share as a slim bar, its Zubau relative to the Bestand before */
-.ov-arten {
+/* ------------------------------------------------------------------ Zubau */
+/* The last 12 months beside the years, each with its head: what, over which time, the number, its change */
+.ov-612 {
   display: grid;
-  grid-template-columns: repeat(var(--ov-arten, 3), minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 0;
 }
 
-.ov-art {
+.ov-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 8px;
   min-width: 0;
-  padding: 0 20px 4px;
 }
 
-.ov-art + .ov-art {
+.ov-612 .ov-panel:first-child {
+  padding-right: 22px;
+}
+
+.ov-612 .ov-panel + .ov-panel {
+  padding-left: 22px;
   border-left: 1px solid var(--border-subtle);
 }
 
-.ov-art__head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.ov-panel__head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 4px 12px;
 }
 
-/* The band of the part's colour above it, hatched where the part is (a lower bound) */
-.ov-art__head::before {
+.ov-panel__title {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.ov-panel__title strong {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.ov-panel__title span {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.ov-panel__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--ink-primary);
+}
+
+.ov-panel__head .delta-row {
+  min-height: 0;
+}
+
+/* ------------------------------------------------------------------ Arten */
+/* One row per Art, the total below: units and measure with their shares as slim bars in the Art's colour, the Zubau,
+   the growth it made, the Zubau per year */
+.ov-mix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ov-mix th,
+.ov-mix td {
+  padding: 12px 14px 12px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ov-mix thead th {
+  padding-top: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+
+.ov-mix tbody tr + tr th,
+.ov-mix tbody tr + tr td {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ov-mix tbody tr.is-total th,
+.ov-mix tbody tr.is-total td {
+  border-top: 1px solid var(--border-strong);
+}
+
+/* The Art's name under a short band of its colour (hatched for a lower bound) */
+.ov-mix tbody th {
+  min-width: 9rem;
+  font-weight: 400;
+}
+
+.ov-mix tbody th::before {
   content: '';
-  height: 3px;
-  margin-bottom: 10px;
+  display: block;
+  width: 28px;
+  height: 4px;
+  margin: 2px 0 8px;
   border-radius: 2px;
   background: var(--part-pattern, var(--part-color));
 }
 
-.ov-art__head strong {
-  font-size: 17px;
+.ov-mix tbody tr.is-total th::before {
+  display: none;
+}
+
+.ov-mix__name {
+  display: block;
+  font-size: 15px;
   font-weight: 750;
   letter-spacing: -0.01em;
   color: var(--ink-primary);
 }
 
-.ov-art__head span {
-  font-size: 12.5px;
-  color: var(--ink-muted);
-}
-
-.ov-art__metric {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ov-art__label {
-  font-size: 11.5px;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.ov-art__value {
-  font-size: clamp(24px, 2.2vw, 30px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: var(--ink-primary);
-}
-
-.ov-art__value small {
-  margin-left: 5px;
-  font-size: 0.5em;
-  font-weight: 650;
-  letter-spacing: 0;
-  color: var(--ink-secondary);
-}
-
-.ov-art__share {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12.5px;
-  color: var(--ink-secondary);
-}
-
-.ov-art__share b {
-  font-weight: 700;
-  color: var(--ink-primary);
-}
-
-.ov-art__bar {
+.ov-mix__hint,
+.ov-mix__sub {
   display: block;
-  height: 12px;
-  border-radius: 6px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.ov-mix__value {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--ink-primary);
+}
+
+.is-total .ov-mix__value {
+  font-size: 15px;
+}
+
+.ov-mix__share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+.ov-mix__bar {
+  flex: 1 1 auto;
+  max-width: 120px;
+  height: 6px;
+  border-radius: 3px;
   background: var(--surface-sunken);
   overflow: hidden;
 }
 
-.ov-art__bar i {
+.ov-mix__bar i {
   display: block;
-  min-width: 3px;
+  min-width: 2px;
   height: 100%;
-  border-radius: 6px;
+  border-radius: 3px;
   background: var(--part-pattern, var(--part-color));
 }
 
-.ov-art__growth {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 650;
+.ov-mix__none {
+  color: var(--ink-muted);
+}
+
+.ov-mix td .delta + .ov-mix__sub {
+  margin-top: 6px;
+}
+
+.ov-mix__trend-head,
+.ov-mix__trend {
+  width: 24%;
+  min-width: 140px;
+  padding-right: 0 !important;
+}
+
+/* --------------------------------------------------------------- Targets */
+.ov-target {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ov-target + .ov-target {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ov-target > .bullet {
+  align-self: stretch;
+}
+
+.ov-target__head {
+  display: flex;
+  align-self: stretch;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ov-target__name {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--ink-secondary);
 }
 
-.ov-art__growth.is-up {
-  color: var(--success-ink);
+.ov-target__value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-primary);
 }
 
-.ov-art__also {
-  font-size: 12.5px;
+.ov-target__of {
+  margin-left: 6px;
+  font-size: 13.5px;
+  color: var(--ink-secondary);
+}
+
+.ov-target__pct {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+/* The bullet: the Bestand, hatched where the pace leads, the goal and an earlier one as marks */
+.bullet svg {
+  display: block;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.bullet__track {
+  fill: var(--surface-sunken);
+}
+
+.bullet__fill {
+  fill: var(--accent);
+}
+
+.bullet__hatch-ground {
+  fill: var(--surface-sunken);
+}
+
+.bullet__hatch {
+  fill: var(--accent);
+  fill-opacity: 0.55;
+}
+
+.bullet__goal line {
+  stroke: var(--ink-primary);
+  stroke-width: 2.5;
+}
+
+.bullet__milestone line {
+  stroke: var(--ink-secondary);
+  stroke-width: 2;
+}
+
+.bullet text {
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink-secondary);
+}
+
+.bullet__goal text {
+  fill: var(--ink-primary);
+}
+
+.ov-target__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: stretch;
+  gap: 12px;
+  margin: 0;
+}
+
+.ov-target__stats dt {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--ink-muted);
+}
+
+.ov-target__stats dd {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--ink-primary);
 }
 
 /* --------------------------------------------------------------- Chips */
@@ -325,8 +685,8 @@
   color: var(--danger-ink);
 }
 
-/* ------------------------------------------------------- Zubau and targets */
-/* Germany: the Zubau beside the targets; a Land or Kreis: the Zubau alone */
+/* -------------------------------------------------------- Arten and targets */
+/* Germany: the Arten beside the targets; a Land or Kreis: the Arten alone */
 .ov-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -334,7 +694,7 @@
 }
 
 .ov-row--aside {
-  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
   align-items: start;
 }
 
@@ -359,6 +719,28 @@
   vertical-align: -1px;
 }
 
+.ov-legend--start {
+  justify-content: flex-start;
+  font-size: 12px;
+}
+
+/* The same month a year before: a short dark line, as on the bars */
+.ov-legend i.ov-legend__line {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ink-primary);
+  vertical-align: 3px;
+}
+
+.ov-legend i.ov-legend__fill {
+  background: var(--accent);
+}
+
+.ov-legend i.ov-legend__hatch {
+  background: repeating-linear-gradient(135deg, var(--accent) 0 2px, var(--surface-sunken) 2px 4px);
+}
+
 .ov-note {
   margin: 0;
   font-size: 12.5px;
@@ -368,88 +750,6 @@
 
 .ov-note strong {
   color: var(--ink-primary);
-}
-
-/* A target reached; the earlier goal a mark with its year below it */
-.ov-progress {
-  position: relative;
-  height: 14px;
-  border-radius: 7px;
-  background: var(--surface-sunken);
-}
-
-.ov-progress__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 7px;
-  background: var(--accent);
-}
-
-.ov-progress__mark {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--ink-primary);
-}
-
-.ov-progress__mark-label {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-top: 2px;
-  font-size: 10.5px;
-  font-weight: 650;
-  white-space: nowrap;
-  color: var(--ink-secondary);
-  transform: translateX(-50%);
-}
-
-.ov-target {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ov-target + .ov-target {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border);
-}
-
-.ov-target .ov-progress:has(.ov-progress__mark) {
-  margin-bottom: 14px;
-}
-
-.ov-target__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13.5px;
-}
-
-.ov-target__name {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ink-primary);
-}
-
-.ov-target__pct {
-  font-size: 16px;
-  color: var(--ink-primary);
-}
-
-.ov-target__pace {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--ink-secondary);
 }
 
 /* ----------------------------------------------------------------- Report */
@@ -473,16 +773,15 @@
   font-family: var(--font-sans);
 }
 
-.ov-report .ov-tiles {
-  grid-template-columns: var(--ov-template);
-  gap: 12px;
+.ov-report .kpis {
+  gap: 10px;
 }
 
-.ov-report .ov-tile__value {
-  font-size: 32px;
+.ov-report .kpi {
+  padding: 12px 12px 10px;
 }
 
-.ov-report .ov-art__value {
+.ov-report .kpi__value {
   font-size: 26px;
 }
 
@@ -550,33 +849,85 @@
   color: var(--ink-secondary);
 }
 
-@media (max-width: 1000px) {
-  .ov-row--aside {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ov-tiles {
+@media (max-width: 1100px) {
+  .kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .ov-tile--wide {
-    grid-column: span 2;
+  .ov-row--aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  /* The last 12 months above the years */
+  .ov-612 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-612 .ov-panel:first-child {
+    padding-right: 0;
+  }
+
+  .ov-612 .ov-panel + .ov-panel {
+    padding-top: 16px;
+    padding-left: 0;
+    border-top: 1px solid var(--border-subtle);
+    border-left: 0;
   }
 }
 
 @media (max-width: 760px) {
-  /* The Arten one below the other */
-  .ov-arten {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
+  /* The table's rows as blocks: the name above, the numbers two by two with their column's name */
+  .ov-mix thead {
+    display: none;
   }
 
-  .ov-art {
+  .ov-mix,
+  .ov-mix tbody {
+    display: block;
+  }
+
+  .ov-mix tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    padding: 14px 0;
+  }
+
+  .ov-mix tbody tr + tr {
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .ov-mix tbody tr.is-total {
+    border-top: 1px solid var(--border-strong);
+  }
+
+  .ov-mix th,
+  .ov-mix td,
+  .ov-mix tbody tr + tr th,
+  .ov-mix tbody tr + tr td,
+  .ov-mix tbody tr.is-total th,
+  .ov-mix tbody tr.is-total td {
     padding: 0;
+    border-top: 0;
   }
 
-  .ov-art + .ov-art {
-    border-left: 0;
+  .ov-mix tbody th,
+  .ov-mix__trend {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+
+  .ov-mix td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
   }
 }
 
@@ -590,21 +941,26 @@
     padding-inline: 16px;
   }
 
-  /* Two numbers side by side */
-  .ov-tiles {
+  /* Two cards side by side */
+  .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .ov-tile {
-    padding: 12px 12px 14px;
+  .kpi {
+    padding: 12px 12px 12px;
   }
 
-  .ov-tile__label {
+  /* An odd last card across the row */
+  .kpi:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .kpi__label {
     font-size: 11px;
   }
 
-  .ov-tile__value {
+  .kpi__value {
     font-size: 26px;
   }
 }

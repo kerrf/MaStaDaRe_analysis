@@ -4,6 +4,7 @@ import { FileDown } from 'lucide-react';
 import ChartPlaceholder from '../../../components/ui/ChartPlaceholder';
 import ListSelect from '../../../components/ui/ListSelect';
 import Setting, { SettingsRow } from '../../../components/ui/Setting';
+import { regionName } from '../../../config/regions';
 import { API_BASE_URL } from '../../../config/site';
 import { useDatenstand, useJson } from '../../../lib/data';
 import { sourceLine } from '../../../lib/exportChart';
@@ -14,20 +15,35 @@ import { useFootnote } from '../footnoteContext';
 import ScopeBar from '../ScopeBar';
 import ScopeOutline from '../ScopeOutline';
 import SelectionBar from '../SelectionBar';
-import { PartsSection, ReportNotes, TargetsSection, Tiles, ZubauSection } from './blocks';
-import { MONTHS, asOfName, byTechnology, extentOf, indexSeries, pageModel, periodName, periodOf } from './model';
+import { Cards, PartsTable, ReportNotes, TargetsSection, ZubauSection } from './blocks';
+import {
+  MONTHS,
+  asOfName,
+  byTechnology,
+  extentOf,
+  historyOf,
+  indexSeries,
+  pageModel,
+  peersOf,
+  periodName,
+  periodOf,
+  trailingMonths,
+  yearToDate,
+} from './model';
 import { saveReport } from './report';
 import './overview.css';
 
 const BESTAND_NOTE =
   'Bestand und Zubau dieser Seite nach dem Inbetriebnahme- und dem Stilllegungsdatum der Einheiten: in Betrieb ist, was bis ' +
   'zum Ende des Zeitraums in Betrieb ging und nicht endgültig stillgelegt wurde – auch vorübergehend stillgelegte Einheiten. ' +
-  'Die Karte zählt nach dem heutigen Betriebsstatus und kommt deshalb auf einige Promille weniger. Anteil und Rang: unter den ' +
-  'Ländern Deutschlands oder den Kreisen des Landes, in ihren heutigen Grenzen.';
+  'Stilllegungen: was der Bestand neben dem Zubau verlor. Die Karte zählt nach dem heutigen Betriebsstatus und kommt deshalb ' +
+  'auf einige Promille weniger. Anteil, Rang und je Einwohner: unter den Ländern Deutschlands oder den Kreisen des Landes, in ' +
+  'ihren heutigen Grenzen und mit ihrer heutigen Einwohnerzahl.';
 const TARGETS_NOTE =
   'Ausbauziele des Bundes: Solar und Wind an Land nach EEG 2023, § 4, Wind auf See nach WindSeeG, § 1 – in Bruttoleistung, ' +
-  'wie das Gesetz sie zählt; alle anderen Werte der Seite netto. Der Strich auf dem Balken ist das Zwischenziel. Tempo: ' +
-  'der Zubau des letzten vollen Jahres gegen den Zubau, den das Ziel vom Ende des Zeitraums an in jedem Jahr braucht.';
+  'wie das Gesetz sie zählt; alle anderen Werte der Seite netto. Der Strich unter dem Balken ist das Zwischenziel. Tempo: ' +
+  'der Zubau des letzten vollen Jahres gegen den Zubau, den das Ziel vom Ende des Zeitraums an in jedem Jahr braucht. ' +
+  'Schraffiert: wohin dieses Tempo bis zum Ende des Zieljahres führt, wenn es so bleibt – keine Prognose.';
 const PLANNED_NOTE =
   'Einheiten „in Planung“ im Marktstammdatenregister, mit einem geplanten Inbetriebnahmedatum ab dem laufenden Monat, wie ' +
   'die Betreiber es angeben. Fast alle geplanten Windenergieanlagen haben ihre Genehmigung im Register; bei Solar fehlen ' +
@@ -61,9 +77,9 @@ function PeriodSetting({ period, latest, firstYear, onChange }) {
   );
 }
 
-// The page as a report, off screen while its PDF is made: a title with the area, the period and the Datenstand, a
-// then the blocks of the page one below the other, at the width of a page
-function OverviewReport({ reportRef, model, overview, technology, scope, region, kreisAgs, datenstand }) {
+// The page as a report, off screen while its PDF is made: a title with the area, the period and the Datenstand, then
+// the blocks of the page one below the other, at the width of a page. trends: what the blocks draw beside their numbers
+function OverviewReport({ reportRef, model, trends, overview, technology, scope, region, kreisAgs, datenstand }) {
   return createPortal(
     <div className="ov-report" ref={reportRef} aria-hidden="true">
       <div className="ov-report__block ov-report__cover">
@@ -85,16 +101,16 @@ function OverviewReport({ reportRef, model, overview, technology, scope, region,
         </div>
       </div>
       <div className="ov-report__block">
-        <Tiles model={model} overview={overview} scope={scope} />
+        <Cards {...trends} model={model} overview={overview} scope={scope} />
+      </div>
+      <div className="ov-report__block">
+        <ZubauSection {...trends} model={model} scopeName={scope.name} />
       </div>
       {model.parts.filter((p) => p.units > 0 || p.value > 0).length > 1 && (
         <div className="ov-report__block">
-          <PartsSection model={model} overview={overview} scopeName={scope.name} />
+          <PartsTable {...trends} model={model} overview={overview} />
         </div>
       )}
-      <div className="ov-report__block">
-        <ZubauSection model={model} scopeName={scope.name} />
-      </div>
       {model.targets && (
         <div className="ov-report__block">
           <TargetsSection model={model} />
@@ -151,7 +167,6 @@ export default function OverviewView({ config, state }) {
             index,
             period,
             latest: extent.latest,
-            firstYear: extent.firstYear,
             datenstand,
             bestand: bestand.data,
             scope,
@@ -162,6 +177,21 @@ export default function OverviewView({ config, state }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [overview, index, extent, period?.year, period?.month, datenstand, bestand.data, scopeKey, kind, parentName, geplantByTechnology],
   );
+
+  // What the cards and charts draw beside their numbers: the years and the last 12 months of the series, the peers
+  const trends = useMemo(() => {
+    if (!model) return null;
+    const placeName = (key) => (key.length === 2 ? regionName(key) : (kreisOptions?.find((k) => k.ags === key)?.name ?? key));
+    return {
+      history: historyOf(model, index, extent.firstYear),
+      trailing: trailingMonths(model, index),
+      ytd: yearToDate(model, index),
+      peers: peersOf(bestand.data, scope),
+      placeName,
+    };
+    // scope is a new object every render: its keys decide
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model, index, extent, bestand.data, scopeKey, kind, kreisOptions]);
 
   // The page's remarks, in the order the page marks them
   const isSolar = overview.parts.some((p) => p.id === 'balkon');
@@ -260,7 +290,8 @@ export default function OverviewView({ config, state }) {
     );
   }
 
-  const { measure, parts, chart, targets } = model;
+  const { measure, parts, targets } = model;
+  const { history, trailing } = trends;
   const [, many] = overview.units ?? ['Anlage', 'Anlagen'];
   const unit = measure.format === 'capacity' ? 'MWh' : 'MW';
   const measureName = measure.label.replace('Installierte ', '');
@@ -280,18 +311,26 @@ export default function OverviewView({ config, state }) {
         [`Anteil an ${measureName} (%)`]: round(p.shareValue * 100, 2),
         [`Zubau: ${many}`]: p.addedUnits,
         [`Zubau (${unit})`]: round(p.added, 3),
-        [`Zubau ggü. Bestand davor: ${many} (%)`]: p.growthUnits == null ? null : round(p.growthUnits * 100, 2),
-        [`Zubau ggü. Bestand davor: ${measureName} (%)`]: p.growthValue == null ? null : round(p.growthValue * 100, 2),
+        [`Wachstum seit Ende ${periodName(model.start)}: ${many} (%)`]: p.growthUnits == null ? null : round(p.growthUnits * 100, 2),
+        [`Wachstum seit Ende ${periodName(model.start)}: ${measureName} (%)`]: p.growthValue == null ? null : round(p.growthValue * 100, 2),
       })),
   };
+  // The years, then the last 12 months with the same month a year before
   const zubauCsv = {
     name: 'ueberblick-zubau',
     filename: fileName(fileBase, 'zubau', periodSlug),
-    rows: () =>
-      chart.periods.map((p) => ({
+    rows: () => [
+      ...history.map((h) => ({
+        Zeitraum: h.partial ? `${h.year} (unvollständig)` : String(h.year),
+        ...Object.fromEntries(parts.map((part) => [`${part.label} (${unit})`, round(h.parts[part.id].added, 3)])),
+        [`Vorjahr (${unit})`]: null,
+      })),
+      ...trailing.periods.map((p) => ({
         Zeitraum: p.label,
         ...Object.fromEntries(parts.map((part) => [`${part.label} (${unit})`, p.values[part.id] == null ? null : round(p.values[part.id], 3)])),
+        [`Vorjahr (${unit})`]: round(p.before, 3),
       })),
+    ],
   };
   const targetsCsv = targets && {
     name: 'ueberblick-ziele',
@@ -306,6 +345,8 @@ export default function OverviewView({ config, state }) {
         'Erreicht (%)': round((t.installed / t.goal.value) * 100, 1),
         [`Zubau ${t.pace.year} brutto (MW)`]: round(t.pace.actual, 1),
         'Nötiger Zubau je Jahr (MW)': round(t.pace.needed, 1),
+        [`Im Tempo ${t.pace.year} Ende ${t.goal.year} (MW)`]: round(t.projection.atGoal, 1),
+        [`Im Tempo ${t.pace.year} erreicht im Jahr`]: t.projection.reachedIn,
       })),
   };
 
@@ -314,16 +355,19 @@ export default function OverviewView({ config, state }) {
       {scopeBar}
       {band}
       {head}
-      <Tiles model={model} overview={overview} scope={scope} />
-      <PartsSection model={model} overview={overview} scopeName={scopeName} csv={partsCsv} />
-      <div className={`ov-row${targets ? ' ov-row--aside' : ''}`}>
-        <ZubauSection model={model} scopeName={scopeName} csv={zubauCsv} moreHref={state.hrefOf('zubau')} />
-        {targets && <TargetsSection model={model} csv={targetsCsv} />}
-      </div>
+      <Cards {...trends} model={model} overview={overview} scope={scope} />
+      <ZubauSection {...trends} model={model} scopeName={scopeName} csv={zubauCsv} moreHref={state.hrefOf('zubau')} />
+      {(shown.length > 1 || targets) && (
+        <div className={`ov-row${targets && shown.length > 1 ? ' ov-row--aside' : ''}`}>
+          <PartsTable {...trends} model={model} overview={overview} csv={partsCsv} />
+          {targets && <TargetsSection model={model} csv={targetsCsv} />}
+        </div>
+      )}
       {report && (
         <OverviewReport
           reportRef={reportRef}
           model={model}
+          trends={trends}
           overview={overview}
           technology={technology}
           scope={scope}

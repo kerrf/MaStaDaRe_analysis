@@ -1,119 +1,170 @@
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp } from 'lucide-react';
 import StackedChart from '../../../components/charts/StackedChart';
 import { hatchOf } from '../../../lib/colorScale';
 import { ChartFoot } from '../../../components/ui/ChartExport';
 import { formatCount, formatNumber, formatPercent } from '../../../lib/format';
 import { FootnoteContext } from '../footnoteContext';
 import { FootnoteRef } from '../footnotes';
-import { asOfName, formatOf, inPeriod, joined, percent, periodName, signed } from './model';
+import { Bullet, Delta, PeerStrip, Spark, SparkBars } from './charts';
+import { MONTHS, asOfName, formatOf, inPeriod, joined, percent, periodName, signed } from './model';
 
 // The blocks of the page Überblick, the same on the page and in its PDF report (report: without links and exports)
 
-// ------------------------------------------------------------------------------------------------------- Tiles
-// A number large, with its line of context
-function TileValue({ value, unit, sub }) {
-  return (
-    <div className="ov-tile__part">
-      <div className="ov-tile__value tabular">
-        {value}
-        {unit && <span className="ov-tile__unit">{unit}</span>}
-      </div>
-      {sub && <div className="ov-tile__sub">{sub}</div>}
-    </div>
-  );
-}
+// The words of a measure: its unit for the axes, its name without "Installierte"
+const unitOf = (measure) => (measure.format === 'capacity' ? 'MWh' : 'MW');
+const nameOf = (measure) => measure.label.replace('Installierte ', '');
+// The growth of the units since the period's start, net of the decommissioned
+const unitsGrowth = (total) => (total.startUnits > 0 ? (total.units - total.startUnits) / total.startUnits : null);
+// What a year of the trends is called: "2026 (bis heute)", "2025 (bis März)"
+const yearName = (model, h) =>
+  h.year !== model.period.year || !h.partial ? String(h.year) : model.running ? `${h.year} (bis heute)` : `${h.year} (bis ${MONTHS[model.period.month - 1]})`;
 
-// One number on its own card: what it is, the number large, one line of context; second: another number beside it, the
-// same thing seen another way (the Zubau and the growth it made), a dashed line between them and the card wider
-function Tile({ label, value, unit, sub, note, tone, second }) {
+// ------------------------------------------------------------------------------------------------------- Cards
+// One number per card, each read the same way: what it is, the number large, how it changed (a chip, and against
+// what), its trend as a small chart, one line of context
+function Card({ label, note, value, unit, delta, chart, foot }) {
   return (
-    <div className={`card ov-tile${tone ? ` ov-tile--${tone}` : ''}${second ? ' ov-tile--wide' : ''}`}>
-      <div className="ov-tile__label">
+    <div className="card kpi">
+      <div className="kpi__label">
         {label}
         {note}
       </div>
-      <div className="ov-tile__values">
-        <TileValue value={value} unit={unit} sub={sub} />
-        {second && <TileValue {...second} />}
+      <div className="kpi__value">
+        {value}
+        {unit && <span className="kpi__unit">{unit}</span>}
       </div>
+      {delta}
+      <div className="kpi__chart">{chart}</div>
+      {foot && <div className="kpi__foot">{foot}</div>}
     </div>
   );
 }
 
 /**
- * The numbers of the period, each on its card: the Bestand at its end (with its share and rank among its peers), the
- * units, the Zubau (with the growth of the Bestand it made), the Zubau against the year before, the planned units.
+ * The numbers of the period, each on its card with its trend: the Bestand at its end and its units (the line of the
+ * last 15 years), the Zubau in it against the year before (bars per year, or per month), the Bestand per inhabitant
+ * among the peers (a strip), the planned units by their year – for a period past the Stilllegungen in it.
+ * history, trailing, peers: from historyOf, trailingMonths, peersOf; placeName(key): a Land's or Kreis's name.
  */
-export function Tiles({ model, overview, scope }) {
-  const { measure, total, change, comparison, planned } = model;
+export function Cards({ model, overview, scope, history, trailing, peers, placeName }) {
+  const { measure, total, change, comparison, planned, period } = model;
   const format = formatOf(measure.format);
+  const text = (value) => joined(format(value));
   const [one, many] = overview.units ?? ['Anlage', 'Anlagen'];
   const noun = (n) => (n === 1 ? one : many);
   const small = measure.format === 'capacity' ? 'kWh' : 'kW';
-  const growthLine = `Bestand seit Ende ${periodName(model.start)}${total.removed > 0.0005 ? ` · ${joined(format(total.removed))} stillgelegt` : ''}`;
-  const tiles = [
+  const since = `seit Ende ${periodName(model.start)}`;
+  const axis = [String(history[0].year), model.running ? 'heute' : periodName(period)];
+  const endOf = (h) => (h.year !== period.year ? `Ende ${h.year}` : model.running ? 'Heute' : `Ende ${periodName(period)}`);
+  const yearBars = (pick) => history.map((h) => ({ key: String(h.year), label: yearName(model, h), tick: String(h.year), value: pick(h), partial: h.partial }));
+  // A growth: against what, or – without a Bestand before – all new
+  const growth = (value) => (value != null ? <Delta value={value} label={since} /> : <Delta label={`neu ${inPeriod(model)}`} />);
+
+  // The Zubau: per year up to the year, or per month up to the month
+  const zubauBars = period.month
+    ? trailing.periods.map((p) => ({ key: p.key, label: p.label, tick: p.tick, value: Object.values(p.values).reduce((a, b) => a + (b ?? 0), 0), partial: p.partial }))
+    : yearBars((h) => h.added);
+  let zubauDelta = null;
+  if (change?.change != null) zubauDelta = <Delta value={change.change} label={`ggü. ${change.vsLabel}`} />;
+  else if (change?.minor) zubauDelta = <Delta label="kaum Zubau, kein Vergleich" />;
+  else if (model.running && period.month) zubauDelta = <Delta label="Monat läuft noch" />;
+
+  // Per inhabitant: power in W, capacity in Wh
+  const headUnit = measure.format === 'capacity' ? 'Wh' : 'W';
+  const headValue = (v) => formatNumber(v, v < 10 ? 1 : 0);
+  const head = (v) => `${headValue(v)} ${headUnit}`;
+  const peersName = scope.kind === 'kreis' ? 'Kreisen' : 'Ländern';
+
+  const removedUnits = Math.max(0, total.startUnits + total.addedUnits - total.units);
+  const cards = [
     {
       id: 'bestand',
       label: measure.label,
       note: <FootnoteRef id="bestand" />,
       ...format(total.value),
-      sub:
+      delta: growth(total.growth),
+      chart: <Spark points={history.map((h) => ({ key: h.key, label: endOf(h), value: h.value }))} format={text} axis={axis} label={`${measure.label} je Jahr`} />,
+      foot:
         comparison?.share != null
           ? `${percent(comparison.share)} von ${scope.parentName} · Rang ${comparison.rank.rank} von ${comparison.rank.of}`
-          : [asOfName(model), total.also != null && `Leistung ${joined(formatOf(overview.also.format)(total.also))}`].filter(Boolean).join(' · '),
+          : total.also != null
+            ? `Leistung ${joined(formatOf(overview.also.format)(total.also))} · Stand ${asOfName(model)}`
+            : `netto · Stand ${asOfName(model)}`,
     },
     {
       id: 'units',
       label: `${many} in Betrieb`,
       value: formatCount(total.units),
-      sub: total.avgSize != null ? `Ø ${formatNumber(total.avgSize, total.avgSize < 10 ? 1 : 0)} ${small} je ${one}` : null,
+      delta: growth(unitsGrowth(total)),
+      chart: <Spark points={history.map((h) => ({ key: h.key, label: endOf(h), value: h.units }))} format={formatCount} axis={axis} label={`${many} je Jahr`} />,
+      foot: total.avgSize != null ? `Ø ${formatNumber(total.avgSize, total.avgSize < 10 ? 1 : 0)} ${small} je ${one}` : null,
     },
     {
       id: 'zubau',
-      label: `Zubau ${periodName(model.period)}`,
+      label: `Zubau ${periodName(period)}`,
       ...format(total.added),
       value: `+${format(total.added).value}`,
-      sub: total.addedUnits
-        ? `${formatCount(total.addedUnits)} ${noun(total.addedUnits)}${total.avgNew != null ? `, Ø ${formatNumber(total.avgNew, total.avgNew < 10 ? 1 : 0)} ${small}` : ''}`
-        : 'nichts Neues',
-      // What it did to the Bestand: the growth since the period's start, net of what was decommissioned
-      // (its line sits under "In Planung" where that is shown)
-      second: total.growth != null && {
-        value: signed(total.growth),
-        sub: planned ? null : growthLine,
-      },
-    },
-    change &&
-      (change.change != null || change.minor) && {
-        id: 'change',
-        label: 'Zubau ggü. Vorjahr',
-        value: change.minor ? 'kaum' : signed(change.change),
-        tone: change.minor || Math.abs(change.change) < 0.05 ? null : change.change > 0 ? 'up' : 'down',
-        sub: `${change.nowLabel}: ${joined(format(change.now))} · ${change.beforeLabel}: ${joined(format(change.before))}`,
-      },
-    planned && {
-      id: 'planned',
-      label: 'In Planung',
-      note: <FootnoteRef id="geplant" />,
-      ...format(planned.value),
-      sub: (
-        <>
-          <span>
-            {planned.units ? `${formatCount(planned.units)} ${noun(planned.units)}${planned.to ? ` · bis ${planned.to}` : ''}` : 'keine im Register'}
-          </span>
-          {total.growth != null && <span>{growthLine}</span>}
-        </>
+      delta: zubauDelta,
+      chart: (
+        <SparkBars
+          bars={zubauBars}
+          highlight={zubauBars.at(-1).key}
+          format={text}
+          label={period.month ? 'Zubau je Monat' : 'Zubau je Jahr'}
+        />
       ),
+      foot: total.addedUnits
+        ? `${formatCount(total.addedUnits)} ${noun(total.addedUnits)}${total.avgNew != null ? ` · Ø ${formatNumber(total.avgNew, total.avgNew < 10 ? 1 : 0)} ${small}` : ''}`
+        : 'nichts Neues',
     },
+    peers?.value != null && {
+      id: 'head',
+      label: 'Je Einwohner',
+      value: headValue(peers.value),
+      unit: headUnit,
+      delta: peers.own ? (
+        <Delta label={`unter ${peers.peers.length} ${peersName}`}>Rang {peers.rank}</Delta>
+      ) : (
+        <Delta label={`Länder: ${head(peers.peers.at(-1).value)} bis ${head(peers.peers[0].value)}`} />
+      ),
+      chart: (
+        <PeerStrip
+          peers={peers.peers}
+          own={peers.own?.key}
+          reference={peers.reference}
+          referenceLabel={scope.kind === 'de' ? 'Deutschland' : scope.parentName}
+          nameOf={placeName}
+          format={head}
+          axis={['0', head(peers.peers[0].value)]}
+          label={`${measure.label} je Einwohner im Vergleich der ${scope.kind === 'kreis' ? 'Kreise' : 'Länder'}`}
+        />
+      ),
+      foot: peers.own ? `${scope.parentName}: ${head(peers.reference)}` : `Vorn: ${placeName(peers.peers[0].key)}`,
+    },
+    planned
+      ? {
+          id: 'planned',
+          label: 'In Planung',
+          note: <FootnoteRef id="geplant" />,
+          ...format(planned.value),
+          delta: <Delta label="nach geplanter Inbetriebnahme" />,
+          chart: <SparkBars bars={planned.byYear} format={text} ticks="all" label="In Planung je Jahr der geplanten Inbetriebnahme" />,
+          foot: planned.units ? `${formatCount(planned.units)} ${noun(planned.units)}${planned.to ? ` · bis ${planned.to}` : ''}` : 'keine im Register',
+        }
+      : {
+          id: 'removed',
+          label: `Stilllegungen ${periodName(period)}`,
+          ...format(total.removed),
+          delta: <Delta label={total.start > 0 ? `${percent(total.removed / total.start)} des Bestands Ende ${periodName(model.start)}` : null} />,
+          chart: <SparkBars bars={yearBars((h) => h.removed)} highlight={String(period.year)} format={text} label="Stilllegungen je Jahr" />,
+          foot: removedUnits ? `${formatCount(removedUnits)} ${noun(removedUnits)}` : 'keine',
+        },
   ].filter(Boolean);
-  // One row, the wide card half as wide again as the others
-  const template = tiles.map((t) => (t.second ? '1.5fr' : '1fr')).join(' ');
   return (
-    <div className="ov-tiles" style={{ '--ov-template': template }}>
-      {tiles.map(({ id, ...tile }) => (
-        <Tile key={id} {...tile} />
+    <div className="kpis" style={{ '--kpis': cards.length }}>
+      {cards.map(({ id, ...card }) => (
+        <Card key={id} {...card} />
       ))}
     </div>
   );
@@ -137,121 +188,88 @@ export function Section({ title, lead, aside, csv, className = '', children }) {
   );
 }
 
-// A share as a slim bar in the part's colour, the number beside it
-function ShareBar({ share, label }) {
+// The head of a chart: what it shows and over which time, its number, its change
+function PanelHead({ title, span, value, delta }) {
   return (
-    <div className="ov-art__share" title={`${percent(share)} ${label}`}>
-      <span className="ov-art__bar" aria-hidden="true">
-        <i style={{ width: `${Math.min(1, Math.max(0, share)) * 100}%` }} />
-      </span>
-      <span>
-        <b className="tabular">{percent(share)}</b> {label}
-      </span>
-    </div>
-  );
-}
-
-// The Zubau of the period relative to the Bestand at its start: "+7,8 % in 2026"; "neu" where there was none before
-function Growth({ growth, added, model, title }) {
-  if (growth == null) return added > 0 ? <div className="ov-art__growth is-up">neu {inPeriod(model)}</div> : null;
-  return (
-    <div className={`ov-art__growth${growth > 0 ? ' is-up' : ''}`} title={title}>
-      {growth > 0 && <TrendingUp size={14} aria-hidden="true" />}
-      <span className="tabular">+{percent(growth)}</span> {inPeriod(model)}
+    <div className="ov-panel__head">
+      <div className="ov-panel__title">
+        <strong>{title}</strong>
+        <span>{span}</span>
+      </div>
+      <div className="ov-panel__value">{value}</div>
+      {delta}
     </div>
   );
 }
 
 /**
- * The Arten side by side, each a column read from top to bottom: its name, its units and its measure, each with its
- * share of all and its Zubau in the period relative to its Bestand at the period's start.
+ * The Zubau two ways side by side: the last 12 months, each against the same month a year before, and their sum
+ * against the 12 before them; the years up to the period's, its own against the year before (a month's: the year up to
+ * it, ytd).
  */
-export function PartsSection({ model, overview, scopeName, csv }) {
-  const { measure, parts } = model;
-  const shown = parts.filter((p) => p.units > 0 || p.value > 0);
-  if (shown.length < 2) return null;
+export function ZubauSection({ model, scopeName, history, trailing, ytd, csv, moreHref }) {
+  const { measure, change, period } = model;
   const format = formatOf(measure.format);
-  const [, many] = overview.units ?? ['Anlage', 'Anlagen'];
-  const measureName = measure.label.replace('Installierte ', '');
-  const before = model.period.month ? 'dem Vormonat' : model.period.year - 1;
-  const hinted = shown.some((p) => p.hint);
-  return (
-    <Section
-      title={overview.title}
-      lead={`${scopeName} · Bestand ${asOfName(model)}, je Art ihr Anteil und ihr Zubau ${inPeriod(model)} gemessen am Bestand davor`}
-      csv={csv}
-      className="ov-parts"
-    >
-      <ul className="ov-arten" style={{ '--ov-arten': shown.length }}>
-        {shown.map((p) => {
-          const value = format(p.value);
-          return (
-            <li key={p.id} className="ov-art" style={{ '--part-color': p.color, '--part-pattern': p.hatch ? hatchOf(p) : undefined }}>
-              <div className="ov-art__head">
-                <strong>
-                  {p.label}
-                  {p.id === 'balkon' && <FootnoteRef id="balkon" />}
-                </strong>
-                {/* Every column a line for it, so their numbers stand at the same height */}
-                {hinted && <span>{p.hint ?? '\u00a0'}</span>}
-              </div>
-              <div className="ov-art__metric">
-                <span className="ov-art__label">{many}</span>
-                <span className="ov-art__value tabular">{formatCount(p.units)}</span>
-                <ShareBar share={p.shareUnits} label={`aller ${many}`} />
-                <Growth
-                  growth={p.growthUnits}
-                  added={p.addedUnits}
-                  model={model}
-                  title={`${formatCount(p.addedUnits)} ${many} neu, ${percent(p.growthUnits ?? 0)} mehr als Ende ${before}`}
-                />
-              </div>
-              <div className="ov-art__metric">
-                <span className="ov-art__label">{measureName}</span>
-                <span className="ov-art__value tabular">
-                  {value.value}
-                  <small>{value.unit}</small>
-                </span>
-                <ShareBar share={p.shareValue} label={`der ${measureName}`} />
-                <Growth growth={p.growthValue} added={p.added} model={model} title={`${joined(format(p.added))} neu`} />
-                {p.also != null && <span className="ov-art__also">Leistung {joined(formatOf(overview.also.format)(p.also))}</span>}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Section>
-  );
-}
-
-/** The Zubau per year up to the year chosen, or per month of the year with the month chosen. */
-export function ZubauSection({ model, scopeName, csv, moreHref }) {
-  const { measure, chart, total, period, running } = model;
-  const format = formatOf(measure.format);
-  const unit = measure.format === 'capacity' ? 'MWh' : 'MW';
+  const unit = unitOf(measure);
   const series = model.parts.map((p) => ({ id: p.id, label: p.label, color: p.color, hatch: p.hatch }));
-  const byMonth = chart.mode === 'months';
-  const shown = byMonth ? 'je Monat' : 'je Jahr';
+  const years = history.map((h) => ({
+    key: h.key,
+    label: yearName(model, h),
+    tick: String(h.year),
+    partial: h.partial,
+    values: Object.fromEntries(model.parts.map((p) => [p.id, h.parts[p.id].added])),
+  }));
+  // The same month a year before, for the complete months
+  const reference = { label: 'Vorjahresmonat', values: Object.fromEntries(trailing.periods.filter((p) => !p.partial).map((p) => [p.key, p.before])) };
+  const thisYear = history.at(-1);
+  // The year's change: up to the month against the same months a year before, or the page's
+  const yearChange = period.month ? ytd : change;
   return (
-    <Section
-      title={byMonth ? `Zubau je Monat ${period.year}` : 'Zubau je Jahr'}
-      lead={`${scopeName} · neu in Betrieb, ${shown}${byMonth ? `, ${periodName(period)} hervorgehoben` : ''}${chart.periods.some((p) => p.partial) ? ', bis heute hell' : ''}`}
-      csv={csv}
-    >
-      <StackedChart periods={chart.periods} series={series} kind="bars" unit={unit} label={`Zubau ${shown} in ${scopeName}`} />
-      {series.length > 1 && (
-        <ul className="ov-legend" aria-label="Farben">
-          {series.map((s) => (
+    <Section title="Zubau" lead={`${scopeName} · neu in Betrieb, netto`} csv={csv} className="ov-zubau">
+      <div className="ov-612">
+        <div className="ov-panel">
+          <PanelHead
+            title={trailing.wholeYear ? 'Je Monat' : 'Letzte 12 Monate'}
+            span={trailing.span}
+            value={joined(format(trailing.now))}
+            delta={<Delta value={trailing.change} label={trailing.wholeYear ? `ggü. ${trailing.wholeYear - 1}` : 'ggü. den 12 Monaten davor'} />}
+          />
+          <StackedChart
+            periods={trailing.periods}
+            series={series}
+            kind="bars"
+            unit={unit}
+            height={250}
+            reference={reference}
+            label={`Zubau je Monat in ${scopeName}, die letzten 12 Monate`}
+          />
+        </div>
+        <div className="ov-panel">
+          <PanelHead
+            title="Je Jahr"
+            span={`${years[0].key} – ${yearName(model, thisYear)}`}
+            value={joined(format(thisYear.added))}
+            delta={yearChange?.change != null ? <Delta value={yearChange.change} label={`ggü. ${yearChange.vsLabel}`} /> : null}
+          />
+          <StackedChart periods={years} series={series} kind="bars" unit={unit} height={250} label={`Zubau je Jahr in ${scopeName}`} />
+        </div>
+      </div>
+      <ul className="ov-legend" aria-label="Legende">
+        {series.length > 1 &&
+          series.map((s) => (
             <li key={s.id}>
               <i style={{ background: s.hatch ? hatchOf(s) : s.color }} aria-hidden="true" />
               {s.label}
             </li>
           ))}
-        </ul>
-      )}
+        <li>
+          <i className="ov-legend__line" aria-hidden="true" />
+          Vorjahresmonat
+        </li>
+      </ul>
       <p className="ov-note">
-        <strong className="tabular">{joined(format(total.added))}</strong> {inPeriod(model)}
-        {running && ' bis heute'}. Die letzten Monate steigen noch: viele Anlagen werden erst Wochen nach der Inbetriebnahme registriert.
+        Hell: noch nicht abgeschlossen. Die letzten Monate steigen noch: viele Anlagen werden erst Wochen nach der Inbetriebnahme
+        registriert.
         {moreHref && (
           <>
             {' '}
@@ -263,17 +281,116 @@ export function ZubauSection({ model, scopeName, csv, moreHref }) {
   );
 }
 
-// A target reached as a bar: value 0..1 (beyond 1 full); mark: { at, label } – an earlier goal on the way
-function Progress({ value, mark, label }) {
+// A share as a slim bar in the part's colour, the number beside it
+function Share({ share }) {
   return (
-    <div className="ov-progress" role="img" aria-label={label}>
-      <span className="ov-progress__fill" style={{ width: `${Math.min(1, Math.max(0, value)) * 100}%` }} />
-      {mark && (
-        <span className="ov-progress__mark" style={{ left: `${Math.min(1, mark.at) * 100}%` }}>
-          <span className="ov-progress__mark-label">{mark.label}</span>
-        </span>
-      )}
+    <div className="ov-mix__share">
+      <span className="ov-mix__bar" aria-hidden="true">
+        <i style={{ width: `${Math.min(1, Math.max(0, share)) * 100}%` }} />
+      </span>
+      <span className="tabular">{percent(share)}</span>
     </div>
+  );
+}
+
+/**
+ * The Arten as a table, one row each and the total below them: units and measure with their shares, the Zubau of the
+ * period, the growth of the Bestand since the period's start, the Zubau per year as small bars.
+ */
+export function PartsTable({ model, overview, history, csv }) {
+  const { measure, parts, total, period } = model;
+  const shown = parts.filter((p) => p.units > 0 || p.value > 0);
+  if (shown.length < 2) return null;
+  const format = formatOf(measure.format);
+  const text = (value) => joined(format(value));
+  const alsoText = overview.also && ((value) => joined(formatOf(overview.also.format)(value)));
+  const [one, many] = overview.units ?? ['Anlage', 'Anlagen'];
+  const noun = (n) => (n === 1 ? one : many);
+  const barsOf = (pick) => history.map((h) => ({ key: String(h.year), label: yearName(model, h), tick: String(h.year), value: pick(h), partial: h.partial }));
+  const growth = (value, added) =>
+    value != null ? <Delta value={value} /> : added > 0 ? <span className="delta delta--up">neu</span> : <span className="ov-mix__none">–</span>;
+  const rows = [
+    ...shown.map((p) => ({ ...p, bars: barsOf((h) => h.parts[p.id].added), barColor: p.hatch ?? p.color })),
+    {
+      id: 'total',
+      label: 'Gesamt',
+      ...total,
+      shareUnits: null,
+      shareValue: null,
+      growthValue: total.growth,
+      growthUnits: unitsGrowth(total),
+      bars: barsOf((h) => h.added),
+      barColor: 'var(--accent)',
+    },
+  ];
+  return (
+    <Section
+      title={overview.title}
+      lead={`Bestand ${asOfName(model)} · Zubau ${inPeriod(model)} · Wachstum des Bestands seit Ende ${periodName(model.start)}`}
+      csv={csv}
+      className="ov-parts"
+    >
+      <table className="ov-mix">
+        <thead>
+          <tr>
+            <th scope="col">Art</th>
+            <th scope="col">{many}</th>
+            <th scope="col">{nameOf(measure)}</th>
+            <th scope="col">Zubau {periodName(period)}</th>
+            <th scope="col">Wachstum</th>
+            <th scope="col" className="ov-mix__trend-head">
+              Zubau je Jahr
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const isTotal = r.id === 'total';
+            return (
+              <tr
+                key={r.id}
+                className={isTotal ? 'is-total' : undefined}
+                style={isTotal ? undefined : { '--part-color': r.color, '--part-pattern': r.hatch ? hatchOf(r) : undefined }}
+              >
+                <th scope="row">
+                  <span className="ov-mix__name">
+                    {r.label}
+                    {r.id === 'balkon' && <FootnoteRef id="balkon" />}
+                  </span>
+                  {r.hint && <span className="ov-mix__hint">{r.hint}</span>}
+                </th>
+                <td data-label={many}>
+                  <span className="ov-mix__value tabular">{formatCount(r.units)}</span>
+                  {r.shareUnits != null && <Share share={r.shareUnits} />}
+                </td>
+                <td data-label={nameOf(measure)}>
+                  <span className="ov-mix__value tabular">{text(r.value)}</span>
+                  {r.shareValue != null && <Share share={r.shareValue} />}
+                  {alsoText && r.also != null && <span className="ov-mix__sub">Leistung {alsoText(r.also)}</span>}
+                </td>
+                <td data-label={`Zubau ${periodName(period)}`}>
+                  <span className="ov-mix__value tabular">+{text(r.added)}</span>
+                  <span className="ov-mix__sub tabular">
+                    {formatCount(r.addedUnits)} {noun(r.addedUnits)}
+                  </span>
+                </td>
+                <td data-label="Wachstum">
+                  {growth(r.growthValue, r.added)}
+                  {r.growthUnits != null && (
+                    <span className="ov-mix__sub tabular">
+                      {many} {signed(r.growthUnits)}
+                    </span>
+                  )}
+                </td>
+                <td data-label="Zubau je Jahr" className="ov-mix__trend">
+                  <SparkBars bars={r.bars} highlight={String(period.year)} format={text} color={r.barColor} height={30} label={`Zubau je Jahr: ${r.label}`} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </Section>
   );
 }
 
@@ -284,44 +401,77 @@ function PaceChip({ ratio }) {
   return <span className={`ov-chip ov-chip--${tone}`}>{formatPercent(ratio)} des nötigen Tempos</span>;
 }
 
-/** Germany: the national targets at the period's end, in Bruttoleistung. */
+/**
+ * Germany: the national targets at the period's end, in Bruttoleistung – each a bullet (the Bestand, where the pace of
+ * the last full year leads by the goal's year, the goal) and its numbers: the pace, the pace needed, the outlook.
+ */
 export function TargetsSection({ model, csv }) {
   const { targets } = model;
   const format = formatOf('power');
+  const text = (value) => joined(format(value));
+  const { year } = targets[0].goal;
   return (
     <Section
       title={
         <>
-          Ausbauziel {targets[0].goal.year}
+          Ausbauziel {year}
           <FootnoteRef id="ziele" />
         </>
       }
-      lead={`Stand ${asOfName(model)}, Bruttoleistung`}
+      lead={`Bruttoleistung, Stand ${asOfName(model)}`}
       csv={csv}
+      className="ov-targets"
     >
-      {targets.map((t) => (
-        <div key={t.id} className="ov-target">
-          <div className="ov-target__row">
-            <span>
-              {targets.length > 1 && <span className="ov-target__name">{t.label}</span>}
-              <strong className="tabular">{joined(format(t.installed))}</strong> von {joined(format(t.goal.value))}
-            </span>
-            <strong className="ov-target__pct tabular">{formatPercent(t.installed / t.goal.value)}</strong>
-          </div>
-          <Progress
-            value={t.installed / t.goal.value}
-            mark={t.milestone && { at: t.milestone.value / t.goal.value, label: `Ziel ${t.milestone.year}` }}
-            label={`${t.label}: ${formatPercent(t.installed / t.goal.value)} des Ziels ${t.goal.year}`}
-          />
-          <p className="ov-target__pace">
+      {targets.map((t) => {
+        const { reachedIn } = t.projection;
+        const outlook =
+          t.installed >= t.goal.value ? 'erreicht' : reachedIn == null ? 'ohne Zubau nie' : reachedIn <= t.goal.year ? `${reachedIn} erreicht` : `erst ${reachedIn}`;
+        return (
+          <div key={t.id} className="ov-target">
+            <div className="ov-target__head">
+              <div>
+                {targets.length > 1 && <span className="ov-target__name">{t.label}</span>}
+                <span className="ov-target__value tabular">{text(t.installed)}</span>
+                <span className="ov-target__of">von {text(t.goal.value)}</span>
+              </div>
+              <strong className="ov-target__pct tabular">{formatPercent(t.installed / t.goal.value)}</strong>
+            </div>
+            <Bullet
+              installed={t.installed}
+              goal={t.goal}
+              milestone={t.milestone}
+              projected={t.projection.atGoal}
+              format={text}
+              label={`${t.label}: ${formatPercent(t.installed / t.goal.value)} des Ziels ${t.goal.year}`}
+            />
+            <dl className="ov-target__stats">
+              <div>
+                <dt>Zubau {t.pace.year}</dt>
+                <dd className="tabular">{text(t.pace.actual)}</dd>
+              </div>
+              <div>
+                <dt>Nötig je Jahr</dt>
+                <dd className="tabular">{text(t.pace.needed)}</dd>
+              </div>
+              <div>
+                <dt>Im Tempo {t.pace.year}</dt>
+                <dd className="tabular">{outlook}</dd>
+              </div>
+            </dl>
             <PaceChip ratio={t.pace.ratio} />
-            <span>
-              Zubau {t.pace.year}: <span className="tabular">{joined(format(t.pace.actual))}</span> · nötig:{' '}
-              <span className="tabular">{joined(format(t.pace.needed))}</span> je Jahr
-            </span>
-          </p>
-        </div>
-      ))}
+          </div>
+        );
+      })}
+      <ul className="ov-legend ov-legend--start" aria-label="Legende">
+        <li>
+          <i className="ov-legend__fill" aria-hidden="true" />
+          Bestand
+        </li>
+        <li>
+          <i className="ov-legend__hatch" aria-hidden="true" />
+          bis Ende {year} im Tempo {targets[0].pace.year}
+        </li>
+      </ul>
     </Section>
   );
 }

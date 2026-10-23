@@ -21,7 +21,7 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | the choice of technology, KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Überblick | `/erzeuger/ueberblick/:land?/:kreis?` | one technology of the scope for a year or month, like a report: Bestand, its parts, Zubau per year or month, its share and rank among its peers, in Germany the national targets and their pace, what is planned; also as a PDF (see below) | `overview/OverviewView.jsx` |
+| Überblick | `/erzeuger/ueberblick/:land?/:kreis?` | one technology of the scope for a year or month, like a report: its numbers with their trends, the Zubau of the last 12 months beside the years, its parts, its share and rank among its peers and per inhabitant, in Germany the national targets and their pace, what is planned; also as a PDF (see below) | `overview/OverviewView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units; wind every turbine on its own: size classes, the correlation of Nabenhöhe, Rotordurchmesser and Leistung (three plots, r in each), their growth per year, Anlagengröße je nach geographischem Standort (a map with the bands of latitude, beside it each band's median) | `AnlagenView.jsx`, `wind/` |
 | Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
@@ -194,26 +194,37 @@ complete year (share in time, median days). Data: `/zubau/registrierungsverzug` 
 One technology of the scope for a period, like a report – the page most visitors need. The technology is chosen in the
 band on top (`SelectionBar` without filters, the URL's `technologie`), the period below it: a year, the running one by
 default (`?jahr=`), and a month of it or the whole year (`?monat=`). The page is all its own (`OverviewView.jsx`; the
-numbers in `model.js`, `pageModel`, the blocks in `blocks.jsx`, the same on the page and in the PDF). Everything comes
+numbers in `model.js`, `pageModel`, their trends beside it – `historyOf`, `trailingMonths`, `yearToDate`, `peersOf` –,
+the blocks in `blocks.jsx`, the same on the page and in the PDF, their small charts in `charts.jsx`). Everything comes
 from the monthly series of the Zubau of the parts (`/zubau/zeitverlauf`, `mrt.zubau_zeitverlauf_regions`: Zubau and
 Bestand, in amount and units, per month and year) – so any year or month works – and the Bestand of the area and its
 peers at the period's end (`/zubau/bestand`). The series count by commissioning and final decommissioning date, a few
 per mille more than the map, which counts by today's status (a remark says so).
 
-- **Tiles:** the Bestand at the period's end (Leistung netto; the batteries their capacity, `overview.measure`, and power,
-  `overview.also`) with its share of the area above and its rank among its peers, the units with their average size,
-  the Zubau of the period with the growth of the Bestand it made (net of what was decommissioned), against the same
-  period a year before (the running year by its complete months, the running month not at all), what is planned (the
-  running period only, `/zubau/geplant`). All in one row.
+- **Cards** (`Cards`), in one row and each read the same way: the number, its change as a chip (`Delta`: up green,
+  down red, within 1 % grey) and what it is measured against, its trend as a small chart, a line of context. The
+  Bestand at the period's end (Leistung netto; the batteries their capacity, `overview.measure`, and power,
+  `overview.also`) with its share of the area above and its rank, and the units with their average size – both with
+  the line of the last 15 years (`Spark`); the Zubau of the period against the same period a year before (the running
+  year by its complete months, the running month not at all) with its bars per year, per month for a month
+  (`SparkBars`, the period's in colour); the Bestand per inhabitant among the peers – the Länder, or the Kreise of the
+  Land, from `/zubau/bestand` with their Einwohner – on a strip with the area above as a mark (`PeerStrip`) and the
+  rank; what is planned, by the year of its planned commissioning (the running period only, `/zubau/geplant`), for a
+  period past the Stilllegungen in it (what the Bestand lost besides the Zubau) instead.
+- **Zubau** two ways side by side, as in a weekly business review: the last 12 months (a past year: its months), each
+  with the same month a year before as a dark line across its bar (`StackedChart`'s `reference`), and their sum against
+  the 12 months before (the running month after them, light, in no sum); the 15 years up to the period's, its own
+  against the year before (a month's year up to it against the same months a year before).
 - **Arten** (`overview.parts`, each with its `series`, less another where it has one: `minus`): Solar Gebäude,
-  Balkonkraftwerke (`solar_balkon_netto`, the only place they are apart; hatched – `hatch` in the config,
-  `hatchOf` in `lib/colorScale.js`, a pattern in `StackedChart` – as a lower bound) and Freifläche, Wind an Land and auf See, the
-  batteries' Heim-, Gewerbe- and Großspeicher – side by side, each a column: its units and its measure, their shares as
-  slim bars, their Zubau in the period relative to their Bestand at its start.
-- **Zubau:** per year, the 15 up to the year chosen, or per month of the year with the month chosen and the others
-  faint; the running period lighter.
-- **Germany:** beside it the national targets for 2030 in Bruttoleistung (`overview.targets`: target → its series,
-  `config/targets.js`) at the period's end, with the earlier goal as a mark and the pace of the last full year then.
+  Balkonkraftwerke (`solar_balkon_netto`; hatched – `hatch` in the config, `hatchOf` in `lib/colorScale.js`, a pattern
+  in `StackedChart` – as a lower bound) and Freifläche, Wind an Land and auf See, the batteries' Heim-, Gewerbe- and
+  Großspeicher – as a table (`PartsTable`), a row each and the total below: units and measure with their shares as
+  slim bars, the Zubau of the period, the growth of the Bestand since its start (net of what was decommissioned, as the
+  cards'), the Zubau per year. On a phone each row a block.
+- **Germany:** beside the Arten the national targets for 2030 in Bruttoleistung (`overview.targets`: target → its
+  series, `config/targets.js`) at the period's end, each a bullet (`Bullet`): the Bestand, hatched beyond it where the
+  pace of the last full year leads by the end of the goal's year (not a forecast), the goal, the earlier one as a
+  mark; below it that pace, the pace needed, the year the pace reaches the goal.
 - **PDF report** ("Bericht als PDF"): the page rendered once more off screen at the width of a page (`OverviewReport`):
   a title with the area's outline, the period and the Datenstand, the blocks, the remarks; drawn by
   html2canvas in a desktop-wide window (the same from a phone), cut between the blocks onto A4 pages (`report.js`: a
