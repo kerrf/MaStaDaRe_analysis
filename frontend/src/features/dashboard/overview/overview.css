@@ -89,16 +89,29 @@
   border-top: 3px solid var(--accent);
 }
 
+/* What the number is, nearly as large as it: the number means nothing without it */
 .ov-tile__label {
-  font-size: 12px;
+  font-size: clamp(16px, 1.45vw, 19px);
   font-weight: 750;
-  letter-spacing: 0.06em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
+  /* Two lines for every title, so the numbers of a row stand at the same height */
+  min-height: 2.4em;
+}
+
+/* The title of the second number in a card (the growth beside the Zubau): smaller, it belongs to the card's */
+.ov-tile__label--minor {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-secondary);
+  padding-top: 4px;
 }
 
 .ov-tile__value {
-  font-size: clamp(30px, 3vw, 40px);
+  font-size: clamp(28px, 2.7vw, 36px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -167,6 +180,103 @@
 
 .ov-section__foot {
   padding: 0 20px 14px;
+}
+
+/* ------------------------------------------------------------------ Zubau */
+/* The last 12 months beside the years, each with its head: what, over which time, the number, its change */
+.ov-612 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 0;
+}
+
+.ov-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-612 .ov-panel:first-child {
+  padding-right: 22px;
+}
+
+.ov-612 .ov-panel + .ov-panel {
+  padding-left: 22px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.ov-panel__head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.ov-panel__title {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.ov-panel__title strong {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.ov-panel__title span {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.ov-panel__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--ink-primary);
+}
+
+/* A change as a chip – up green, down red, within 1 % grey – and what it is measured against beside it */
+.delta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delta--up {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.delta--down {
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.delta--flat {
+  background: var(--surface-sunken);
+  color: var(--ink-secondary);
 }
 
 /* ------------------------------------------------------------------ Arten */
@@ -326,7 +436,7 @@
 }
 
 /* ------------------------------------------------------- Zubau and targets */
-/* Germany: the Zubau beside the targets; a Land or Kreis: the Zubau alone */
+/* Germany: the Arten beside the targets; a Land or Kreis: the Arten alone */
 .ov-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -564,6 +674,24 @@
   }
 }
 
+@media (max-width: 900px) {
+  /* The last 12 months above the years */
+  .ov-612 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-612 .ov-panel:first-child {
+    padding-right: 0;
+  }
+
+  .ov-612 .ov-panel + .ov-panel {
+    padding-top: 16px;
+    padding-left: 0;
+    border-top: 1px solid var(--border-subtle);
+    border-left: 0;
+  }
+}
+
 @media (max-width: 760px) {
   /* The Arten one below the other */
   .ov-arten {
@@ -601,7 +729,7 @@
   }
 
   .ov-tile__label {
-    font-size: 11px;
+    font-size: 15px;
   }
 
   .ov-tile__value {

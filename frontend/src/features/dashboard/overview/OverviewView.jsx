@@ -15,7 +15,19 @@ import ScopeBar from '../ScopeBar';
 import ScopeOutline from '../ScopeOutline';
 import SelectionBar from '../SelectionBar';
 import { PartsSection, ReportNotes, TargetsSection, Tiles, ZubauSection } from './blocks';
-import { MONTHS, asOfName, byTechnology, extentOf, indexSeries, pageModel, periodName, periodOf } from './model';
+import {
+  MONTHS,
+  asOfName,
+  byTechnology,
+  extentOf,
+  historyOf,
+  indexSeries,
+  pageModel,
+  periodName,
+  periodOf,
+  trailingMonths,
+  yearToDate,
+} from './model';
 import { saveReport } from './report';
 import './overview.css';
 
@@ -63,7 +75,7 @@ function PeriodSetting({ period, latest, firstYear, onChange }) {
 
 // The page as a report, off screen while its PDF is made: a title with the area, the period and the Datenstand, a
 // then the blocks of the page one below the other, at the width of a page
-function OverviewReport({ reportRef, model, overview, technology, scope, region, kreisAgs, datenstand }) {
+function OverviewReport({ reportRef, model, zubau, overview, technology, scope, region, kreisAgs, datenstand }) {
   return createPortal(
     <div className="ov-report" ref={reportRef} aria-hidden="true">
       <div className="ov-report__block ov-report__cover">
@@ -87,17 +99,17 @@ function OverviewReport({ reportRef, model, overview, technology, scope, region,
       <div className="ov-report__block">
         <Tiles model={model} overview={overview} scope={scope} />
       </div>
-      {model.parts.filter((p) => p.units > 0 || p.value > 0).length > 1 && (
-        <div className="ov-report__block">
-          <PartsSection model={model} overview={overview} scopeName={scope.name} />
-        </div>
-      )}
       <div className="ov-report__block">
-        <ZubauSection model={model} scopeName={scope.name} />
+        <ZubauSection {...zubau} model={model} scopeName={scope.name} />
       </div>
       {model.targets && (
         <div className="ov-report__block">
           <TargetsSection model={model} />
+        </div>
+      )}
+      {model.parts.filter((p) => p.units > 0 || p.value > 0).length > 1 && (
+        <div className="ov-report__block">
+          <PartsSection model={model} overview={overview} scopeName={scope.name} />
         </div>
       )}
       <div className="ov-report__block">
@@ -151,7 +163,6 @@ export default function OverviewView({ config, state }) {
             index,
             period,
             latest: extent.latest,
-            firstYear: extent.firstYear,
             datenstand,
             bestand: bestand.data,
             scope,
@@ -161,6 +172,12 @@ export default function OverviewView({ config, state }) {
     // scope and period are new objects every render: their keys decide
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [overview, index, extent, period?.year, period?.month, datenstand, bestand.data, scopeKey, kind, parentName, geplantByTechnology],
+  );
+
+  // The Zubau's chart: the years, the last 12 months, a month's year up to it
+  const zubau = useMemo(
+    () => model && { history: historyOf(model, index, extent.firstYear), trailing: trailingMonths(model, index), ytd: yearToDate(model, index) },
+    [model, index, extent],
   );
 
   // The page's remarks, in the order the page marks them
@@ -260,7 +277,7 @@ export default function OverviewView({ config, state }) {
     );
   }
 
-  const { measure, parts, chart, targets } = model;
+  const { measure, parts, targets } = model;
   const [, many] = overview.units ?? ['Anlage', 'Anlagen'];
   const unit = measure.format === 'capacity' ? 'MWh' : 'MW';
   const measureName = measure.label.replace('Installierte ', '');
@@ -287,11 +304,17 @@ export default function OverviewView({ config, state }) {
   const zubauCsv = {
     name: 'ueberblick-zubau',
     filename: fileName(fileBase, 'zubau', periodSlug),
-    rows: () =>
-      chart.periods.map((p) => ({
+    // The years, then the last 12 months
+    rows: () => [
+      ...zubau.history.map((h) => ({
+        Zeitraum: h.partial ? `${h.year} (unvollständig)` : String(h.year),
+        ...Object.fromEntries(parts.map((part) => [`${part.label} (${unit})`, round(h.parts[part.id].added, 3)])),
+      })),
+      ...zubau.trailing.periods.map((p) => ({
         Zeitraum: p.label,
         ...Object.fromEntries(parts.map((part) => [`${part.label} (${unit})`, p.values[part.id] == null ? null : round(p.values[part.id], 3)])),
       })),
+    ],
   };
   const targetsCsv = targets && {
     name: 'ueberblick-ziele',
@@ -315,15 +338,16 @@ export default function OverviewView({ config, state }) {
       {band}
       {head}
       <Tiles model={model} overview={overview} scope={scope} />
-      <PartsSection model={model} overview={overview} scopeName={scopeName} csv={partsCsv} />
+      <ZubauSection {...zubau} model={model} scopeName={scopeName} csv={zubauCsv} moreHref={state.hrefOf('zubau')} />
       <div className={`ov-row${targets ? ' ov-row--aside' : ''}`}>
-        <ZubauSection model={model} scopeName={scopeName} csv={zubauCsv} moreHref={state.hrefOf('zubau')} />
+        <PartsSection model={model} overview={overview} scopeName={scopeName} csv={partsCsv} />
         {targets && <TargetsSection model={model} csv={targetsCsv} />}
       </div>
       {report && (
         <OverviewReport
           reportRef={reportRef}
           model={model}
+          zubau={zubau}
           overview={overview}
           technology={technology}
           scope={scope}

@@ -21,7 +21,7 @@ has to hold everything (`src/config/views.js`):
 | Page | Path | Content | Component |
 | --- | --- | --- | --- |
 | Karte | `/erzeuger/:land?/:kreis?` | the choice of technology, KPIs, then one workspace: settings band, map, rail with Rangliste, Ausrichtung, Anlagengröße | `MapView.jsx`, `MapToolbar.jsx`, `MapRail.jsx` |
-| Überblick | `/erzeuger/ueberblick/:land?/:kreis?` | one technology of the scope for a year or month, like a report: Bestand, its parts, Zubau per year or month, its share and rank among its peers, in Germany the national targets and their pace, what is planned; also as a PDF (see below) | `overview/OverviewView.jsx` |
+| Überblick | `/erzeuger/ueberblick/:land?/:kreis?` | one technology of the scope for a year or month, like a report: Bestand, Zubau of the last 12 months beside the years, its parts, its share and rank among its peers, in Germany the national targets and their pace, what is planned; also as a PDF (see below) | `overview/OverviewView.jsx` |
 | Zubau & Registrierungen | `/erzeuger/zubau/:land?/:kreis?` | Ausbau im Zeitverlauf, Registrierungen im MaStR, Abstand zwischen Inbetriebnahmen und Registierung – in Deutschland, a Land or a Kreis (no Gemeinde) | `ZubauView.jsx` |
 | Anlagen | `/erzeuger/anlagen/:land?/:kreis?` | of the active technology in the scope (down to a Gemeinde): size classes and Ausrichtung, Ausrichtung per Neigungswinkel (solar); size classes, battery technology and AC/DC coupling (batteries); size classes and technology or Speicherart (gas); batteries at solar units; wind every turbine on its own: size classes, the correlation of Nabenhöhe, Rotordurchmesser and Leistung (three plots, r in each), their growth per year, Anlagengröße je nach geographischem Standort (a map with the bands of latitude, beside it each band's median) | `AnlagenView.jsx`, `wind/` |
 | Regionen im Detail | `/erzeuger/kommune/…`, `/speicher/kommune/…` | one Kreis and its Gemeinden in depth: solar, batteries (see below, "Landkreis/Gemeinde") | `KommuneView.jsx` |
@@ -204,15 +204,18 @@ per mille more than the map, which counts by today's status (a remark says so).
   `overview.also`) with its share of the area above and its rank among its peers, the units with their average size,
   the Zubau of the period with the growth of the Bestand it made (net of what was decommissioned), against the same
   period a year before (the running year by its complete months, the running month not at all), what is planned (the
-  running period only, `/zubau/geplant`). All in one row.
+  running period only, `/zubau/geplant`). All in one row, each titled nearly as large as its number; the growth beside
+  the Zubau with a title of its own.
 - **Arten** (`overview.parts`, each with its `series`, less another where it has one: `minus`): Solar Gebäude,
   Balkonkraftwerke (`solar_balkon_netto`, the only place they are apart; hatched – `hatch` in the config,
   `hatchOf` in `lib/colorScale.js`, a pattern in `StackedChart` – as a lower bound) and Freifläche, Wind an Land and auf See, the
   batteries' Heim-, Gewerbe- and Großspeicher – side by side, each a column: its units and its measure, their shares as
   slim bars, their Zubau in the period relative to their Bestand at its start.
-- **Zubau:** per year, the 15 up to the year chosen, or per month of the year with the month chosen and the others
-  faint; the running period lighter.
-- **Germany:** beside it the national targets for 2030 in Bruttoleistung (`overview.targets`: target → its series,
+- **Zubau** two ways side by side, below the tiles: the last 12 months (a past year: its months; `trailingMonths`) and
+  their sum against the 12 before, the running month after them, light and in no sum; the 15 years up to the period's
+  (`historyOf`), its own against the year before – a month's year up to it against the same months a year before
+  (`yearToDate`). Each change a chip (`delta.jsx`).
+- **Germany:** beside the Arten the national targets for 2030 in Bruttoleistung (`overview.targets`: target → its series,
   `config/targets.js`) at the period's end, with the earlier goal as a mark and the pace of the last full year then.
 - **PDF report** ("Bericht als PDF"): the page rendered once more off screen at the width of a page (`OverviewReport`):
   a title with the area's outline, the period and the Datenstand, the blocks, the remarks; drawn by

@@ -97,6 +97,7 @@ function roundedTop(x, y, width, height, radius) {
  * formatValue: how the tooltip writes a value; default: with unit, in GW from 1,000 MW on
  * valueLabels: bars only: the total of each bar above it, in the unit of the axis, where every one fits (not for shares
  *              that add up to 100 %)
+ * height:  of the chart in px, with its axis labels
  */
 export default function StackedChart({
   periods,
@@ -106,6 +107,7 @@ export default function StackedChart({
   label,
   formatValue = (value) => formatAmount(value, unit),
   valueLabels = true,
+  height = HEIGHT,
 }) {
   const frameRef = useRef(null);
   const clipId = useId();
@@ -136,7 +138,7 @@ export default function StackedChart({
 
   const n = periods.length;
   const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
-  const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
+  const plotHeight = height - MARGIN.top - MARGIN.bottom;
   const slot = n ? plotWidth / n : 0;
   const barWidth = Math.min(MAX_BAR_WIDTH, slot >= 8 ? slot * 0.7 : Math.max(1, slot - 1));
   const cx = (j) => MARGIN.left + (j + 0.5) * slot;
@@ -198,11 +200,11 @@ export default function StackedChart({
   };
 
   return (
-    <div className="stacked-chart" ref={frameRef}>
+    <div className="stacked-chart" ref={frameRef} style={{ minHeight: height }}>
       {width > 0 && (
         <svg
           width={width}
-          height={HEIGHT}
+          height={height}
           role="img"
           aria-label={label}
           tabIndex={0}
@@ -328,7 +330,7 @@ export default function StackedChart({
             return (
               period.tick &&
               showLabel(period.tick, k) && (
-                <text key={period.key} className="stacked-chart__tick" x={cx(j)} y={HEIGHT - 8} textAnchor="middle">
+                <text key={period.key} className="stacked-chart__tick" x={cx(j)} y={height - 8} textAnchor="middle">
                   {period.tick}
                 </text>
               )

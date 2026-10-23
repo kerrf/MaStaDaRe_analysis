@@ -7,7 +7,8 @@ import { ChartFoot } from '../../../components/ui/ChartExport';
 import { formatCount, formatNumber, formatPercent } from '../../../lib/format';
 import { FootnoteContext } from '../footnoteContext';
 import { FootnoteRef } from '../footnotes';
-import { asOfName, formatOf, inPeriod, joined, percent, periodName, signed } from './model';
+import { Delta } from './delta';
+import { MONTHS, asOfName, formatOf, inPeriod, joined, percent, periodName, signed } from './model';
 
 // The blocks of the page Überblick, the same on the page and in its PDF report (report: without links and exports)
 
@@ -25,15 +26,28 @@ function TileValue({ value, unit, sub }) {
   );
 }
 
-// One number on its own card: what it is, the number large, one line of context; second: another number beside it, the
-// same thing seen another way (the Zubau and the growth it made), a dashed line between them and the card wider
+// One number on its own card: what it is (as large as the number: it means nothing without it), the number, one line
+// of context; second: another number beside it with its own title, the same thing seen another way (the Zubau and the
+// growth of the Bestand it made), a dashed line between them and the card wider
 function Tile({ label, value, unit, sub, note, tone, second }) {
+  const title = (
+    <div className="ov-tile__label">
+      {label}
+      {note}
+    </div>
+  );
   return (
     <div className={`card ov-tile${tone ? ` ov-tile--${tone}` : ''}${second ? ' ov-tile--wide' : ''}`}>
-      <div className="ov-tile__label">
-        {label}
-        {note}
-      </div>
+      {second ? (
+        <div className="ov-tile__values">
+          <div className="ov-tile__part">{title}</div>
+          <div className="ov-tile__part">
+            <div className="ov-tile__label ov-tile__label--minor">{second.label}</div>
+          </div>
+        </div>
+      ) : (
+        title
+      )}
       <div className="ov-tile__values">
         <TileValue value={value} unit={unit} sub={sub} />
         {second && <TileValue {...second} />}
@@ -52,7 +66,7 @@ export function Tiles({ model, overview, scope }) {
   const [one, many] = overview.units ?? ['Anlage', 'Anlagen'];
   const noun = (n) => (n === 1 ? one : many);
   const small = measure.format === 'capacity' ? 'kWh' : 'kW';
-  const growthLine = `Bestand seit Ende ${periodName(model.start)}${total.removed > 0.0005 ? ` · ${joined(format(total.removed))} stillgelegt` : ''}`;
+  const growthLine = `seit Ende ${periodName(model.start)}${total.removed > 0.0005 ? ` · ${joined(format(total.removed))} stillgelegt` : ''}`;
   const tiles = [
     {
       id: 'bestand',
@@ -81,8 +95,9 @@ export function Tiles({ model, overview, scope }) {
       // What it did to the Bestand: the growth since the period's start, net of what was decommissioned
       // (its line sits under "In Planung" where that is shown)
       second: total.growth != null && {
+        label: 'Wachstum Bestand',
         value: signed(total.growth),
-        sub: planned ? null : growthLine,
+        sub: growthLine,
       },
     },
     change &&
@@ -98,14 +113,7 @@ export function Tiles({ model, overview, scope }) {
       label: 'In Planung',
       note: <FootnoteRef id="geplant" />,
       ...format(planned.value),
-      sub: (
-        <>
-          <span>
-            {planned.units ? `${formatCount(planned.units)} ${noun(planned.units)}${planned.to ? ` · bis ${planned.to}` : ''}` : 'keine im Register'}
-          </span>
-          {total.growth != null && <span>{growthLine}</span>}
-        </>
-      ),
+      sub: planned.units ? `${formatCount(planned.units)} ${noun(planned.units)}${planned.to ? ` · bis ${planned.to}` : ''}` : 'keine im Register',
     },
   ].filter(Boolean);
   // One row, the wide card half as wide again as the others
@@ -224,21 +232,66 @@ export function PartsSection({ model, overview, scopeName, csv }) {
   );
 }
 
-/** The Zubau per year up to the year chosen, or per month of the year with the month chosen. */
-export function ZubauSection({ model, scopeName, csv, moreHref }) {
-  const { measure, chart, total, period, running } = model;
+// What a year of the chart is called: "2026 (bis heute)", "2025 (bis März)"
+const yearName = (model, h) =>
+  h.year !== model.period.year || !h.partial ? String(h.year) : model.running ? `${h.year} (bis heute)` : `${h.year} (bis ${MONTHS[model.period.month - 1]})`;
+
+// The head of a chart: what it shows and over which time, its number, its change
+function PanelHead({ title, span, value, delta }) {
+  return (
+    <div className="ov-panel__head">
+      <div className="ov-panel__title">
+        <strong>{title}</strong>
+        <span>{span}</span>
+      </div>
+      <div className="ov-panel__value">{value}</div>
+      {delta}
+    </div>
+  );
+}
+
+/**
+ * The Zubau two ways side by side: the last 12 months (a past year: its months) and their sum against the 12 before
+ * them; the years up to the period's, its own against the year before (a month's: the year up to it against the same
+ * months a year before, ytd). history, trailing, ytd: from historyOf, trailingMonths, yearToDate.
+ */
+export function ZubauSection({ model, scopeName, history, trailing, ytd, csv, moreHref }) {
+  const { measure, change, period } = model;
   const format = formatOf(measure.format);
   const unit = measure.format === 'capacity' ? 'MWh' : 'MW';
   const series = model.parts.map((p) => ({ id: p.id, label: p.label, color: p.color, hatch: p.hatch }));
-  const byMonth = chart.mode === 'months';
-  const shown = byMonth ? 'je Monat' : 'je Jahr';
+  const years = history.map((h) => ({
+    key: h.key,
+    label: yearName(model, h),
+    tick: String(h.year),
+    partial: h.partial,
+    values: Object.fromEntries(model.parts.map((p) => [p.id, h.parts[p.id].added])),
+  }));
+  const thisYear = history.at(-1);
+  // The year's change: up to the month against the same months a year before, or the page's
+  const yearChange = period.month ? ytd : change;
   return (
-    <Section
-      title={byMonth ? `Zubau je Monat ${period.year}` : 'Zubau je Jahr'}
-      lead={`${scopeName} · neu in Betrieb, ${shown}${byMonth ? `, ${periodName(period)} hervorgehoben` : ''}${chart.periods.some((p) => p.partial) ? ', bis heute hell' : ''}`}
-      csv={csv}
-    >
-      <StackedChart periods={chart.periods} series={series} kind="bars" unit={unit} label={`Zubau ${shown} in ${scopeName}`} />
+    <Section title="Zubau" lead={`${scopeName} · neu in Betrieb, netto`} csv={csv} className="ov-zubau">
+      <div className="ov-612">
+        <div className="ov-panel">
+          <PanelHead
+            title={trailing.wholeYear ? 'Je Monat' : 'Letzte 12 Monate'}
+            span={trailing.span}
+            value={joined(format(trailing.now))}
+            delta={<Delta value={trailing.change} label={trailing.wholeYear ? `ggü. ${trailing.wholeYear - 1}` : 'ggü. den 12 Monaten davor'} />}
+          />
+          <StackedChart periods={trailing.periods} series={series} kind="bars" unit={unit} height={250} label={`Zubau je Monat in ${scopeName}`} />
+        </div>
+        <div className="ov-panel">
+          <PanelHead
+            title="Je Jahr"
+            span={`${years[0].key} – ${yearName(model, thisYear)}`}
+            value={joined(format(thisYear.added))}
+            delta={yearChange?.change != null ? <Delta value={yearChange.change} label={`ggü. ${yearChange.vsLabel}`} /> : null}
+          />
+          <StackedChart periods={years} series={series} kind="bars" unit={unit} height={250} label={`Zubau je Jahr in ${scopeName}`} />
+        </div>
+      </div>
       {series.length > 1 && (
         <ul className="ov-legend" aria-label="Farben">
           {series.map((s) => (
@@ -250,8 +303,8 @@ export function ZubauSection({ model, scopeName, csv, moreHref }) {
         </ul>
       )}
       <p className="ov-note">
-        <strong className="tabular">{joined(format(total.added))}</strong> {inPeriod(model)}
-        {running && ' bis heute'}. Die letzten Monate steigen noch: viele Anlagen werden erst Wochen nach der Inbetriebnahme registriert.
+        Hell: noch nicht abgeschlossen. Die letzten Monate steigen noch: viele Anlagen werden erst Wochen nach der Inbetriebnahme
+        registriert.
         {moreHref && (
           <>
             {' '}
