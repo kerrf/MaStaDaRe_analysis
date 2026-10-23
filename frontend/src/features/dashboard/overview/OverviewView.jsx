@@ -33,9 +33,8 @@ const PLANNED_NOTE =
   'die Betreiber es angeben. Fast alle geplanten Windenergieanlagen haben ihre Genehmigung im Register; bei Solar fehlen ' +
   'viele Planungen, die nie gemeldet werden.';
 const BALKON_NOTE =
-  'Balkonkraftwerke (schraffiert): die als steckerfertige Solaranlage registrierten Einheiten – nur auf dieser Seite getrennt, sonst zählen ' +
-  'sie zu „Gebäude“. Viele Balkonkraftwerke sind nicht registriert, manche als Gebäudeanlage (siehe Datenqualität): Die ' +
-  'Zahl ist eine Untergrenze.';
+  'Balkonkraftwerke (schraffiert): die als steckerfertige Solaranlage registrierten Einheiten. Viele Balkonkraftwerke sind ' +
+  'nicht registriert, manche als Gebäudeanlage (siehe Datenqualität): Die Zahl ist eine Untergrenze.';
 
 const query = (ids) => [...new Set(ids.filter(Boolean))].map((id) => `technology=${id}`).join('&');
 // A pause for the browser to lay out what was just rendered (a timer: animation frames stop in a hidden tab)
