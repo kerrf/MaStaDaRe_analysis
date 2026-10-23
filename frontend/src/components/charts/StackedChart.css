@@ -3,34 +3,6 @@
   min-height: 300px;
 }
 
-/* What a bar is measured against (e.g. the same month a year before): a short dark line across it */
-.stacked-chart__reference {
-  stroke: var(--ink-primary);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-.stacked-chart__line-key {
-  display: inline-block;
-  width: 10px;
-  height: 2px;
-  margin-right: 6px;
-  border-radius: 1px;
-  background: var(--ink-primary);
-  vertical-align: 3px;
-}
-
-.stacked-chart__tooltip tfoot .stacked-chart__tooltip-reference th,
-.stacked-chart__tooltip tfoot .stacked-chart__tooltip-reference td {
-  font-weight: 500;
-  color: var(--ink-secondary);
-}
-
-.stacked-chart__change {
-  font-weight: 650;
-  color: var(--ink-primary);
-}
-
 .stacked-chart svg {
   display: block;
   overflow: visible;

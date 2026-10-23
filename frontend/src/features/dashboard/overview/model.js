@@ -7,7 +7,6 @@ export const POWER = { format: 'power', label: 'Installierte Leistung' };
 const MAIN_GOAL = 2030; // the target year the page measures against, where a technology has one
 const MINOR = 0.01; // a Zubau below 1 % of the Bestand a year (a twelfth of it a month) is hardly any
 export const CHART_YEARS = 15; // the Zubau per year: the year chosen and the fourteen before
-const PLANNED_YEARS = 4; // the planned units per year of their commissioning: the next four years, then the rest
 
 export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const MONTHS_SHORT = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sept.', 'Okt.', 'Nov.', 'Dez.'];
@@ -137,12 +136,12 @@ function changeOf(index, parts, period, latest, running, bestand) {
  * Everything the page shows of a technology in the scope and period, all from the monthly series of its parts
  * (overview.parts: { id, series, minus, also }):
  * - total and parts: the Bestand at the period's end (amount, units; batteries also their power), the Zubau in it, the
- *   Bestand at its start; the parts' shares and the growth of their Bestand since the start;
+ *   Bestand at its start; the parts' shares and their Zubau relative to their Bestand at the start;
  * - change: the Zubau against the same period a year before;
  * - comparison: the share of the area above and the rank among its peers (/zubau/bestand);
- * - targets (Germany): the Bruttoleistung at the period's end against the national targets, the pace, where it leads;
- * - planned (the running period only): the units in planning, also per year of their planned commissioning.
- * Their trends besides: historyOf, trailingMonths, peersOf.
+ * - targets (Germany): the Bruttoleistung at the period's end against the national targets, and the pace;
+ * - planned (the running period only): the units in planning.
+ * The Zubau's chart besides: historyOf, trailingMonths, yearToDate.
  * Null when the scope had nothing of it by the period's end.
  */
 export function pageModel({ overview, index, period, latest, datenstand, bestand, scope, geplant }) {
@@ -186,9 +185,8 @@ export function pageModel({ overview, index, period, latest, datenstand, bestand
   for (const p of parts) {
     p.shareValue = p.value / total.value;
     p.shareUnits = total.units > 0 ? p.units / total.units : 0;
-    // The growth of the part's Bestand, net of what was decommissioned, as the total's
-    p.growthValue = p.start > 0 ? (p.value - p.start) / p.start : null;
-    p.growthUnits = p.startUnits > 0 ? (p.units - p.startUnits) / p.startUnits : null;
+    p.growthValue = p.start > 0 ? p.added / p.start : null;
+    p.growthUnits = p.startUnits > 0 ? p.addedUnits / p.startUnits : null;
   }
   const change = changeOf(index, parts, period, latest, running, total.value);
 
@@ -223,22 +221,15 @@ export function pageModel({ overview, index, period, latest, datenstand, bestand
         const goalYear = ahead.includes(MAIN_GOAL) ? MAIN_GOAL : ahead[0];
         if (!goalYear) return null;
         const milestoneYear = ahead.find((year) => year < goalYear);
-        const goal = target.goals[goalYear];
-        const left = yearsLeft(end, goalYear);
-        const needed = neededPerYear(installed, goal, left);
-        // At the pace of the last full year: the Bestand at the end of the goal's year, the year it reaches the goal
-        const atGoal = installed + actual * left;
-        // (left: the years from the period's end to the end of the goal's year, so the end is that year + 1 − left)
-        const reachedIn = installed >= goal ? null : actual > 0 ? Math.floor(goalYear + 1 - left + (goal - installed) / actual) : null;
+        const needed = neededPerYear(installed, target.goals[goalYear], yearsLeft(end, goalYear));
         return {
           id,
           label: target.label,
           source: target.source,
           installed,
-          goal: { year: goalYear, value: goal },
+          goal: { year: goalYear, value: target.goals[goalYear] },
           milestone: milestoneYear && { year: milestoneYear, value: target.goals[milestoneYear] },
           pace: { year: paceYear, actual, needed, ratio: needed > 0 ? actual / needed : null },
-          projection: { atGoal, reachedIn },
         };
       })
       .filter(Boolean);
@@ -252,78 +243,54 @@ export function pageModel({ overview, index, period, latest, datenstand, bestand
     const series = overview.planned.map((id) => geplant.get(id)).filter(Boolean);
     const rows = series.flatMap((s) => [...s.values()]);
     const yearsAhead = rows.filter((r) => r.added > 0).map((r) => r.year);
-    const addedBy = (test) => rows.filter((r) => test(r.year)).reduce((t, r) => t + (r.added ?? 0), 0);
-    const nextYears = Array.from({ length: PLANNED_YEARS }, (_, i) => period.year + i);
     planned = {
       value: series.reduce((t, s) => t + Math.max(0, ...[...s.values()].map((r) => r.installed ?? 0)), 0),
       units: rows.reduce((t, r) => t + (r.added_units ?? 0), 0),
       to: yearsAhead.length ? Math.max(...yearsAhead) : null,
-      byYear: [
-        ...nextYears.map((year) => ({ key: String(year), label: String(year), tick: `’${String(year).slice(2)}`, value: addedBy((y) => y === year) })),
-        { key: 'later', label: `ab ${period.year + PLANNED_YEARS}`, tick: 'später', value: addedBy((y) => y >= period.year + PLANNED_YEARS) },
-      ],
     };
   }
 
   return { measure, period, start: startOf(period), latest, running, total, parts, change, comparison, targets, planned };
 }
 
-// --------------------------------------------------------------------------------------------------- The trends
-// What the cards and charts draw beside their numbers, all from the same monthly series: the Bestand and the Zubau per
-// year, the Zubau of the last 12 months against the 12 before, the peers per inhabitant.
-
+// ------------------------------------------------------------------------------------------------ The Zubau chart
 // Months counted from year 0 ({ year, month } <-> year * 12 + month - 1)
 const offsetOf = ({ year, month }) => year * 12 + month - 1;
 const monthAt = (offset) => ({ year: Math.floor(offset / 12), month: (offset % 12) + 1 });
 const monthKeys = (from, to) => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => keyOf(monthAt(from + i)));
+const addedAt = (index, parts, key) => parts.reduce((t, p) => t + valuesOf(index, p.series, p.minus, key).added, 0);
 
 /**
- * The years up to the period's (the fourteen before it and itself, from the first year of the series on), each with the
- * Bestand at its end and its units, the Zubau in it, the Stilllegungen (what the Bestand lost besides the Zubau), in
+ * The Zubau per year up to the period's (the fourteen before it and itself, from the first year of the series on), in
  * total and per part. The period's year ends with the period: up to its month, the running year up to today.
  */
 export function historyOf(model, index, firstYear) {
   const { period, parts } = model;
-  const years = Array.from({ length: CHART_YEARS + 1 }, (_, i) => period.year - CHART_YEARS + i);
-  const endKey = (year) => (year === period.year ? keyOf(period) : String(year));
-  const addedKeys = (year) => (year === period.year && period.month ? monthKeys(offsetOf({ year, month: 1 }), offsetOf(period)) : [String(year)]);
-  const rows = years.map((year) => {
-    const byPart = Object.fromEntries(
-      parts.map((p) => {
-        const end = valuesOf(index, p.series, p.minus, endKey(year));
-        const added = addedKeys(year).reduce((t, key) => t + valuesOf(index, p.series, p.minus, key).added, 0);
-        return [p.id, { value: end.installed, units: end.installed_units, added }];
-      }),
-    );
-    const sum = (field) => Object.values(byPart).reduce((t, v) => t + v[field], 0);
-    return { year, value: sum('value'), units: sum('units'), added: sum('added'), parts: byPart };
-  });
-  return rows.slice(1).flatMap((row, i) =>
-    row.year < firstYear
-      ? []
-      : [
-          {
-            ...row,
-            key: String(row.year),
-            partial: row.year === period.year && (model.running || Boolean(period.month && period.month < 12)),
-            removed: Math.max(0, rows[i].value + row.added - row.value),
-          },
-        ],
-  );
+  const keysOf = (year) => (year === period.year && period.month ? monthKeys(offsetOf({ year, month: 1 }), offsetOf(period)) : [String(year)]);
+  return Array.from({ length: CHART_YEARS }, (_, i) => period.year - CHART_YEARS + 1 + i)
+    .filter((year) => year >= firstYear)
+    .map((year) => {
+      const byPart = Object.fromEntries(parts.map((p) => [p.id, { added: keysOf(year).reduce((t, key) => t + valuesOf(index, p.series, p.minus, key).added, 0) }]));
+      return {
+        year,
+        key: String(year),
+        partial: year === period.year && (model.running || Boolean(period.month && period.month < 12)),
+        added: Object.values(byPart).reduce((t, v) => t + v.added, 0),
+        parts: byPart,
+      };
+    });
 }
 
 /**
- * The Zubau of the 12 months up to the period's end (a year's: its December), per part and each with the same month a
- * year before, and their sum against the 12 months before them. A month still running (the latest) is no part of the
- * sums: its bar comes after them, light.
+ * The Zubau of the 12 months up to the period's end (a year's: its December) per part, and their sum against the 12
+ * months before them. A month still running (the latest) is no part of the sums: its bar comes after them, light.
  */
 export function trailingMonths(model, index) {
   const { period, latest, parts } = model;
   const end = period.month ? period : period.year === latest.year ? latest : { year: period.year, month: 12 };
   const running = end.year === latest.year && end.month === latest.month;
   const last = offsetOf(end) - (running ? 1 : 0);
-  const totalAt = (offset) => parts.reduce((t, p) => t + valuesOf(index, p.series, p.minus, keyOf(monthAt(offset))).added, 0);
-  const sumOf = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => totalAt(from + i)).reduce((a, b) => a + b, 0);
+  const sumOf = (from, to) => monthKeys(from, to).reduce((t, key) => t + addedAt(index, parts, key), 0);
   const periods = Array.from({ length: 12 + (running ? 1 : 0) }, (_, i) => {
     const offset = last - 11 + i;
     const m = monthAt(offset);
@@ -334,11 +301,9 @@ export function trailingMonths(model, index) {
       tick: MONTH_TICKS[m.month - 1],
       partial: isRunning,
       values: Object.fromEntries(parts.map((p) => [p.id, valuesOf(index, p.series, p.minus, keyOf(m)).added])),
-      before: totalAt(offset - 12),
     };
   });
-  const now = sumOf(last - 11, last);
-  const before = sumOf(last - 23, last - 12);
+  const [now, before] = [sumOf(last - 11, last), sumOf(last - 23, last - 12)];
   const [from, to] = [monthAt(last - 11), monthAt(last)];
   return {
     periods,
@@ -346,48 +311,17 @@ export function trailingMonths(model, index) {
     before,
     change: before > 0 ? (now - before) / before : null,
     span: `${MONTHS_SHORT[from.month - 1]} ${from.year} – ${MONTHS_SHORT[to.month - 1]} ${to.year}`,
-    running,
     // A past year: its 12 months are the year itself
     wholeYear: !period.month && !running ? period.year : null,
   };
 }
 
-/**
- * A month's year up to it against the same months a year before: "Jan.–März 2025" against "Jan.–März 2024" (null for a
- * year: its change is the page's).
- */
+/** A month's year up to it against the same months a year before ("Jan.–März 2024"); null for a year. */
 export function yearToDate(model, index) {
   const { period, parts } = model;
   if (!period.month) return null;
-  const sumOf = (year) =>
-    monthKeys(offsetOf({ year, month: 1 }), offsetOf({ year, month: period.month })).reduce(
-      (t, key) => t + parts.reduce((s, p) => s + valuesOf(index, p.series, p.minus, key).added, 0),
-      0,
-    );
+  const sumOf = (year) => monthKeys(offsetOf({ year, month: 1 }), offsetOf({ year, month: period.month })).reduce((t, key) => t + addedAt(index, parts, key), 0);
   const [now, before] = [sumOf(period.year), sumOf(period.year - 1)];
   const months = period.month === 1 ? 'Jan.' : `Jan.–${MONTHS_SHORT[period.month - 1]}`;
   return { now, before, change: before > 0 ? (now - before) / before : null, vsLabel: `${months} ${period.year - 1}` };
-}
-
-/**
- * The peers at the period's end per inhabitant (power in W, capacity in Wh): the Länder, or the Kreise of the Land;
- * the area in scope among them with its rank, and the area above them as their reference. rows: /zubau/bestand.
- */
-export function peersOf(rows, scope) {
-  if (!rows?.length) return null;
-  const perHead = (r) => (r.einwohner > 0 ? (r.installed * 1e6) / r.einwohner : null);
-  const above = rows.find((r) => r.region === scope.parentKey);
-  const peers = rows
-    .filter((r) => r.region !== scope.parentKey && perHead(r) != null)
-    .map((r) => ({ key: r.region, value: perHead(r) }))
-    .sort((a, b) => b.value - a.value);
-  if (peers.length < 2) return null;
-  const own = peers.find((p) => p.key === scope.key) ?? null;
-  return {
-    peers,
-    own,
-    rank: own ? peers.indexOf(own) + 1 : null,
-    reference: above ? perHead(above) : null,
-    value: own ? own.value : above ? perHead(above) : null,
-  };
 }
