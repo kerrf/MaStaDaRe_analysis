@@ -15,6 +15,18 @@ export const RAMPS = {
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
+// The border between two areas of a colour: white on the darker steps, a fine dark line on the light ones, where white
+// would vanish (relative luminance above 0.42: about the first four steps of a ramp, and the grey of no data)
+const LIGHT_EDGE = 'rgba(29, 38, 32, 0.34)';
+export function edgeOn(fill) {
+  const rgb = fill.startsWith('#') ? hexToRgb(fill) : fill.match(/\d+/g).slice(0, 3).map(Number);
+  const [r, g, b] = rgb.map((c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.42 ? LIGHT_EDGE : '#ffffff';
+}
+
 // Skewed data (a few very large regions) would wash out a linear 0..max scale, so for
 // many-region layers the upper end is clipped at the 98th percentile.
 export function scaleDomainMax(values) {

@@ -270,8 +270,9 @@ export default function DatenqualitaetPage() {
                 </li>
                 <li>Umgekehrt: 604 steckerfertige mit mehr als 2 kWp, 2.129 mit Wechselrichter über 800 W.</li>
                 <li>
-                  Umgang: Nur der „Überblick“ zeigt Balkonkraftwerke getrennt – nach der Art im Register, also als Untergrenze. Sonst
-                  zählen sie zu „Gebäude“; „bis 2 kWp“ geht nach der Leistung, nicht nach der Art.
+                  Umgang: Karte, Anlagen und Regionen führen Balkonkraftwerke als eigene Anlagenart, der „Überblick“ zeigt sie
+                  getrennt – nach der Art im Register, also als Untergrenze; „Gebäude“ ist ohne sie. Die Größenklasse „bis 2 kWp“
+                  geht nach der Leistung, nicht nach der Art.
                 </li>
               </ul>
             </section>

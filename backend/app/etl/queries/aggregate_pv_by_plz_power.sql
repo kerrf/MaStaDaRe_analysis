@@ -2,14 +2,14 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 
 DROP MATERIALIZED VIEW IF EXISTS mrt.solar_rollup_stats;
 
--- Like aggregate_pv_by_region_power.sql, by postcode: one row per Anlagenart ('gebaeude', 'freiflaeche') and PLZ, the
+-- Like aggregate_pv_by_region_power.sql, by postcode: one row per Anlagenart ('gebaeude', 'freiflaeche', 'balkon') and PLZ, the
 -- API sums the chosen ones. Units in operation only, Brutto (DC) and Netto (AC) power.
 CREATE MATERIALIZED VIEW mrt.solar_rollup_stats AS
 WITH plz5_solar_agg AS (
     -- 1. Pre-aggregate to 1 row per PLZ5 and Anlagenart to prevent JOIN explosions
     SELECT
         "Postleitzahl" AS plz5,
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power,
         SUM("Nettonennleistung") AS total_power_net
@@ -23,7 +23,7 @@ plz_areas AS (
     SELECT area.plz AS plz5, area.qkm, pop.einwohner, arten.anlagenart
     FROM geo.plz_shapes_5 area
     LEFT JOIN mrt.plz_einwohner pop ON pop.plz = area.plz
-    CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche')) AS arten (anlagenart)
+    CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche'), ('balkon')) AS arten (anlagenart)
 ),
 joined AS (
     -- 2. Join the 1-to-1 data. FULL JOIN: every PLZ brings its area and population to both Anlagenarten, also without
@@ -50,8 +50,8 @@ SELECT
     CAST(COALESCE(SUM(total_power_net), 0) / 1000 AS NUMERIC(12,2)) AS total_power_net,
     CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power,
     CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power_net,
-    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power,
-    CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power_net
+    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(12,5)) AS relative_population_power,
+    CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(12,5)) AS relative_population_power_net
 FROM joined
 GROUP BY anlagenart, ROLLUP (
     LEFT(plz5, 2),

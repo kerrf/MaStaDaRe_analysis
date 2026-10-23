@@ -1,10 +1,15 @@
 import { useCallback, useContext, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FootnoteContext, footnoteAnchor, useFootnoteNumber } from './footnoteContext';
 
 export function FootnotesProvider({ children }) {
   const [notes, setNotes] = useState([]);
-  const add = useCallback((id, text) => {
-    setNotes((current) => (current.some((n) => n.id === id && n.text === text) ? current : [...current.filter((n) => n.id !== id), { id, text }]));
+  const add = useCallback((id, text, link = null) => {
+    setNotes((current) =>
+      current.some((n) => n.id === id && n.text === text && n.link?.to === link?.to)
+        ? current
+        : [...current.filter((n) => n.id !== id), { id, text, link }],
+    );
     return () => setNotes((current) => current.filter((n) => n.id !== id));
   }, []);
   const value = useMemo(() => ({ notes, add }), [notes, add]);
@@ -35,7 +40,15 @@ export function Footnotes() {
         {context.notes.map((note, i) => (
           <li key={note.id} id={footnoteAnchor(note.id)}>
             <span className="page-footnotes__number tabular">{i + 1}</span>
-            <p>{note.text}</p>
+            <p>
+              {note.text}
+              {note.link && (
+                <>
+                  {' '}
+                  <Link to={note.link.to}>{note.link.label}</Link>
+                </>
+              )}
+            </p>
           </li>
         ))}
       </ol>

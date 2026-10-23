@@ -530,10 +530,11 @@ export default function KommuneView({ config, state }) {
   const what = [technology.label, leistungLabel].filter(Boolean).join(' · ');
   const subtypes = selection.subtypes;
   const allSubtypes = !subtypes || subtypes.length === technology.subtypes.options.length;
-  // Solar's split: the Freifläche alone, in the chosen Leistung (Gebäude is the rest); only while both are chosen
-  const freiflaecheQuery = selection.leistung
-    ? ['anlagenart=freiflaeche', selection.leistung.id !== technology.leistung.options[0].id && `leistung=${selection.leistung.id}`].filter(Boolean).join('&')
-    : '';
+  // The split of the area into its kinds, from the timeline's latest Bestand: every kind (solar: in the chosen Leistung),
+  // and for solar only while all Anlagenarten are chosen
+  const splitQuery =
+    selection.leistung && selection.leistung.id !== technology.leistung.options[0].id ? `&leistung=${selection.leistung.id}` : '';
+  const showSplit = profile.split.kind === 'zubau' && (profile.timeline.key !== 'anlagenart' || allSubtypes);
 
   // The map's Kennzahl and background in the URL (useUrlChoice), so a link shows the same map
   const metricIds = profile.metrics.map((m) => m.id);
@@ -558,10 +559,7 @@ export default function KommuneView({ config, state }) {
   const gemeindeStats = useStats(kreisAgs ? statsUrl(statsPath, 'gemeinde', query) : null);
   const kreisStats = useStats(kreisAgs ? statsUrl(statsPath, 'landkreis', query) : null);
   const landStats = useStats(kreisAgs ? statsUrl(statsPath, 'bundesland', query) : null);
-  const splitByFreiflaeche = profile.split.kind === 'freiflaeche' && allSubtypes;
-  const gemeindeFF = useStats(kreisAgs && splitByFreiflaeche ? statsUrl(statsPath, 'gemeinde', freiflaecheQuery) : null);
-  const kreisFF = useStats(kreisAgs && splitByFreiflaeche ? statsUrl(statsPath, 'landkreis', freiflaecheQuery) : null);
-  const splitZubau = useJson(kreisAgs && profile.split.kind === 'zubau' ? `${API_BASE_URL}${profile.timeline.path}?region=${state.scopeKey}` : null);
+  const splitZubau = useJson(kreisAgs && showSplit ? `${API_BASE_URL}${profile.timeline.path}?region=${state.scopeKey}${splitQuery}` : null);
   const areas = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=gemeinde&within=${kreisAgs}` : null);
   const areasLand = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=bundesland` : null);
   const areasKreise = useJson(kreisAgs ? `${API_BASE_URL}/regions/areas?level=landkreis&within=${region.ags}` : null);
@@ -679,18 +677,6 @@ export default function KommuneView({ config, state }) {
     const row = panel.row;
     if (!row) return null;
     const kinds = profile.split.series;
-    if (profile.split.kind === 'freiflaeche') {
-      if (!splitByFreiflaeche) return null;
-      const ffRows = gemeindeAgs ? gemeindeFF.data : kreisFF.data;
-      if (!ffRows) return null;
-      const ff = ffRows.find((r) => (gemeindeAgs ? r.gemeinde === gemeindeAgs : r.landkreis === kreisAgs))?.[sizeField] ?? 0;
-      const total = row[sizeField] || 0;
-      if (!total) return null;
-      return [
-        { ...kinds[0], value: total - ff, share: (total - ff) / total },
-        { ...kinds[1], value: ff, share: ff / total },
-      ];
-    }
     // From the Bestand of the latest year of the area's timeline
     if (!splitZubau.data?.length) return null;
     const latest = Math.max(...splitZubau.data.map((r) => r.year));
@@ -701,7 +687,7 @@ export default function KommuneView({ config, state }) {
     });
     const total = values.reduce((t, v) => t + v.value, 0);
     return total ? values.map((v) => ({ ...v, share: v.value / total })) : null;
-  }, [panel.row, profile, splitByFreiflaeche, gemeindeAgs, gemeindeFF.data, kreisFF.data, kreisAgs, sizeField, splitZubau.data]);
+  }, [panel.row, profile, splitZubau.data]);
 
   const tooltipFor = useCallback(
     (f) => {

@@ -42,7 +42,7 @@ units AS (
     -- Every unit in operation ("In Betrieb"): where it is, its power (Brutto, Netto) and capacity
     SELECT
         'solar' AS technology,
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         "Laengengrad" AS x,
         "Breitengrad" AS y,
         "Postleitzahl" AS plz,
@@ -66,7 +66,19 @@ units AS (
     UNION ALL
     SELECT
         'batterie',
-        'alle',
+        -- The size class like the map and the Zubau (aggregate_bat_by_region_power.sql), without a plausible capacity by
+        -- the power alone
+        CASE
+            WHEN b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12 THEN
+                CASE
+                    WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
+                    WHEN b.capacity >= 1000 OR b.power >= 1000 THEN 'grossspeicher'
+                    ELSE 'gewerbespeicher'
+                END
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) < 30 THEN 'heimspeicher'
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) >= 1000 THEN 'grossspeicher'
+            ELSE 'gewerbespeicher'
+        END,
         u."Laengengrad",
         u."Breitengrad",
         u."Postleitzahl",

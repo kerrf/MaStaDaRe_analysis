@@ -63,13 +63,15 @@ export const KOMMUNE = {
       },
       { field: 'added_12m_power', label: 'Zubau der letzten 12 Monate', format: mw, growthOf: 'total_power' },
     ],
-    // From the Freifläche alone (the stats with anlagenart=freiflaeche): Gebäude is the rest. Only while both are chosen.
+    // From the Bestand of the latest year of the timeline (/solar/zubau), like the batteries' size classes
     split: {
-      kind: 'freiflaeche',
-      title: 'Gebäude und Freifläche',
+      kind: 'zubau',
+      title: 'Gebäude, Freifläche und Balkonkraftwerke',
+      field: 'installed',
       series: [
         { id: 'gebaeude', label: 'Gebäude', color: 'var(--series-solar)' },
         { id: 'freiflaeche', label: 'Freifläche', color: 'var(--series-freiflaeche)' },
+        { id: 'balkon', label: 'Balkonkraftwerke', color: 'var(--series-solar-balkon-bar)' },
       ],
     },
     timeline: {
@@ -80,6 +82,7 @@ export const KOMMUNE = {
       series: [
         { id: 'gebaeude', label: 'Gebäude', color: 'var(--series-solar)' },
         { id: 'freiflaeche', label: 'Freifläche', color: 'var(--series-freiflaeche)' },
+        { id: 'balkon', label: 'Balkonkraftwerke', color: 'var(--series-solar-balkon-bar)' },
       ],
       measures: [{ id: 'leistung', label: 'Leistung', added: 'added', installed: 'installed', unit: 'MW', quantity: 'Solarleistung' }],
       note: 'Bestand: in Betrieb am Jahresende, endgültig stillgelegte Anlagen abgezogen; Anlagen vor 2000 zählen in den Bestand.',

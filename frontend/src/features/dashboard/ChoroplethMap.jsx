@@ -5,6 +5,7 @@ import { ZoomOut } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { STATES_TOPOLOGY } from '../../config/dashboards';
 import { EUROPE_BOUNDS, GERMANY_BOUNDS, OFFSHORE } from '../../config/regions';
+import { edgeOn } from '../../lib/colorScale';
 import { useLayers, useOpenEdge, useOutline } from '../../lib/data';
 import HeatmapLayer from './HeatmapLayer';
 import { fadeOutline, stopFade } from './mapHover';
@@ -136,10 +137,12 @@ function ChoroplethLayer({ geo, valueKey, colorFor, neutral, lineWeight, tooltip
   const styleFor = useCallback(
     (feature) => {
       if (neutral) return { ...NEUTRAL_STYLE, weight: lineWeight };
+      const fill = feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL;
       return {
-        fillColor: feature.properties._hasData ? colorFor(feature.properties[valueKey] ?? 0) : NODATA_FILL,
+        fillColor: fill,
         fillOpacity: 1,
-        color: '#ffffff',
+        // White between the darker areas, a fine dark line between the light ones (edgeOn)
+        color: edgeOn(fill),
         weight: lineWeight,
         opacity: 0.9,
         ...(feature.properties.ags === OFFSHORE.ags && SEA_HIDDEN),

@@ -12,9 +12,14 @@ export function useFootnoteNumber(id) {
   return index >= 0 ? index + 1 : null;
 }
 
-/** Registers a remark for the page's footnotes while the component shows it (text falsy: none). Returns its number. */
-export function useFootnote(id, text) {
+/**
+ * Registers a remark for the page's footnotes while the component shows it (text falsy: none). link: { to, label } – a
+ * page of the site the remark points to, after its text. Returns its number.
+ */
+export function useFootnote(id, text, link = null) {
   const add = useContext(FootnoteContext)?.add;
-  useEffect(() => (add && text ? add(id, text) : undefined), [add, id, text]);
+  const to = link?.to;
+  const label = link?.label;
+  useEffect(() => (add && text ? add(id, text, to ? { to, label } : null) : undefined), [add, id, text, to, label]);
   return useFootnoteNumber(id);
 }

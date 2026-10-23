@@ -26,7 +26,8 @@ import { boundsAround, groupByLocation, perRegion } from './sites';
 import { exportPdf, exportPng } from './exportMap';
 import { useUrlChoice } from './useDashboardState';
 import { markDrillHintSeen, useDrillHint } from './drillHint';
-import { WERTE, karteUrl, latestOf, legendOf, periodOf, periodParam } from './mapTime';
+import { WERTE, karteUrl, latestOf, legendOf, ohneOrtUrl, periodOf, periodParam } from './mapTime';
+import UnassignedNote from './UnassignedNote';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -129,6 +130,12 @@ export default function MapView({ config, state }) {
         : statsUrl(technology.statsPath, areaGranularity.apiLevel, selectionQuery),
   );
   const kpiStats = useStats(isSites ? null : statsUrl(technology.statsPath, 'bundesland', selectionQuery));
+  // What isn't on the map of this level (only the Länder, Kreise and Gemeinden): the note at its bottom left
+  const unassigned = useJson(
+    !isSites && !isHeatmap && AGS_LENGTH[areaGranularity.id]
+      ? ohneOrtUrl(technology, areaGranularity.apiLevel, { timeMode, wert, period }, selectionQuery)
+      : null,
+  );
   const kreisStats = useStats(kreisAgs && !isSites ? statsUrl(technology.statsPath, LANDKREIS.apiLevel, selectionQuery) : null);
   const plants = useStats(isSites ? `${API_BASE_URL}${technology.plantsPath}` : null);
   // The points of the continuous map, for the technology's selection and the measure of the Kennzahl
@@ -560,6 +567,13 @@ export default function MapView({ config, state }) {
               </div>
             )}
             <MapOverlay state={mapState} technology={technology} onRetry={retry} />
+            {mapState === 'ready' && unassigned.status === 'ready' && (
+              <UnassignedNote
+                data={unassigned.data}
+                quantity={metric.quantity}
+                unitsLabel={technology.ohneOrtPath ? 'Punkte' : technology.id === 'kwk' ? 'Anlagen' : 'Einheiten'}
+              />
+            )}
             <div className={`map-drill-hint${drillHint ? ' is-visible' : ''}`} aria-hidden="true">
               <MousePointerClick size={15} className="map-drill-hint__icon" />
               Klick auf ein Bundesland zum Hineinzoomen

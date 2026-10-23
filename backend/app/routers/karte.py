@@ -7,7 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.regions import RegionLevel
-from app.schemas.selection import Anlagenart, BiomasseArt, GeothermieArt, KwkTraeger, Lage, Leistung, SpeicherArt
+from app.schemas.selection import (
+    Anlagenart,
+    BatterieGroesse,
+    BiomasseArt,
+    GeothermieArt,
+    KwkTraeger,
+    Lage,
+    Leistung,
+    SpeicherArt,
+)
 
 router = APIRouter(prefix="/karte", tags=["Map in time"])
 
@@ -32,7 +41,7 @@ TECHNIKEN = {
     "biomass": Technik("art", get_args(BiomasseArt)),
     "geothermal": Technik("art", get_args(GeothermieArt)),
     "kwk": Technik("energietraeger", get_args(KwkTraeger), heat=True),
-    "battery": Technik(capacity=True),
+    "battery": Technik("groesse", get_args(BatterieGroesse), capacity=True),
     "other_storage": Technik("art", get_args(SpeicherArt), capacity=True),
 }
 TechnikId = Literal["solar", "wind", "water", "biomass", "geothermal", "kwk", "battery", "other_storage"]
@@ -118,9 +127,9 @@ def _ratio(value: float, base: float | None, digits: int) -> float | None:
 
 def _request(technik, level, kennzahl, jahr, monat, leistung, kinds, query):
     """The SQL of a request (the map's or what isn't on it) and its parameters. kinds: the kinds of every parameter
-    (anlagenart, lage, art, energietraeger); the technology's own one counts."""
+    (anlagenart, lage, art, energietraeger, groesse); the technology's own one counts."""
     spec = TECHNIKEN[technik]
-    chosen = dict(zip(("anlagenart", "lage", "art", "energietraeger"), kinds)).get(spec.param)
+    chosen = dict(zip(("anlagenart", "lage", "art", "energietraeger", "groesse"), kinds)).get(spec.param)
     if kennzahl not in ("geplant", "heute") and jahr is None:
         raise HTTPException(422, "jahr is required, except for kennzahl=geplant and heute")
     if kennzahl in ("geplant", "heute"):
@@ -150,10 +159,13 @@ def get_map(
     db: Annotated[Session, Depends(get_db)],
     jahr: Annotated[int | None, Query(ge=1900, le=2100, description="the year (not for geplant)")] = None,
     monat: Annotated[int | None, Query(ge=1, le=12, description="a month of the year; none: the whole year")] = None,
-    anlagenart: Annotated[list[str] | None, Query(description="solar: gebaeude and/or freiflaeche")] = None,
+    anlagenart: Annotated[list[str] | None, Query(description="solar: gebaeude, freiflaeche and/or balkon")] = None,
     lage: Annotated[list[str] | None, Query(description="wind: an_land and/or auf_see")] = None,
     art: Annotated[list[str] | None, Query(description="biomass, geothermal, other_storage: their kinds")] = None,
     energietraeger: Annotated[list[str] | None, Query(description="kwk: Energieträger of the largest unit")] = None,
+    groesse: Annotated[
+        list[str] | None, Query(description="battery: heimspeicher, gewerbespeicher, grossspeicher")
+    ] = None,
     leistung: Annotated[Leistung, Query(description="solar: Nettonennleistung (default) or Bruttoleistung")] = "netto",
 ) -> list[dict]:
     """The map of a technology in time, per Bundesland, Landkreis or Gemeinde, for its chosen kinds (the parameter of
@@ -164,7 +176,7 @@ def get_map(
     every region of the level, also those without units (mrt.karte_zeit)."""
     spec = TECHNIKEN[technik]
     sql, params = _request(
-        technik, level, kennzahl, jahr, monat, leistung, (anlagenart, lage, art, energietraeger), QUERY
+        technik, level, kennzahl, jahr, monat, leistung, (anlagenart, lage, art, energietraeger, groesse), QUERY
     )
     result = db.execute(text(sql), params)
     out = []
@@ -196,6 +208,7 @@ def get_ohne_ort(
     lage: Annotated[list[str] | None, Query()] = None,
     art: Annotated[list[str] | None, Query()] = None,
     energietraeger: Annotated[list[str] | None, Query()] = None,
+    groesse: Annotated[list[str] | None, Query()] = None,
     leistung: Annotated[Leistung, Query()] = "netto",
 ) -> dict:
     """What of a technology isn't on its map of a level (the parameters of /karte/{technik}; kennzahl=heute: the map of
@@ -204,7 +217,14 @@ def get_ohne_ort(
     besides, what is on it (auf_der_karte)."""
     spec = TECHNIKEN[technik]
     sql, params = _request(
-        technik, level, kennzahl, jahr, monat, leistung, (anlagenart, lage, art, energietraeger), OHNE_ORT_QUERY
+        technik,
+        level,
+        kennzahl,
+        jahr,
+        monat,
+        leistung,
+        (anlagenart, lage, art, energietraeger, groesse),
+        OHNE_ORT_QUERY,
     )
     gruende = {}
     for row in db.execute(text(sql), params):

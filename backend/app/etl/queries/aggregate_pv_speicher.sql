@@ -60,7 +60,7 @@ pv AS (
     -- Solar units in operation in Germany, with their share of the battery at their Lokation (if any).
     -- Anlagenart as in aggregate_pv_by_region_power.sql.
     SELECT
-        CASE WHEN s."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE s."ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         c.size_class,
         c.label AS size_label,
         CAST(EXTRACT(YEAR FROM s."Inbetriebnahmedatum") AS INTEGER) AS year,

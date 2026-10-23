@@ -340,7 +340,7 @@ class HeatmapPoint(Base):
     technology = Column(String, primary_key=True)  # solar, wind, batterie
     anlagenart = Column(
         String, primary_key=True
-    )  # solar: gebaeude, freiflaeche; wind: an_land, auf_see; batterie: alle
+    )  # solar: gebaeude, freiflaeche, balkon; wind: an_land, auf_see; batterie: heimspeicher, gewerbespeicher, grossspeicher
     kind = Column(String, primary_key=True)  # site, area
     point = Column(BigInteger, primary_key=True)  # the cell (column * 100000 + row) or the postcode
 

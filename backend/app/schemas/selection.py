@@ -3,7 +3,7 @@ from typing import Annotated, Literal, get_args
 
 from fastapi import Query
 
-Anlagenart = Literal["gebaeude", "freiflaeche"]
+Anlagenart = Literal["gebaeude", "freiflaeche", "balkon"]
 Leistung = Literal["netto", "brutto"]
 
 
@@ -23,7 +23,10 @@ class SolarSelection:
 def solar_selection(
     anlagenart: Annotated[
         list[Anlagenart] | None,
-        Query(description="gebaeude (with steckerfertige and those without an Art) and/or freiflaeche; default both"),
+        Query(
+            description="gebaeude (with sonstige and those without an Art), freiflaeche and/or balkon (steckerfertige,"
+            " Balkonkraftwerke); default all"
+        ),
     ] = None,
     leistung: Annotated[
         Leistung, Query(description="Nettonennleistung (AC, the default) or Bruttoleistung (DC)")
@@ -49,6 +52,20 @@ BiomasseArt = Literal["gasfoermig", "fest", "fluessig"]
 GeothermieArt = Literal["geothermie", "grubengas", "klaerschlamm", "druckentspannung", "solarthermie"]
 SpeicherArt = Literal["druckluft", "schwungrad", "wasserstoff"]
 KwkTraeger = Literal["erdgas", "biomasse", "kohle", "sonstige"]
+
+
+BatterieGroesse = Literal["heimspeicher", "gewerbespeicher", "grossspeicher"]
+
+
+def batterie_groessen(
+    groesse: Annotated[
+        list[BatterieGroesse] | None,
+        Query(
+            description="heimspeicher, gewerbespeicher and/or grossspeicher (the size classes of the Zubau); default all"
+        ),
+    ] = None,
+) -> tuple[str, ...]:
+    return tuple(groesse or get_args(BatterieGroesse))
 
 
 def biomasse_arten(

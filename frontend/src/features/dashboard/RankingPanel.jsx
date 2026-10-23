@@ -43,6 +43,9 @@ export default function RankingPanel({ features, metric, granularity, within, fo
   const all = rankedOf(features, metric, within);
   const ranked = listsAll(granularity) ? all : all.slice(0, TOP_N);
   const top = ranked[0]?.properties[metric.id] || 1;
+  // Enough decimals for two significant digits of the largest value: small ones (Balkonkraftwerke per inhabitant,
+  // 0.025 kW) don't all read "0,02"
+  const digits = Math.max(metric.digits ?? 0, Math.min(4, Math.ceil(-Math.log10(Math.abs(top))) + 1));
   const csv = {
     name: 'rangliste',
     filename: fileBase,
@@ -72,7 +75,7 @@ export default function RankingPanel({ features, metric, granularity, within, fo
                 <span className="ranking__rank tabular">{i + 1}</span>
                 <span className="ranking__name">{labelFor(f)}</span>
                 <span className="ranking__value tabular">
-                  {formatFixed(value, metric.digits)} <span className="ranking__unit">{metric.unit}</span>
+                  {formatFixed(value, digits)} <span className="ranking__unit">{metric.unit}</span>
                 </span>
                 <span className="ranking__bar" aria-hidden="true">
                   <span style={{ width: `${Math.max(1.5, (value / top) * 100)}%` }} />

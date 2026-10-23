@@ -509,7 +509,34 @@
 }
 
 .map-rail__head {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+
+/* The Rangliste fills the rail without scrolling: its rows share the height left, up to 44 px each where there is room,
+   down to 26 px on the lowest map (every Land, 17 rows with the sea, fits from the smallest --map-height on) */
+.map-rail__body.is-ranking {
+  display: flex;
+  flex-direction: column;
+  padding-top: 14px;
+  padding-bottom: 12px;
+}
+
+.map-rail__body.is-ranking .ranking {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.map-rail__body.is-ranking .ranking li {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 26px;
+  max-height: 44px;
+}
+
+.map-rail__body.is-ranking .ranking + .chart-foot {
+  margin-top: 6px;
 }
 
 .map-rail__title {
@@ -1007,6 +1034,82 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-secondary);
+}
+
+/* What isn't on the map (UnassignedNote): bottom left, quiet; on hover or focus why, in a box above it */
+.map-unassigned {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 290px);
+  padding: 5px 10px 5px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.94);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  cursor: help;
+}
+
+.map-unassigned strong {
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.map-unassigned svg {
+  flex: none;
+  color: var(--ink-muted);
+}
+
+.map-unassigned:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+}
+
+.map-unassigned__details {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 340px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+  cursor: default;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility var(--dur);
+}
+
+.map-unassigned:hover .map-unassigned__details,
+.map-unassigned:focus-visible .map-unassigned__details,
+.map-unassigned:focus-within .map-unassigned__details {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.map-unassigned__details p {
+  margin: 0 0 6px;
+}
+
+.map-unassigned__details ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.map-unassigned__details li + li {
+  margin-top: 4px;
 }
 
 /* Now and then: a click on a Land zooms in (drillHint.js). Fades in from just above, the pointer taps twice. */
@@ -2130,7 +2233,8 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13.5px;
+  font-size: 13px;
+  line-height: 1.25;
 }
 
 .ranking + .chart-foot {
@@ -2149,10 +2253,11 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 .ranking__row {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-content: center;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: 3px 8px;
   width: 100%;
-  padding: 6px 6px 7px 2px;
+  padding: 2px 6px 3px 2px;
   border: 0;
   background: none;
   font: inherit;
@@ -2199,7 +2304,7 @@ body:not(.leaflet-dragging) .map-focus-mask.leaflet-interactive {
 
 .ranking__bar {
   grid-column: 2 / -1;
-  height: 6px;
+  height: 5px;
   border-radius: var(--radius-pill);
   background: var(--surface-sunken);
 }

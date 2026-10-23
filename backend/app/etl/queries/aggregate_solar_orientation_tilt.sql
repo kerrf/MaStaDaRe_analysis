@@ -9,7 +9,7 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_orientation_tilt;
 -- counts with 5–20° as 0–20°. Tracked units have no fixed tilt; units without one in the register (mostly
 -- Balkonkraftwerke, whose simplified registration doesn't ask) count as 'unbekannt'. tilt_sort: the classes from flat to
 -- vertical, then tracked and unknown; orientation_sort as in aggregate_solar_orientation.sql.
--- Only the combinations that occur (the page fills in the empty ones). Per Anlagenart ('gebaeude', 'freiflaeche'; the
+-- Only the combinations that occur (the page fills in the empty ones). Per Anlagenart ('gebaeude', 'freiflaeche', 'balkon'; the
 -- API sums the chosen ones), with Brutto (Bruttoleistung) and Netto (Nettonennleistung) power.
 CREATE MATERIALIZED VIEW mrt.solar_orientation_tilt AS
 WITH tilt_classes (mastr, tilt) AS (
@@ -45,7 +45,7 @@ units AS (
     SELECT
         COALESCE(t.tilt, 'unbekannt') AS tilt,
         COALESCE(o.orientation, 'unbekannt') AS orientation,
-        CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE u."ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         u."Gemeindeschluessel" AS ags,
         u."Bruttoleistung" AS power,
         u."Nettonennleistung" AS power_net

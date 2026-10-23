@@ -25,7 +25,8 @@ const FIELDS = { zubau: 'units', bestand: 'total' };
 // registered so far), Jährlich, Monatlich or Jahresvergleich, the span.
 // region, scopeName: the scope ("DE", a Land or Kreis key) and its name
 export default function RegistrationsAnalysis({ analysis, region = 'DE', scopeName = 'Deutschland', anchor }) {
-  const { path, series, stacked } = analysis.registrations;
+  // units: what is registered ("Einheiten"; the Netzanschlüsse: their points); note: where its date comes from
+  const { path, series, stacked, units = 'Einheiten', note } = analysis.registrations;
   // Only its technologies: a URL of its own per set of series, so a new series never meets an older cached answer
   const data = useJson(`${API_BASE_URL}${path}?region=${region}&${series.map((s) => `technology=${s.id}`).join('&')}`);
   // One at a time: always the first technology to start with (Batteriespeicher, Gaserzeuger), whatever the map shows –
@@ -88,13 +89,13 @@ export default function RegistrationsAnalysis({ analysis, region = 'DE', scopeNa
 
   const per = view === 'jahr' ? 'Jahr' : 'Monat';
   const lead = bestand
-    ? `${scopeName} · im Marktstammdatenregister registrierte Einheiten insgesamt, am ${view === 'jahr' ? 'Jahresende' : 'Monatsende'}`
+    ? `${scopeName} · im Marktstammdatenregister registrierte ${units} insgesamt, am ${view === 'jahr' ? 'Jahresende' : 'Monatsende'}`
     : isComparison
-      ? `${scopeName} · neu im Marktstammdatenregister registrierte Einheiten je Monat, ${compareFrom}–${compareTo} im Vergleich`
-      : `${scopeName} · neu im Marktstammdatenregister registrierte Einheiten je ${per}`;
+      ? `${scopeName} · neu im Marktstammdatenregister registrierte ${units} je Monat, ${compareFrom}–${compareTo} im Vergleich`
+      : `${scopeName} · neu im Marktstammdatenregister registrierte ${units} je ${per}`;
   // The CSV: what the chart shows, a row per year or month and a column per technology shown – in the Jahresvergleich a
   // row per month and a column per year (the technologies shown added up)
-  const prefix = bestand ? 'Registrierte Einheiten insgesamt' : 'Registrierte Einheiten';
+  const prefix = bestand ? `Registrierte ${units} insgesamt` : `Registrierte ${units}`;
   const csv =
     periods.length && shown.length
       ? {
@@ -154,7 +155,7 @@ export default function RegistrationsAnalysis({ analysis, region = 'DE', scopeNa
         <>
           {facts.total > 0 && (
             <p className="registrations__summary">
-              <strong>{formatNumber(facts.total)}</strong> {stacked ? `Einheiten (${what})` : `${what}-Einheiten`} seit {facts.since}{' '}
+              <strong>{formatNumber(facts.total)}</strong> {stacked ? `${units} (${what})` : units === 'Einheiten' ? `${what}-Einheiten` : `${units} (${what})`} seit {facts.since}{' '}
               registriert · die meisten {facts.peak.year}: <strong>{formatNumber(facts.peak.units)}</strong>
             </p>
           )}
@@ -180,9 +181,11 @@ export default function RegistrationsAnalysis({ analysis, region = 'DE', scopeNa
       {stacked && <SeriesLegend series={series} hidden={hidden} onToggle={toggle} />}
       <ChartFoot csv={csv}>
         <p className="timeline__note">
-          Nach Registrierungsdatum, jede Einheit einmal – ob in Betrieb, geplant oder stillgelegt; aus dem Register gelöschte
-          Einheiten fehlen. Das Register startete am 31.01.2019, bestehende Anlagen mussten bis 31.01.2021 nachgemeldet
-          werden: daher die vielen Registrierungen bis 2021.{isCurve ? '' : ' Hell: laufendes Jahr bzw. laufender Monat.'}
+          {note ??
+            'Nach Registrierungsdatum, jede Einheit einmal – ob in Betrieb, geplant oder stillgelegt; aus dem Register gelöschte ' +
+              'Einheiten fehlen.'}{' '}
+          Das Register startete am 31.01.2019, bestehende Anlagen mussten bis 31.01.2021 nachgemeldet werden: daher die vielen
+          Registrierungen bis 2021.{isCurve ? '' : ' Hell: laufendes Jahr bzw. laufender Monat.'}
         </p>
       </ChartFoot>
     </AnalysisPanel>

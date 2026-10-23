@@ -189,8 +189,12 @@ export default function InfoPage() {
                 <strong>Strg/⌘ + Mausrad</strong> zoomt die Karte, um den Mauszeiger, in kleinen Schritten; normales Scrollen bewegt die Seite.
               </li>
               <li>
-                <strong>Solar – Anlagenart:</strong> Gebäude- und Freiflächenanlagen lassen sich getrennt auswählen. Der Filter wird gerade
-                angebunden; bis dahin zeigen Karte und Kennzahlen alle Solaranlagen.
+                <strong>Solar – Anlagenart:</strong> Gebäude, Freifläche und Balkonkraftwerke lassen sich einzeln wählen – auf der Karte,
+                bei den Anlagen und in den Regionen. Balkonkraftwerke sind nur die als steckerfertig registrierten: eine Untergrenze.
+              </li>
+              <li>
+                <strong>Batteriespeicher – Anlagenart:</strong> Heim-, Gewerbe- und Großspeicher wie im Zubau (unter 30 kWh und 30 kW,
+                ab 1.000 kWh oder 1.000 kW, dazwischen).
               </li>
             </ul>
             <h3>Kennzahlen</h3>

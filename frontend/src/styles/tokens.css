@@ -63,6 +63,9 @@
      register knows only a part of them, the number is a lower bound) */
   --series-solar-balkon: #fbe7a6;
   --series-solar-balkon-hatch: #e3a600;
+  /* The Balkonkraftwerke as a series of their own in the charts (Registrierungen, Regionen im Detail): a light yellow,
+     clearly apart from the Gebäude's amber and the Freifläche's ochre */
+  --series-solar-balkon-bar: #f7d774;
   /* Solar on open land, next to the rooftops' --series-solar */
   --series-freiflaeche: #b25a06;
   --series-wind-land: #5ea66b;

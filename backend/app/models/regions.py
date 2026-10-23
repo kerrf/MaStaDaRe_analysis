@@ -134,7 +134,9 @@ class OtherStorageRegionStats(KindRegionStats, Base):
     added_12m_capacity = Column(Float)  # MWh
 
 
-class BatteryRegionStats(RegionStats, Base):
+class BatteryRegionStats(KindRegionStats, Base):
+    """Per size class like the Zubau: heimspeicher, gewerbespeicher, grossspeicher (etl/queries/aggregate_bat_by_region_power.sql)."""
+
     __tablename__ = "battery_region_stats"
     __table_args__ = {"schema": "mrt"}
 

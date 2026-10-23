@@ -5,7 +5,7 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_orientation;
 -- Solar units and power by the main orientation of their modules (Hauptausrichtung), for Deutschland ('DE'), every
 -- Bundesland (2-digit key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every orientation, also
 -- empty ones. sort: the compass clockwise from north, then Ost-West, tracked and unknown.
--- Per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql; the API sums the chosen ones), with
+-- Per Anlagenart ('gebaeude', 'freiflaeche', 'balkon', see aggregate_pv_by_region_power.sql; the API sums the chosen ones), with
 -- Brutto (Bruttoleistung) and Netto (Nettonennleistung) power.
 CREATE MATERIALIZED VIEW mrt.solar_orientation AS
 WITH orientations (mastr, orientation, label, sort) AS (
@@ -28,7 +28,7 @@ units AS (
     -- Installed units ("In Betrieb") in Germany, like the region rollups
     SELECT
         COALESCE(o.orientation, 'unbekannt') AS orientation,
-        CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE u."ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         u."Gemeindeschluessel" AS ags,
         u."Bruttoleistung" AS power,
         u."Nettonennleistung" AS power_net
@@ -78,7 +78,7 @@ SELECT
     CAST(COALESCE(n.total_power, 0) / 1000 AS NUMERIC(12,3)) AS total_power,  -- MW
     CAST(COALESCE(n.total_power_net, 0) / 1000 AS NUMERIC(12,3)) AS total_power_net
 FROM orientations o
-CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche')) AS a (anlagenart)
+CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche'), ('balkon')) AS a (anlagenart)
 CROSS JOIN regions r
 LEFT JOIN counts n ON n.orientation = o.orientation AND n.anlagenart = a.anlagenart AND n.region = r.region
 ORDER BY level, region, sort, anlagenart;

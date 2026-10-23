@@ -86,3 +86,17 @@ export function karteUrl(technology, apiLevel, wert, period, selectionQuery) {
   }
   return `${API_BASE_URL}/karte/${technology.zeit}?${params}${selectionQuery ? `&${selectionQuery}` : ''}`;
 }
+
+// What of the map isn't on it (UnassignedNote): the technology's own route (the Netzanschlüsse: `ohneOrtPath`), or that
+// of the map in time – for the map of today (kennzahl=heute) or the Kennzahl and period chosen
+export function ohneOrtUrl(technology, apiLevel, { timeMode, wert, period }, selectionQuery) {
+  const selection = selectionQuery ? `&${selectionQuery}` : '';
+  if (technology.ohneOrtPath) return `${API_BASE_URL}${technology.ohneOrtPath}?level=${apiLevel}${selection}`;
+  if (!technology.zeit) return null;
+  const params = new URLSearchParams({ level: apiLevel, kennzahl: timeMode ? wert : 'heute' });
+  if (timeMode && wert !== 'geplant') {
+    params.set('jahr', period.jahr);
+    if (period.monat) params.set('monat', period.monat);
+  }
+  return `${API_BASE_URL}/karte/${technology.zeit}/ohne-ort?${params}${selection}`;
+}

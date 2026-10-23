@@ -20,13 +20,26 @@ WITH kwk_places AS (
     WHERE kwk IS NOT NULL
     ORDER BY kwk, kw DESC NULLS LAST, ags
 ),
+battery_plants AS (
+    -- The usable capacity (kWh) per storage plant, the power (kW) of its units: for the batteries' size classes
+    SELECT u."SpeMastrNummer", max(p."NutzbareSpeicherkapazitaet") AS capacity, sum(u."Bruttoleistung") AS power
+    FROM raw.storage_units u
+    JOIN raw.storage_plants p ON p."MaStRNummer" = u."SpeMastrNummer"
+    WHERE u."Technologie" = 'Batterie'
+    GROUP BY u."SpeMastrNummer"
+),
 units AS (
-    -- Solar as a whole and per Anlagenart: Freifläche, else Gebäude (also steckerfertige, sonstige, without an Art)
+    -- Solar as a whole and per Anlagenart: Freifläche, Balkonkraftwerke (steckerfertige), else Gebäude (also sonstige,
+    -- without an Art) – like the map
     SELECT s.technology, u."Gemeindeschluessel" AS ags, u."Registrierungsdatum" AS registered
     FROM raw.solar_units u
     CROSS JOIN LATERAL (VALUES
         ('solar'),
-        (CASE WHEN u."ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'solar_freiflaeche' ELSE 'solar_gebaeude' END)
+        (CASE u."ArtDerSolaranlage"
+            WHEN 'Freiflächensolaranlage' THEN 'solar_freiflaeche'
+            WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'solar_balkon'
+            ELSE 'solar_gebaeude'
+        END)
     ) AS s(technology)
     UNION ALL
     -- Wind as a whole and per Lage: auf See, else an Land
@@ -39,7 +52,26 @@ units AS (
     UNION ALL
     SELECT 'wasserkraft', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.water_units
     UNION ALL
-    SELECT 'batterie', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Batterie'
+    -- Batteries as a whole and per size class like the map and the Zubau (aggregate_bat_by_region_power.sql); without a
+    -- plausible capacity by the power alone
+    SELECT s.technology, u."Gemeindeschluessel", u."Registrierungsdatum"
+    FROM raw.storage_units u
+    LEFT JOIN battery_plants b USING ("SpeMastrNummer")
+    CROSS JOIN LATERAL (VALUES
+        ('batterie'),
+        ('batterie_' || CASE
+            WHEN b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12 THEN
+                CASE
+                    WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
+                    WHEN b.capacity >= 1000 OR b.power >= 1000 THEN 'grossspeicher'
+                    ELSE 'gewerbespeicher'
+                END
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) < 30 THEN 'heimspeicher'
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) >= 1000 THEN 'grossspeicher'
+            ELSE 'gewerbespeicher'
+        END)
+    ) AS s(technology)
+    WHERE u."Technologie" = 'Batterie'
     UNION ALL
     SELECT 'pumpspeicher', "Gemeindeschluessel", "Registrierungsdatum" FROM raw.storage_units WHERE "Technologie" = 'Pumpspeicher'
     UNION ALL

@@ -105,13 +105,13 @@ export const isAvailable = (granularity, technology) =>
 // Registrierungen im MaStR per year or month, in the scope (mrt.registrierungen_regions). series: the technologies, as
 // the API names them – one at a time (a switch), or with `stacked` stacked like the Ausbau, a click on the legend hiding
 // one (`hidden`: off at first)
-const registrationsOf = (series, { stacked = false } = {}) => ({
+const registrationsOf = (series, { stacked = false, units, note } = {}) => ({
   id: 'registrierungen',
   title: 'Registrierungen im MaStR',
   kind: 'registrations',
   view: 'zubau',
   icon: ClipboardList,
-  registrations: { path: '/zubau/registrierungen', series, stacked },
+  registrations: { path: '/zubau/registrierungen', series, stacked, ...(units && { units }), ...(note && { note }) },
 });
 
 // Abstand zwischen Inbetriebnahmen und Registierung, in the scope (mrt.registrierungsverzug_regions), one technology at
@@ -160,7 +160,7 @@ export const ERZEUGER = {
       icon: Sun,
       statsPath: '/solar/dashboard-stats',
       // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
-      registrations: { all: 'solar', parts: { gebaeude: 'solar_gebaeude', freiflaeche: 'solar_freiflaeche' } },
+      registrations: { all: 'solar', parts: { gebaeude: 'solar_gebaeude', freiflaeche: 'solar_freiflaeche', balkon: 'solar_balkon' } },
       // The map in time: Bestand, Zubau, Stilllegungen per year or month and what is planned (/karte/<zeit>,
       // features/dashboard/mapTime.js)
       zeit: 'solar',
@@ -170,15 +170,24 @@ export const ERZEUGER = {
       sizesPath: '/solar/size-distribution',
       sizesNote: SOLAR_SIZES_NOTE,
       // Multiple choice in the technology's filters while it is active; no param in the URL = all selected.
-      // Gebäude: Gebäude-, sonstige und steckerfertige Anlagen and those without an Art; Freifläche: Freiflächenanlagen.
-      // Passed to every solar request as ?anlagenart=… (the views have one row per Anlagenart, the API sums the chosen).
+      // Gebäude: Gebäude- und sonstige Anlagen and those without an Art; Freifläche: Freiflächenanlagen; Balkonkraftwerke:
+      // the steckerfertigen. Passed to every solar request as ?anlagenart=… (the views have one row per Anlagenart, the
+      // API sums the chosen). note: a remark at the page's bottom, marked at its option (TechFilters), with a link.
       subtypes: {
         param: 'anlagenart',
         label: 'Anlagenart',
         options: [
           { id: 'gebaeude', label: 'Gebäude' },
           { id: 'freiflaeche', label: 'Freifläche' },
+          { id: 'balkon', label: 'Balkonkraftwerke', note: true },
         ],
+        note: {
+          text:
+            'Balkonkraftwerke: die als steckerfertige Solaranlage registrierten Einheiten. Viele sind nicht registriert – ' +
+            'auf jedes registrierte kommen Schätzungen zufolge rund zwei nicht registrierte –, manche stehen als ' +
+            'Gebäudeanlage im Register. Die Zahlen sind eine Untergrenze.',
+          link: { to: '/datenqualitaet#balkonkraftwerke', label: 'Mehr in der Datenqualität' },
+        },
       },
       // Which power the solar values show, passed as ?leistung=… (the first option is the default, like in the API).
       // The note is a footnote below the choice of technology (SelectionBar), marked ¹ at the switch and in the map title.
@@ -533,6 +542,7 @@ export const ERZEUGER = {
       [
         { id: 'solar_gebaeude', label: 'Solar Gebäude', color: 'var(--series-solar)' },
         { id: 'solar_freiflaeche', label: 'Solar Freifläche', color: 'var(--series-solar-freiflaeche)' },
+        { id: 'solar_balkon', label: 'Balkonkraftwerke', color: 'var(--series-solar-balkon-bar)' },
         { id: 'wind_an_land', label: 'Wind an Land', color: 'var(--series-wind-land)', hidden: true },
         { id: 'wind_auf_see', label: 'Wind auf See', color: 'var(--series-wind-sea)', hidden: true },
         { id: 'biomasse', label: 'Biomasse', color: 'var(--series-biomasse)', hidden: true },
@@ -626,8 +636,23 @@ export const SPEICHER = {
       icon: BatteryCharging,
       statsPath: '/battery/dashboard-stats',
       // Its series of the Registrierungen (KPI „Registrierungen (12 Monate)“; parts: per subtype)
-      registrations: { all: 'batterie' },
+      registrations: {
+        all: 'batterie',
+        parts: { heimspeicher: 'batterie_heimspeicher', gewerbespeicher: 'batterie_gewerbespeicher', grossspeicher: 'batterie_grossspeicher' },
+      },
       zeit: 'battery',
+      // The size classes of the Zubau (battery-charts.de) as the map's filter (?groesse=…): only on the map, the other
+      // pages show the classes in their own charts
+      subtypes: {
+        param: 'groesse',
+        label: 'Anlagenart',
+        mapOnly: true,
+        options: [
+          { id: 'heimspeicher', label: 'Heimspeicher', hint: 'unter 30 kWh und 30 kW' },
+          { id: 'gewerbespeicher', label: 'Gewerbespeicher', hint: 'dazwischen' },
+          { id: 'grossspeicher', label: 'Großspeicher', hint: 'ab 1.000 kWh oder 1.000 kW' },
+        ],
+      },
       heatmapPath: '/battery/heatmap',
       granularities: [...REGION_LEVELS, 'heatmap'],
       // Überblick: the batteries by their capacity (MWh), their power beside it (also: each class's series of power);
@@ -1132,6 +1157,8 @@ export const NETZ = {
       // mrt.netz_region_stats: one row per Spannungsebene, the API sums the chosen (?spannung=…; ?ebene= is the map's
       // resolution)
       statsPath: '/netz/dashboard-stats',
+      // What isn't on the map, per level and the chosen Spannungsebenen (the note at the map's bottom left)
+      ohneOrtPath: '/netz/ohne-ort',
       granularities: REGION_LEVELS,
       subtypes: {
         param: 'spannung',
@@ -1193,7 +1220,13 @@ export const NETZ = {
         note: NETZ_ZUBAU_NOTE,
       },
     },
-    registrationsOf(netzSeries(), { stacked: true }),
+    registrationsOf(netzSeries(), {
+      stacked: true,
+      units: 'Netzanschlusspunkte',
+      note:
+        'Ein Netzanschlusspunkt hat im MaStR kein eigenes Registrierungsdatum: Er gilt als registriert mit der ersten ' +
+        'Einheit seiner Lokation – ob sie in Betrieb, geplant oder stillgelegt ist.',
+    }),
     {
       id: 'netzebenen',
       title: 'Netzanschlüsse je Netzebene',

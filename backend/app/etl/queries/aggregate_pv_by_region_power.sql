@@ -2,17 +2,19 @@ CREATE SCHEMA IF NOT EXISTS mrt;
 
 DROP MATERIALIZED VIEW IF EXISTS mrt.solar_region_stats;
 
--- One row per Anlagenart and region: the API sums the Anlagenarten chosen on the dashboard. Both rows of a region carry
--- its whole area and population, so the values per km² and per inhabitant add up as well.
---   gebaeude:    Gebäude-, sonstige und steckerfertige Solaranlagen (853, 2484, 2961) and those without an Art
+-- One row per Anlagenart and region: the API sums the Anlagenarten chosen on the dashboard. Every row of a region carries
+-- its whole area and population, so the values per km² and per inhabitant add up as well. The same three Anlagenarten in
+-- every solar view with one:
+--   gebaeude:    Gebäude- und sonstige Solaranlagen (853, 2484) and those without an Art
 --   freiflaeche: Freiflächensolaranlagen
+--   balkon:      steckerfertige Solaranlagen (2961, Balkonkraftwerke): only those registered as such (Datenqualität)
 -- Power as Brutto (DC, Bruttoleistung: the modules' peak) and Netto (AC, Nettonennleistung: at most the inverter's).
 CREATE MATERIALIZED VIEW mrt.solar_region_stats AS
 WITH gemeinde_solar_agg AS (
     -- 1. Pre-aggregate to 1 row per Gemeinde and Anlagenart to prevent JOIN explosions
     SELECT
         "Gemeindeschluessel" AS ags,
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         COUNT("EinheitMastrNummer") AS total_units,
         SUM("Bruttoleistung") AS total_power,
         SUM("Nettonennleistung") AS total_power_net,
@@ -41,7 +43,7 @@ joined AS (
     FROM (
         SELECT ags, qkm, einwohner, anlagenart
         FROM geo.gemeinden
-        CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche')) AS arten (anlagenart)
+        CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche'), ('balkon')) AS arten (anlagenart)
     ) g
     FULL JOIN gemeinde_solar_agg s ON s.ags = g.ags AND s.anlagenart = g.anlagenart
 )
@@ -56,8 +58,8 @@ SELECT
     CAST(COALESCE(SUM(total_power_net), 0) / 1000 AS NUMERIC(12,2)) AS total_power_net,
     CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power,
     CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(qkm), 0) AS NUMERIC(10,1)) AS relative_area_power_net,
-    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power,
-    CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(10,2)) AS relative_population_power_net,
+    CAST(COALESCE(SUM(total_power), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(12,5)) AS relative_population_power,
+    CAST(COALESCE(SUM(total_power_net), 0) / NULLIF(SUM(einwohner), 0) AS NUMERIC(12,5)) AS relative_population_power_net,
     CAST(COALESCE(SUM(added_12m_power), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_power,
     CAST(COALESCE(SUM(added_12m_power_net), 0) / 1000 AS NUMERIC(12,2)) AS added_12m_power_net
 FROM joined

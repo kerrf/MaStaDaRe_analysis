@@ -5,7 +5,7 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.size_distribution;
 -- Units and power per size class (Bruttoleistung) for solar, wind, hydropower, biomass and geothermal (the units of
 -- raw.geothermal_units), and the KWK plants by their electrical power, for Deutschland ('DE'), every Bundesland (2-digit
 -- key), Landkreis (5 digits) and Gemeinde (8 digits). Every region has every class, also empty ones. Solar per
--- Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql), wind per Lage ('an_land', 'auf_see');
+-- Anlagenart ('gebaeude', 'freiflaeche', 'balkon', see aggregate_pv_by_region_power.sql), wind per Lage ('an_land', 'auf_see');
 -- the API sums the chosen ones. The others as 'alle'. Power as Brutto (Bruttoleistung) and Netto (Nettonennleistung);
 -- the classes go by the Bruttoleistung either way (KWK: the electrical power, Netto the same). Solar counts Anlagen, not
 -- units: the units at one grid connection together (solar_anlagen); wind, hydropower, biomass and geothermal count
@@ -53,7 +53,7 @@ WITH classes (technology, size_class, above, up_to, label, hint) AS (
         ('kwk', 5, 50000, 'Infinity', 'über 50 MW', 'Heizkraftwerke')
 ),
 kinds (technology, anlagenart) AS (
-    VALUES ('solar', 'gebaeude'), ('solar', 'freiflaeche'), ('wind', 'an_land'), ('wind', 'auf_see'), ('water', 'alle'),
+    VALUES ('solar', 'gebaeude'), ('solar', 'freiflaeche'), ('solar', 'balkon'), ('wind', 'an_land'), ('wind', 'auf_see'), ('water', 'alle'),
         ('biomass', 'alle'), ('geothermal', 'alle'), ('kwk', 'alle')
 ),
 kwk_places AS (
@@ -77,7 +77,7 @@ solar_anlagen AS (
     -- another Gemeinde or postcode – a park across a border counts in each Gemeinde, and a Lokation the register shares
     -- between unrelated units across a city (Hamburg: over 1,100, nearly all balcony units) merges next to nothing.
     SELECT
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         "Gemeindeschluessel" AS ags,
         sum("Bruttoleistung") AS power,
         sum("Nettonennleistung") AS power_net

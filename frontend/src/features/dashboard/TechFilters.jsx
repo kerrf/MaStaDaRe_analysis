@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import Setting from '../../components/ui/Setting';
-import { footnoteAnchor } from './footnoteContext';
+import { footnoteAnchor, useFootnote } from './footnoteContext';
 import { FootnoteRef } from './footnotes';
 
 // Multiple choice (Solar: Anlagenart, Gas: Technologie, Speicherart). At least one option stays selected. Options with a
@@ -31,7 +31,8 @@ function SubtypePicker({ subtypes, selected, onChange }) {
             <span className="tech-subtypes__box" aria-hidden="true">
               <Check size={12} strokeWidth={3} />
             </span>
-            {option.label}
+            <span title={option.hint}>{option.label}</span>
+            {option.note && <FootnoteRef id={`subtypes-${subtypes.param}`} />}
           </label>
         );
       })}
@@ -63,6 +64,9 @@ function OptionSwitch({ label, describedBy, option, value, onChange }) {
 // narrow down the technology (Solar: Anlagenart, Leistung), they are not another technology. In the topic's colour like
 // the chosen technology.
 export default function TechFilters({ technology, subtypes, onSubtypes, leistung, onLeistung }) {
+  // The subtypes' remark (solar: what the Balkonkraftwerke are), marked at its option, with its link
+  const note = technology.subtypes?.note;
+  useFootnote(`subtypes-${technology.subtypes?.param}`, note?.text, note?.link);
   return (
     <>
       {technology.subtypes && (

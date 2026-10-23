@@ -20,13 +20,16 @@ import { selectionOf } from './useDashboardState';
 export default function SelectionBar({
   technologies,
   state,
-  active: technology = state.technology,
+  active,
   filters = true,
   label = 'Technologie',
   inCard = false,
   extra,
   children,
 }) {
+  // Filters only for the map (the batteries' size classes) are not this page's: without them here
+  const shown = active ?? state.technology;
+  const technology = shown.subtypes?.mapOnly ? { ...shown, subtypes: null } : shown;
   const { subtypes, leistung, note } = selectionOf(technology, state.searchParams);
   const filtered = filters && Boolean(technology.subtypes || technology.leistung);
   const narrowed = filtered && Boolean(note);

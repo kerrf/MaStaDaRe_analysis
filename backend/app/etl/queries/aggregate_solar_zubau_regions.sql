@@ -5,14 +5,14 @@ DROP MATERIALIZED VIEW IF EXISTS mrt.solar_zubau_regions;
 -- Solar Zubau and Bestand per year since 2000 for Deutschland ('DE'), every Bundesland (2-digit key), Landkreis (5)
 -- and Gemeinde (8): the units that went into operation in the year, and those in operation at its end (minus the finally
 -- decommissioned ones), like the Germany-wide mrt.zubau_zeitverlauf. Every region has every year, also empty ones.
--- Per Anlagenart ('gebaeude', 'freiflaeche', see aggregate_pv_by_region_power.sql; the API returns both), with Brutto
+-- Per Anlagenart ('gebaeude', 'freiflaeche', 'balkon', see aggregate_pv_by_region_power.sql; the API returns both), with Brutto
 -- (Bruttoleistung) and Netto (Nettonennleistung) power. Units that went into operation before 2000 count into the Bestand.
 CREATE MATERIALIZED VIEW mrt.solar_zubau_regions AS
 WITH units AS (
     -- Every unit in Germany that went into operation (planned ones have no Inbetriebnahmedatum): the year it came,
     -- before 2000 as 1999, and the year it was finally decommissioned, at the earliest the year it came
     SELECT
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS anlagenart,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS anlagenart,
         "Gemeindeschluessel" AS ags,
         GREATEST(CAST(EXTRACT(YEAR FROM "Inbetriebnahmedatum") AS INTEGER), 1999) AS added_in,
         CASE WHEN "EinheitBetriebsstatus" = 'Endgültig stillgelegt' THEN GREATEST(
@@ -82,7 +82,7 @@ grid AS (
         sum(COALESCE(p.net, 0)) OVER w AS installed,
         sum(COALESCE(p.net_net, 0)) OVER w AS installed_net
     FROM regions r
-    CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche')) AS a (anlagenart)
+    CROSS JOIN (VALUES ('gebaeude'), ('freiflaeche'), ('balkon')) AS a (anlagenart)
     CROSS JOIN generate_series(1999, (SELECT max(added_in) FROM units)) AS y (year)
     LEFT JOIN per_region p ON p.region = r.region AND p.anlagenart = a.anlagenart AND p.year = y.year
     WINDOW w AS (PARTITION BY r.region, a.anlagenart ORDER BY y.year)

@@ -413,6 +413,21 @@ analyses of one area (`scopeAnalysesOf`). Clicking an area that leads no deeper 
 analysis next to the map. Full screen takes the whole workspace. Below 1200 px the rail goes under the map. The notes
 of `config.todos` show only in `npm run dev`.
 
+- **Rangliste** (`RankingPanel.jsx`): every Land on the Länder map (with offshore wind 17 rows), the top 12 below; name and
+  value on a line, the bar across the width below in the map's colour. The rows share the rail's height (26–44 px), so
+  it never scrolls.
+- **Colours**: each technology may bring its own `ramp` (`lib/colorScale.js`: the Erzeuger besides solar in green, olive,
+  petrol, terracotta, violet – none of the Speicher blue, Gas teal or Netz rose), else the dashboard's. The borders
+  between areas adapt (`edgeOn`): white on the darker steps, a fine dark line on the light ones and on no data.
+- **What isn't on the map** (`UnassignedNote.jsx`, bottom left): what of the Kennzahl the register places on no area of
+  the level shown – without a place, with its Land only (on the Länder map, not below), or with a Gemeinde key the
+  boundaries don't have; on hover why. From `/karte/<zeit>/ohne-ort` (the map of today: `kennzahl=heute`, else the map
+  in time's Kennzahl and period) or the technology's `ohneOrtPath` (the Netzanschlüsse: `/netz/ohne-ort`, for the chosen
+  Spannungsebenen). Nothing missing: no note. Not for PLZ, the continuous map and the sites.
+- **KPIs**: Zubau (12 Monate) and Registrierungen (12 Monate) (`kind: 'registrations'`: the last 12 months of
+  `/zubau/registrierungen` for the area and the one above it, the technology's `registrations` series, solar and wind
+  per chosen part).
+
 ### Key figures with bars (`components/ui/FigureBlock.jsx`) and the targets (`config/targets.js`)
 
 The size classes (`SizeDistribution.jsx` → `components/charts/GroupedBarChart.jsx`) show absolute values on two

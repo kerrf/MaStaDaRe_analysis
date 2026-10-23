@@ -16,14 +16,29 @@ from app.schemas.analyses import (
     RegionTable,
     regions,
 )
+from app.schemas.selection import batterie_groessen
 
 router = APIRouter(prefix="/battery", tags=["Battery Storage Data"])
 
 
+Groessen = Annotated[tuple[str, ...], Depends(batterie_groessen)]
+MEASURES = (
+    "total_power",
+    "relative_area_power",
+    "relative_population_power",
+    "total_capacity",
+    "relative_area_capacity",
+    "relative_population_capacity",
+    "added_12m_power",
+    "added_12m_capacity",
+)
+
+
 @router.get("/dashboard-stats", response_model=None)
-async def get_dashboard_stats(level: RegionLevel, db: Session = Depends(get_db)):
-    """Battery storage power and capacity per Bundesland, Landkreis or Gemeinde."""
-    return db.query(BatteryRegionStats).filter(*BatteryRegionStats.at_level(level)).all()
+def get_dashboard_stats(level: RegionLevel, groessen: Groessen, db: Session = Depends(get_db)):
+    """Battery storage power and capacity per Bundesland, Landkreis or Gemeinde, for the chosen size classes
+    (?groesse=heimspeicher, gewerbespeicher, grossspeicher: like the Zubau)."""
+    return BatteryRegionStats.summed(db, level, groessen, MEASURES)
 
 
 @router.get("/zubau", response_model=list[BatteryZubauYear])
@@ -53,7 +68,9 @@ def get_kinds(db: Annotated[Session, Depends(get_db)], region: Region = "DE"):
 
 
 @router.get("/heatmap", response_model=HeatmapPoints)
-def get_heatmap(db: Annotated[Session, Depends(get_db)], measure: Literal["power", "capacity"] = "power"):
+def get_heatmap(
+    db: Annotated[Session, Depends(get_db)], groessen: Groessen, measure: Literal["power", "capacity"] = "power"
+):
     """Where the batteries lie, for the continuous map: large ones per cell of about 1 km, home batteries per postcode,
     as power (kW) or usable capacity (kWh, where plausible) (mrt.heatmap_points)."""
-    return HeatmapPoint.of(db, "batterie", measure=measure)
+    return HeatmapPoint.of(db, "batterie", groessen, measure=measure)

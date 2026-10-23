@@ -89,7 +89,10 @@ export default function PvSpeicherAnalysis({ analysis, subtypes, leistung, ancho
     };
   }, [data.data, subtypes, power, powerWithBattery]);
 
-  const selection = subtypes && subtypes.length === 1 ? ` · nur ${subtypes[0] === 'freiflaeche' ? 'Freifläche' : 'Gebäude'}` : '';
+  // Narrowed to some Anlagenarten (of three: Gebäude, Freifläche, Balkonkraftwerke): which
+  const ARTEN = { gebaeude: 'Gebäude', freiflaeche: 'Freifläche', balkon: 'Balkonkraftwerke' };
+  const selection =
+    subtypes && subtypes.length < Object.keys(ARTEN).length ? ` · nur ${subtypes.map((id) => ARTEN[id]).join(', ')}` : '';
   const perKw = netto ? 'kWh/kW' : 'kWh/kWp';
   const classScale = view ? Math.max(...view.classes.map((c) => share(c.withBattery, c.units))) : 1;
   // The CSVs of the two charts, in the selection: one Anlagenart, and (for the ratio) Netto or Brutto

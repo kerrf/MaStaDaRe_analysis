@@ -90,7 +90,7 @@ units AS (
     -- 1. Every unit (KWK: plant) with its kind, area, status, the day it came and the day it left for good, and its
     --    measures
     SELECT 'solar' AS technology,
-        CASE WHEN "ArtDerSolaranlage" = 'Freiflächensolaranlage' THEN 'freiflaeche' ELSE 'gebaeude' END AS art,
+        CASE "ArtDerSolaranlage" WHEN 'Freiflächensolaranlage' THEN 'freiflaeche' WHEN 'Steckerfertige Solaranlage (sog. Balkonkraftwerk)' THEN 'balkon' ELSE 'gebaeude' END AS art,
         "Gemeindeschluessel" AS area, "EinheitBetriebsstatus" AS status, "Inbetriebnahmedatum" AS added_on,
         CAST("DatumEndgueltigeStilllegung" AS date) AS removed_on,
         "Bruttoleistung" AS power, "Nettonennleistung" AS power_net,
@@ -139,7 +139,21 @@ units AS (
     UNION ALL
     -- Batteries: the plant's capacity split between its units by their power, where it is plausible (full in 6 minutes
     -- to 12 hours)
-    SELECT 'battery', 'alle', u."Gemeindeschluessel", u."EinheitBetriebsstatus", u."Inbetriebnahmedatum",
+    SELECT 'battery',
+        -- The size class like the map (aggregate_bat_by_region_power.sql) and the Zubau; without a plausible capacity by
+        -- the power alone
+        CASE
+            WHEN b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12 THEN
+                CASE
+                    WHEN b.capacity < 30 AND b.power < 30 THEN 'heimspeicher'
+                    WHEN b.capacity >= 1000 OR b.power >= 1000 THEN 'grossspeicher'
+                    ELSE 'gewerbespeicher'
+                END
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) < 30 THEN 'heimspeicher'
+            WHEN COALESCE(b.power, u."Bruttoleistung", 0) >= 1000 THEN 'grossspeicher'
+            ELSE 'gewerbespeicher'
+        END,
+        u."Gemeindeschluessel", u."EinheitBetriebsstatus", u."Inbetriebnahmedatum",
         CAST(u."DatumEndgueltigeStilllegung" AS date), u."Bruttoleistung", NULL,
         CASE WHEN b.capacity > 0.3 AND b.power > 0.3 AND b.capacity / b.power BETWEEN 0.1 AND 12
             THEN b.capacity * u."Bruttoleistung" / b.power END,
