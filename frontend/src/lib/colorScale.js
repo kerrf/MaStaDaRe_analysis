@@ -28,10 +28,12 @@ export function edgeOn(fill) {
 }
 
 // Skewed data (a few very large regions) would wash out a linear 0..max scale, so for
-// many-region layers the upper end is clipped at the 98th percentile.
+// many-region layers the upper end is clipped at the 98th percentile – of the areas with something: where most have
+// nothing (the Zubau of a year, Großspeicher by Gemeinde: 195 of 10,956), the percentile of all of them is 0 and the
+// map would show none.
 export function scaleDomainMax(values) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = values.filter((v) => v > 0).sort((a, b) => a - b);
+  if (!sorted.length) return 0;
   if (sorted.length < 50) return sorted[sorted.length - 1];
   return sorted[Math.floor(0.98 * (sorted.length - 1))];
 }
