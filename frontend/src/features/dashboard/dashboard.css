@@ -30,9 +30,11 @@
 .dashboard-header__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   justify-content: flex-end;
 }
+
 
 /* The pages of the dashboard: tabs like those of a folder along the header's bottom edge. The current one has the
    page's paper and the topic's colour line, and covers the edge: it opens to the page below. */
@@ -593,7 +595,8 @@
   margin-left: 14px;
 }
 
-.map-card__links a {
+.map-card__links a,
+.map-card__tour {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -602,7 +605,18 @@
   font-weight: 600;
 }
 
-.map-card__links a:hover {
+/* The tour again (guide/mapTour.js), as one of the links */
+.map-card__tour {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.map-card__links a:hover,
+.map-card__tour:hover {
   color: var(--accent-strong);
 }
 

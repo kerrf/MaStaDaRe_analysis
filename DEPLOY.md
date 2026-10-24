@@ -608,3 +608,49 @@ day; with keys only, guessing gets them nowhere.
 
 fail2ban isn't needed then: it bans addresses that guess passwords, and those
 no longer get anywhere.
+
+## 15. Nutzungszahlen: which settings get used
+
+The pages count what people choose – each view's settings (only those that differ from the defaults: the link holds
+nothing else), shares, exports, the tour and the tips – and send it to the API in small batches (`POST /usage`,
+`frontend/src/lib/usage.js`). Stored is the day, the event and its settings: no IP address, no time of day, no cookie,
+no id. Browsers with Do Not Track or Global Privacy Control send nothing. The Datenschutz page says so as soon as it is
+switched on.
+
+It lives in a database of its own, `mastr_usage`, beside the MaStR data (`push_db.sh` swaps only `mastr`, the counts
+stay). The API writes as the role `mastr_usage`, which may only add rows; a trigger refuses more than 200,000 rows a
+day and deletes what is older than 400 days.
+
+1. On the server, once: into `/opt/mastr/backend/.env.production` – the password only letters and digits (it goes
+   into a URL; `openssl rand -hex 24` makes one):
+
+   ```
+   USAGE_DB_PASSWORD=<that password>
+   USAGE_DATABASE_URL=postgresql+psycopg2://mastr_usage:<that password>@db:5432/mastr_usage
+   ```
+
+   Then the database, the table and the role (idempotent: again for a new password), and the backend with its new
+   settings:
+
+   ```bash
+   cd /opt/mastr
+   docker compose run --rm backend python -m app.etl.usage_setup
+   docker compose up -d --force-recreate backend
+   ```
+
+   Until `USAGE_DATABASE_URL` is set, `POST /usage` answers 503 and nothing is counted. `USAGE_ENABLED=false` switches
+   it off at once.
+2. In Vercel: Project Settings → Environment Variables → for **Production** `VITE_USAGE=true`, then redeploy. Without
+   it the pages send nothing.
+3. Read it, as the owner (the API's role can't):
+
+   ```bash
+   cd /opt/mastr && docker compose run --rm backend python -m app.etl.usage_report
+   ```
+
+   The last 7 and 30 days: how often each event happened, the visits, per page which settings were changed in how
+   many of its views and to what (a setting nobody changes is either right as it is, or not found – that is where
+   explaining is worth it), the areas and Kreise looked at, shares, exports, how the tour and the tips fare.
+
+Locally: both lines in `backend/.env` (host `localhost`), `cd backend && uv run python -m app.etl.usage_setup`, the
+API restarted, `VITE_USAGE=true` in `frontend/.env.local`; the report with `uv run python -m app.etl.usage_report`.

@@ -343,6 +343,70 @@
   color: var(--ink-primary);
 }
 
+/* ----------------------------------------------------------- Neuigkeiten */
+/* By month, the newest first: each a card with its date, a title, two sentences, the link to try it */
+.news {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 760px;
+}
+
+.news__month-title {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.news__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border-left: 3px solid var(--brand-500);
+}
+
+.news__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.news__title {
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.news__text {
+  margin: 0;
+  max-width: 62ch;
+  line-height: 1.55;
+  color: var(--ink-secondary);
+}
+
+.news__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-weight: 650;
+}
+
 /* ------------------------------------------------------------ Responsive */
 @media (max-width: 860px) {
   .info-layout {

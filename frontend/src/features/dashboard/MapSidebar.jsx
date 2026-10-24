@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { CalendarRange, Check, ChevronDown, PanelLeftClose, RotateCcw } from 'lucide-react';
 import ListSelect from '../../components/ui/ListSelect';
 import { hasData } from '../../config/dashboards';
+import Tip, { useTip } from '../guide/Tip';
 import { useFootnote } from './footnoteContext';
 import { FIRST_YEAR, MONTHS, WERTE, periodNote } from './mapTime';
 import TechFilters from './TechFilters';
@@ -148,7 +149,7 @@ function useFitsWindow(ref) {
  * "Einstellungen" above the map. technologies, state: the dashboard's; time: the map in time (MapToolbar's prop) or
  * null; onReset: everything back to the start; onClose: the drawer.
  */
-export default function MapSidebar({ technologies, state, time, onReset, onClose }) {
+export default function MapSidebar({ technologies, state, time, onReset, onClose, guideReady = false }) {
   const { technology } = state;
   const { subtypes, leistung } = selectionOf(technology, state.searchParams);
   const filtered = Boolean(technology.subtypes || technology.leistung);
@@ -156,6 +157,8 @@ export default function MapSidebar({ technologies, state, time, onReset, onClose
   const changed = state.searchParams.toString() !== '';
   const ref = useRef(null);
   const fits = useFitsWindow(ref);
+  // A tip, once: the Zubau or the Stilllegungen of a whole year shown a while – a single month shows where it happened last
+  const [monthTip, closeMonthTip] = useTip('monat', guideReady && time && ['zubau', 'stilllegung'].includes(time.wert) && time.period.raster === 'jahr');
   // The technology's filters: after the Kennzahl, where there is one, else after the technology
   const filters = filtered && (
     <div className="map-sidebar__filters">
@@ -170,7 +173,7 @@ export default function MapSidebar({ technologies, state, time, onReset, onClose
   );
 
   return (
-    <aside ref={ref} className={`map-sidebar${fits ? ' is-sticky' : ''}`} aria-label="Einstellungen der Karte">
+    <aside ref={ref} className={`map-sidebar${fits ? ' is-sticky' : ''}`} aria-label="Einstellungen der Karte" data-tour="sidebar">
       <header className="map-sidebar__head">
         <h2 className="map-sidebar__title">Einstellungen</h2>
         <button type="button" className="map-sidebar__reset" onClick={onReset} disabled={!changed} title="Alle Einstellungen der Karte zurücksetzen">
@@ -197,13 +200,29 @@ export default function MapSidebar({ technologies, state, time, onReset, onClose
           <MenuSection title="Kennzahl" label="Kennzahl" value={time.wert} onChange={time.onWert} options={WERTE} />
           {filters}
 
-          <section className="sidebar-section">
+          <section className="sidebar-section" data-tour="zeitraum">
             <h3 className="sidebar-section__title">Zeitraum</h3>
             {time.wert !== 'geplant' && <Period time={time} />}
             <p className="sidebar-note">
               <CalendarRange size={14} aria-hidden="true" />
               {periodNote(time.wert, time.period, time.latest)}
             </p>
+            {monthTip && (
+              <Tip
+                id="monat"
+                action="Einen Monat zeigen"
+                onAction={() => {
+                  // The last complete month of the year: the running one has only its first days
+                  const { jahr } = time.period;
+                  const monat = jahr === time.latest.jahr ? time.latest.monat - 1 : 12;
+                  time.onPeriod(monat >= 1 ? { jahr, monat } : { jahr: jahr - 1, monat: 12 });
+                }}
+                onClose={closeMonthTip}
+              >
+                Auf „Monat“ gestellt, zeigt die Karte {time.wert === 'zubau' ? 'den Zubau' : 'die Stilllegungen'} eines einzelnen Monats –
+                etwa, wo zuletzt gebaut wurde.
+              </Tip>
+            )}
           </section>
         </>
       )}
