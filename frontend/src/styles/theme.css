@@ -41,12 +41,6 @@ html .badge--live {
   color: var(--brand-700);
 }
 
-/* What is new (config/news.js): the forest green of a chosen button */
-html .badge--new {
-  background: var(--brand-500);
-  border-color: var(--brand-500);
-  color: #ffffff;
-}
 
 html .btn--secondary {
   background: transparent;

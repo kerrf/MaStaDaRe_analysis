@@ -5,7 +5,6 @@ import Badge from '../../components/ui/Badge';
 import ShareButton from '../../components/ui/ShareButton';
 import TodoNote from '../../components/ui/TodoNote';
 import { hasData } from '../../config/dashboards';
-import { hasNews } from '../../config/news';
 import { dashboardTitle, kommuneTitle } from '../../config/seo';
 import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
 import { useDatenstand } from '../../lib/data';
@@ -117,7 +116,6 @@ export default function Dashboard({ config, view }) {
                 >
                   <Icon size={16} aria-hidden="true" />
                   {label}
-                  {hasNews(config.id, id) && <span className="badge badge--new badge--xs">Neu</span>}
                 </Link>
               );
             })}

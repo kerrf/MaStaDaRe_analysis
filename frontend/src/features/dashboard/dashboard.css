@@ -35,10 +35,6 @@
   justify-content: flex-end;
 }
 
-/* "Neu" on a tab (config/news.js) */
-.dashboard-tabs__tab .badge--new {
-  margin-left: 2px;
-}
 
 /* The pages of the dashboard: tabs like those of a folder along the header's bottom edge. The current one has the
    page's paper and the topic's colour line, and covers the edge: it opens to the page below. */

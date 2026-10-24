@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import Badge from '../components/ui/Badge';
-import { NEWS, isNew } from '../config/news';
+import { NEWS } from '../config/news';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
 
@@ -37,11 +36,6 @@ export default function NeuigkeitenPage() {
                   <li key={item.id} id={item.id} className="card news__item">
                     <div className="news__meta">
                       <time dateTime={item.date}>{DAY.format(dateOf(item.date))}</time>
-                      {isNew(item) && (
-                        <Badge tone="new" size="xs">
-                          Neu
-                        </Badge>
-                      )}
                     </div>
                     <h3 className="news__title">{item.title}</h3>
                     <p className="news__text">{item.text}</p>
