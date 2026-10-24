@@ -21,6 +21,7 @@ const COLUMNS = [
     title: 'Projekt',
     links: [
       { label: 'Info & Methodik', to: '/info' },
+      { label: 'Neuigkeiten', to: '/neuigkeiten' },
       { label: 'Datenquellen', to: '/info#quellen' },
       { label: 'FAQ', to: '/info#faq' },
       { label: 'GitHub', href: SITE.links.github },

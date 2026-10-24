@@ -5,6 +5,7 @@ import Chapters from '../features/home/Chapters';
 import HeroPreviews from '../features/home/HeroPreviews';
 import QuestionGallery from '../features/home/QuestionGallery';
 import RegisterFigures from '../features/home/RegisterFigures';
+import { NEWS, isNew } from '../config/news';
 import { SITE } from '../config/site';
 import { useDatenstand } from '../lib/data';
 import { formatDate } from '../lib/format';
@@ -14,6 +15,7 @@ import './HomePage.css';
 export default function HomePage() {
   useDocumentTitle(null);
   const datenstand = useDatenstand();
+  const latest = isNew(NEWS[0]) ? NEWS[0] : null;
 
   return (
     <div className="home">
@@ -36,6 +38,18 @@ export default function HomePage() {
                 Methodik &amp; Quellen
               </Link>
             </div>
+            {/* The newest of the Neuigkeiten, while it is new */}
+            {latest && (
+              <Link to={`/neuigkeiten#${latest.id}`} className="home-news">
+                <Badge tone="new" size="xs">
+                  Neu
+                </Badge>
+                <span className="home-news__title">{latest.title}</span>
+                <span className="home-news__all">
+                  Alle Neuigkeiten <ArrowRight size={13} aria-hidden="true" />
+                </span>
+              </Link>
+            )}
           </div>
           <HeroPreviews />
         </div>

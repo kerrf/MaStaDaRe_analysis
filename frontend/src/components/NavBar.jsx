@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, X, Zap } from 'lucide-react';
+import { hasNews } from '../config/news';
 import { SITE } from '../config/site';
 import { DASHBOARD_MENUS, VIEWS, viewPath } from '../config/views';
 import './NavBar.css';
@@ -19,6 +20,7 @@ const DASHBOARDS = DASHBOARD_MENUS.map((menu) => ({
     icon: VIEWS[view].icon,
     to: viewPath(menu.basePath, view),
     end: view === 'karte',
+    isNew: hasNews(menu.id, view),
   })),
 }));
 
@@ -130,7 +132,10 @@ export default function NavBar() {
                       <Icon size={16} />
                     </span>
                     <span className="navbar__menuText">
-                      <span className="navbar__menuLabel">{item.label}</span>
+                      <span className="navbar__menuLabel">
+                        {item.label}
+                        {item.isNew && <span className="badge badge--new badge--xs">Neu</span>}
+                      </span>
                       <span className="navbar__menuHint">{item.text}</span>
                     </span>
                   </Link>

@@ -311,3 +311,9 @@
     display: none;
   }
 }
+
+/* "Neu" beside a page's name (config/news.js) */
+.navbar__menuLabel .badge--new {
+  margin-left: 7px;
+  vertical-align: 1px;
+}

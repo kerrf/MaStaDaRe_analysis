@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     API_PREFIX: str
     DEBUG: bool
 
+    # Which settings of the website get used (app.routers.usage, DEPLOY.md "Nutzungszahlen"): counts without cookies or
+    # any id, in a database of its own, written by a role that may only add rows (app.etl.usage_setup). Without the
+    # database URL the endpoint answers 503 and the website sends nothing; USAGE_ENABLED=false switches it off at once.
+    USAGE_ENABLED: bool = True
+    USAGE_DATABASE_URL: str | None = None
+    # Only for app.etl.usage_setup, which gives the role this password
+    USAGE_DB_PASSWORD: str | None = None
+    # The sites whose pages may send counts, comma-separated
+    USAGE_ORIGINS: str = "https://www.mastr-data.de,https://mastr-data.de,http://localhost:5173,http://localhost:5174,http://localhost:4173"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 

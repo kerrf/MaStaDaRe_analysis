@@ -2,13 +2,16 @@ import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
+import ShareButton from '../../components/ui/ShareButton';
 import TodoNote from '../../components/ui/TodoNote';
 import { hasData } from '../../config/dashboards';
+import { hasNews } from '../../config/news';
 import { dashboardTitle, kommuneTitle } from '../../config/seo';
 import { DASHBOARD_MENUS, VIEWS, viewsOf } from '../../config/views';
 import { useDatenstand } from '../../lib/data';
 import { formatDate } from '../../lib/format';
 import useDocumentTitle from '../../lib/useDocumentTitle';
+import useViewCount from '../guide/useViewCount';
 import AnlagenView from './AnlagenView';
 import NetzView from './NetzView';
 import OverviewView from './overview/OverviewView';
@@ -50,6 +53,8 @@ function PageLoader() {
  */
 export default function Dashboard({ config, view }) {
   const state = useDashboardState(config, view);
+  // Which settings get used (lib/usage.js): each view counted, without anything of the visitor
+  useViewCount(config.id, view, state);
   // The header's place for the area's choice: set as the header mounts, so the page's ScopeBar is there in the first paint
   const [scopeSlot, setScopeSlot] = useState(null);
   const datenstand = useDatenstand();
@@ -93,6 +98,8 @@ export default function Dashboard({ config, view }) {
           <div className="dashboard-header__meta">
             <Badge icon={Clock}>Datenstand {formatDate(datenstand)}</Badge>
             {live ? <Badge tone="live">Live-Daten</Badge> : <Badge tone="soon">In Vorbereitung</Badge>}
+            {/* The link holds the whole view: worth sharing once the person has chosen something */}
+            <ShareButton page={`${config.id}/${view}`} tipWhen={state.searchParams.toString() !== '' || Boolean(state.region)} />
           </div>
         </div>
         <div ref={setScopeSlot} className="container dashboard-header__scope-slot" />
@@ -110,6 +117,7 @@ export default function Dashboard({ config, view }) {
                 >
                   <Icon size={16} aria-hidden="true" />
                   {label}
+                  {hasNews(config.id, id) && <span className="badge badge--new badge--xs">Neu</span>}
                 </Link>
               );
             })}

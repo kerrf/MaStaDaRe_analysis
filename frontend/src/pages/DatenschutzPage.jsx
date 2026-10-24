@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import TodoNote from '../components/ui/TodoNote';
 import { SITE } from '../config/site';
-import { EVENTS_ENABLED } from '../lib/usage';
+import { EVENTS_ENABLED, USAGE_ENABLED } from '../lib/usage';
 import useDocumentTitle from '../lib/useDocumentTitle';
 import './pages.css';
 
@@ -60,6 +60,20 @@ export default function DatenschutzPage() {
             zusätzlich Messwerte zur Ladezeit der Seite
             {EVENTS_ENABLED ? ', außerdem die Nutzung einzelner Funktionen wie Kartenexporte oder die Wahl der Technologie' : ''} (Art. 6 Abs. 1
             lit. f DSGVO).
+          </p>
+          {USAGE_ENABLED && (
+            <p>
+              Außerdem zählen wir selbst, welche Einstellungen der Dashboards genutzt werden – etwa welche Technologie, welcher Zeitraum
+              oder welches Gebiet gewählt ist, ob eine Ansicht geteilt oder exportiert wird und ob die Einführung durchlaufen wird. Gespeichert
+              werden nur der Tag, der Name des Ereignisses und diese Einstellungen, auf unserem Server in Deutschland; keine IP-Adresse, keine
+              Uhrzeit, kein Cookie und keine Kennung, sodass sich die Zählungen keiner Person und keinem Besuch zuordnen lassen. Sie werden
+              nach 400 Tagen gelöscht. Wer im Browser „Do Not Track“ oder „Global Privacy Control“ eingeschaltet hat, wird nicht gezählt
+              (Art. 6 Abs. 1 lit. f DSGVO, Interesse an einer verständlichen Seite).
+            </p>
+          )}
+          <p>
+            Ob die kurze Einführung der Karte schon gezeigt wurde und welche Tipps, merkt sich die Seite im Speicher Ihres Browsers (Local
+            Storage), nicht in einem Cookie; das wird nicht übertragen und lässt sich mit den Website-Daten des Browsers löschen.
           </p>
 
           <h2>5. Schriftarten und Karten</h2>

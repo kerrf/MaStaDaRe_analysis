@@ -335,6 +335,7 @@ for (const kind of KOMMUNE_PAGES) {
 // Info and legal pages: their texts are the app's; here their title and what they are about
 const STATIC = [
   { path: '/info', title: 'Info & Methodik', description: 'Wie die Zahlen entstehen: Quellen, Aufbereitung und Methodik des MaStR Dashboards, Glossar und häufige Fragen.' },
+  { path: '/neuigkeiten', title: 'Neuigkeiten', description: 'Was neu ist im MaStR Dashboard – kurz erklärt, mit einem Link zum Ausprobieren.' },
   { path: '/datenqualitaet', title: 'Datenqualität des MaStR', description: 'Wie vollständig und plausibel sind die Angaben im Marktstammdatenregister? Was beim Aufbereiten auffällt und wie die Auswertungen damit umgehen.', robots: 'noindex', sitemap: false },
   { path: '/impressum', title: 'Impressum', description: `Impressum von ${SITE.url.replace('https://', '')}.`, robots: 'index, nofollow' },
   { path: '/datenschutz', title: 'Datenschutz', description: `Datenschutzerklärung von ${SITE.url.replace('https://', '')}: welche Daten beim Besuch anfallen und wofür.` },

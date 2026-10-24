@@ -12,6 +12,7 @@ const GasPage = lazy(() => import('./pages/GasPage'));
 const NetzPage = lazy(() => import('./pages/NetzPage'));
 const DatenqualitaetPage = lazy(() => import('./pages/DatenqualitaetPage'));
 const InfoPage = lazy(() => import('./pages/InfoPage'));
+const NeuigkeitenPage = lazy(() => import('./pages/NeuigkeitenPage'));
 const ImpressumPage = lazy(() => import('./pages/ImpressumPage'));
 const DatenschutzPage = lazy(() => import('./pages/DatenschutzPage'));
 
@@ -46,6 +47,7 @@ export default function App() {
           {dashboardRoutes('netz', NetzPage)}
           <Route path="datenqualitaet" element={<DatenqualitaetPage />} />
           <Route path="info" element={<InfoPage />} />
+          <Route path="neuigkeiten" element={<NeuigkeitenPage />} />
           <Route path="impressum" element={<ImpressumPage />} />
           <Route path="datenschutz" element={<DatenschutzPage />} />
 

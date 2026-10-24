@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Construction, Maximize2, Minimize2, MousePointerClick, RefreshCw, Scale, SlidersHorizontal, TriangleAlert } from 'lucide-react';
+import { BookOpen, Compass, Construction, Maximize2, Minimize2, MousePointerClick, RefreshCw, Scale, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 import { GRANULARITIES, STATES_TOPOLOGY, hasData, isAvailable, scopeAnalysesOf } from '../../config/dashboards';
 import { GERMANY_BOUNDS, GERMANY_SEA_BOUNDS, findBundeslandByAgs, isKreisKey, withoutOffshore } from '../../config/regions';
 import { API_BASE_URL } from '../../config/site';
@@ -28,6 +28,8 @@ import { useUrlChoice } from './useDashboardState';
 import { markDrillHintSeen, useDrillHint } from './drillHint';
 import { WERTE, karteUrl, latestOf, legendOf, ohneOrtUrl, periodOf, periodParam } from './mapTime';
 import UnassignedNote from './UnassignedNote';
+import Tour from '../guide/Tour';
+import { MAP_TOUR, useMapTour } from '../guide/mapTour';
 
 const LINE_WEIGHT = { bundesland: 1, landkreis: 0.5, gemeinde: 0.2, plz2: 0.6, plz3: 0.35, plz5: 0.15 };
 const LANDKREIS = GRANULARITIES.find((g) => g.id === 'landkreis');
@@ -318,7 +320,9 @@ export default function MapView({ config, state }) {
       };
 
   // Now and then, a small hint on the map that a click on a Land zooms in – until the person did it once (drillHint.js)
-  const drillHint = useDrillHint(canDrill && !region && activeGranularity.id === 'bundesland' && !isHeatmap && mapState === 'ready');
+  // The tour on the first visit (guide/mapTour.js), once the map is drawn; the hint waits for it
+  const tour = useMapTour(withData && mapState === 'ready');
+  const drillHint = useDrillHint(canDrill && !region && activeGranularity.id === 'bundesland' && !isHeatmap && mapState === 'ready' && !tour.open);
   useEffect(() => {
     if (region) markDrillHintSeen();
   }, [region]);
@@ -439,7 +443,14 @@ export default function MapView({ config, state }) {
       <ScopeBar region={region} kreis={kreisAgs} kreisOptions={kreisOptions} onSelectScope={selectScope} />
 
       <div className={`sidebar-layout${sidebarOpen ? ' is-open' : ''}`}>
-        <MapSidebar technologies={config.technologies} state={state} time={time} onReset={resetAll} onClose={() => setSidebarOpen(false)} />
+        <MapSidebar
+          technologies={config.technologies}
+          state={state}
+          time={time}
+          onReset={resetAll}
+          onClose={() => setSidebarOpen(false)}
+          guideReady={tour.seen}
+        />
         <button type="button" className="sidebar-layout__scrim" aria-label="Einstellungen schließen" onClick={() => setSidebarOpen(false)} />
         <div className="sidebar-layout__main">
       <KpiStrip kpis={kpis} {...kpiScope} status={withData ? kpiScope.status : 'idle'} parentName={parentName} registrations={registrationSeries} />
@@ -456,7 +467,12 @@ export default function MapView({ config, state }) {
             </div>
           </div>
           <div className="map-card__tools">
-            <button type="button" className="btn btn--secondary btn--sm sidebar-layout__open" onClick={() => setSidebarOpen(true)}>
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm sidebar-layout__open"
+              onClick={() => setSidebarOpen(true)}
+              data-tour="sidebar-open"
+            >
               <SlidersHorizontal size={14} aria-hidden="true" /> Einstellungen
             </button>
             <ExportMenu
@@ -499,7 +515,7 @@ export default function MapView({ config, state }) {
         </div>
 
         <div className="map-workspace__body">
-          <div className="map-frame" ref={frameRef}>
+          <div className="map-frame" ref={frameRef} data-tour="map">
             <ChoroplethMap
               mode={isHeatmap ? 'heatmap' : 'choropleth'}
               geo={merged}
@@ -624,6 +640,9 @@ export default function MapView({ config, state }) {
             </a>
             , Daten verändert · Marine Regions · Natural Earth
             <span className="map-card__links">
+              <button type="button" className="map-card__tour" onClick={tour.start}>
+                <Compass size={13} aria-hidden="true" /> Kurze Einführung
+              </button>
               <Link to="/info#methodik">
                 <BookOpen size={13} aria-hidden="true" /> Methodik &amp; Legende
               </Link>
@@ -636,6 +655,7 @@ export default function MapView({ config, state }) {
       </section>
         </div>
       </div>
+      {tour.open && <Tour steps={MAP_TOUR} onClose={tour.close} topic={config.id} />}
     </>
   );
 }

@@ -175,6 +175,17 @@
   text-transform: uppercase;
 }
 
+/* "Teilen" (ShareButton): the link to this view; green for a moment once copied */
+.share {
+  position: relative;
+  display: inline-flex;
+}
+
+.share__btn.is-done {
+  border-color: var(--success-ink);
+  color: var(--success-ink);
+}
+
 /* ------------------------------------------------------------------ Cards */
 .card {
   background: var(--surface-card);

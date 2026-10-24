@@ -1,0 +1,219 @@
+/* The guide inside the product: the tour on the first visit of the map (Tour), the tips now and then (Tip) */
+
+/* ------------------------------------------------------------------ Tour */
+/* Above the page, which stays usable: the marked element in a ring of light, the rest a little darker, a card beside */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.tour__spot {
+  position: fixed;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 0 9999px rgba(29, 38, 32, 0.38);
+  /* No transition: it follows the element while the page scrolls, frame by frame */
+}
+
+.tour__card {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 14px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+  color: var(--ink-primary);
+  pointer-events: auto;
+}
+
+.tour__card:focus {
+  outline: none;
+}
+
+.tour__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tour__count {
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-strong, var(--ink-secondary));
+}
+
+.tour__close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: -4px -6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.tour__close:hover {
+  background: var(--surface-hover);
+  color: var(--ink-primary);
+}
+
+.tour__title {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.tour__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+}
+
+.tour__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tour__dots {
+  display: flex;
+  flex: 1;
+  gap: 5px;
+}
+
+.tour__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.tour__dots i.is-current {
+  background: var(--accent);
+}
+
+.tour__skip {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tour__skip:hover {
+  color: var(--ink-primary);
+}
+
+/* ------------------------------------------------------------------- Tip */
+/* A tip in its place: what to try, a button that does it, a cross that closes it – once, never again */
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 10px 9px 11px;
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-md);
+  background: var(--warn-bg);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-primary);
+  animation: tip-in 360ms var(--ease);
+}
+
+.tip__icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--warn-ink);
+}
+
+.tip__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tip__body strong {
+  font-weight: 700;
+}
+
+.tip__action {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 650;
+  color: var(--warn-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tip__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -2px -3px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.tip__close:hover {
+  background: rgba(29, 38, 32, 0.06);
+  color: var(--ink-primary);
+}
+
+/* A tip that floats beside a button (Teilen) */
+.tip--float {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  width: min(300px, calc(100vw - 32px));
+  margin: 0;
+  box-shadow: var(--shadow-lg);
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
+}

@@ -19,6 +19,7 @@ from app.routers import (
     pumped_storage,
     regions,
     solar,
+    usage,
     water,
     wind,
     zubau,
@@ -46,6 +47,7 @@ app.include_router(karte.router)
 app.include_router(netz.router)
 app.include_router(regions.router)
 app.include_router(meta.router)
+app.include_router(usage.router)
 
 # The views change once a night (app.etl.update): a browser and Cloudflare may keep an answer for 15 minutes, and a
 # cache may still hand out its copy for a day while the server fails
